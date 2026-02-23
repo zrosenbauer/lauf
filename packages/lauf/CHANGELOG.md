@@ -1,5 +1,11 @@
 # laufen
 
+## 0.1.5
+
+### Patch Changes
+
+- 028d3c6: Render `<root>` as top-level heading in script tree with its scripts and sub-packages nested beneath it
+
 ## 0.1.4
 
 ### Patch Changes
