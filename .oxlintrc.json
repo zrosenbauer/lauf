@@ -54,7 +54,7 @@
     "functional/no-throw-statements": "error",
     "functional/no-expression-statements": "error",
     "functional/functional-parameters": "error",
-    "functional/prefer-tacit": "error",
+    "functional/prefer-tacit": "off",
     "oxc/no-optional-chaining": [
       "error",
       {
@@ -63,6 +63,12 @@
     ]
   },
   "overrides": [
+    {
+      "files": ["**/.vitepress/theme/**"],
+      "rules": {
+        "import/no-unassigned-import": "off"
+      }
+    },
     {
       "files": ["**/*.config.ts", "**/*.config.js"],
       "rules": {
@@ -85,7 +91,6 @@
         "functional/immutable-data": "off",
         "functional/no-let": "off",
         "functional/no-loop-statements": "off",
-        "functional/prefer-tacit": "off",
         "security/detect-non-literal-fs-filename": "off",
         "security/detect-object-injection": "off"
       }
