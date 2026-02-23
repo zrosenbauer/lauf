@@ -1,5 +1,11 @@
 # laufen
 
+## 0.1.4
+
+### Patch Changes
+
+- 3f05779: Display root workspace package as `<root>` instead of its package.json name in script listings
+
 ## 0.1.3
 
 ### Patch Changes
