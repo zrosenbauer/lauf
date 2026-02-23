@@ -44,14 +44,9 @@ vi.mock('../lib/paths.ts', () => ({
   resolveTsx: vi.fn(() => [null, '/lauf-root/node_modules/.bin/tsx']),
 }));
 
-vi.mock('../lib/workspace.ts', () => ({
-  getWorkspaceInfo: vi.fn(() => ({ manager: 'pnpm', root: '/workspace', globs: ['packages/*'] })),
-}));
-
 import { loadAllLaufConfigs, safeLoadLaufConfigWithMeta } from '../lib/config.ts';
 import { discoverScripts } from '../lib/discovery.ts';
 import { resolveTsx } from '../lib/paths.ts';
-import { getWorkspaceInfo } from '../lib/workspace.ts';
 import listHandler from './list.ts';
 
 beforeEach(() => {
@@ -595,8 +590,8 @@ describe('list handler --all flag', () => {
   });
 });
 
-describe('root package filtering', () => {
-  it('filters out scripts from the workspace root package in monorepo mode', async () => {
+describe('root package scripts', () => {
+  it('includes scripts from the workspace root package in monorepo mode', async () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([
       null,
       {
@@ -622,41 +617,12 @@ describe('root package filtering', () => {
 
     await listHandler({ flags: {} });
 
-    // Only the sub-package script should remain after filtering
-    expect(p.note).toHaveBeenCalledWith(expect.any(String), expect.stringContaining('1 script(s)'));
+    // Both root and sub-package scripts should appear
+    expect(p.note).toHaveBeenCalledWith(expect.any(String), expect.stringContaining('2 script(s)'));
     expect(process.exit).not.toHaveBeenCalled();
   });
 
-  it('keeps root package scripts in single-package mode', async () => {
-    vi.mocked(getWorkspaceInfo).mockReturnValue({
-      manager: 'single',
-      root: '/workspace',
-      globs: [],
-    });
-    vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([
-      null,
-      {
-        config: { scripts: ['scripts/*.ts'], logger: undefined, spinner: true },
-        configFile: 'lauf.config.ts',
-        configDir: '/workspace',
-      },
-    ]);
-    vi.mocked(discoverScripts).mockReturnValue([
-      {
-        name: 'my-pkg/build',
-        path: '/workspace/scripts/build.ts',
-        packageDir: '/workspace',
-        packageName: 'my-pkg',
-      },
-    ]);
-
-    await listHandler({ flags: {} });
-
-    expect(p.note).toHaveBeenCalledWith(expect.any(String), expect.stringContaining('1 script(s)'));
-    expect(process.exit).not.toHaveBeenCalled();
-  });
-
-  it('shows no-scripts warning when all scripts belong to root package', async () => {
+  it('displays root-only scripts in monorepo mode', async () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([
       null,
       {
@@ -676,8 +642,9 @@ describe('root package filtering', () => {
 
     await listHandler({ flags: {} });
 
-    expect(p.log.warn).toHaveBeenCalledWith('No scripts found.');
-    expect(p.note).not.toHaveBeenCalled();
+    expect(p.note).toHaveBeenCalledWith(expect.any(String), expect.stringContaining('1 script(s)'));
+    expect(p.log.warn).not.toHaveBeenCalledWith('No scripts found.');
+    expect(process.exit).not.toHaveBeenCalled();
   });
 });
 
