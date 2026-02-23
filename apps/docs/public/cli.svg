@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 838 370">
+  <defs>
+    <style>
+      .c-text { font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', Consolas, monospace; }
+      .c-code { font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', Consolas, monospace; font-size: 13px; }
+      .c-dim { fill: #6c7086; }
+      .c-tx { fill: #cdd6f4; }
+      .c-cyan { fill: #89dceb; }
+      .c-blue { fill: #89b4fa; }
+      .c-green { fill: #a6e3a1; }
+      .c-teal { fill: #94e2d5; }
+      .c-peach { fill: #fab387; }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="838" height="370" rx="10" ry="10" fill="#1e1e2e" />
+
+  <!-- Title bar -->
+  <rect width="838" height="36" rx="10" ry="10" fill="#181825" />
+  <rect y="26" width="838" height="10" fill="#181825" />
+  <circle cx="20" cy="18" r="6" fill="#f38ba8" />
+  <circle cx="40" cy="18" r="6" fill="#f9e2af" />
+  <circle cx="60" cy="18" r="6" fill="#a6e3a1" />
+  <text class="c-text c-dim" font-size="12" x="419" y="22" text-anchor="middle">lauf</text>
+
+  <!-- Command -->
+  <text class="c-code" x="24" y="64"><tspan class="c-blue">~</tspan><tspan class="c-dim"> $ </tspan><tspan class="c-tx">lauf list</tspan></text>
+
+  <!-- Output -->
+  <text class="c-code" x="24" y="100" xml:space="preserve"><tspan class="c-dim">  Found </tspan><tspan class="c-tx">3 scripts</tspan><tspan class="c-dim"> across </tspan><tspan class="c-tx">2 packages</tspan></text>
+
+  <text class="c-code" x="24" y="132" xml:space="preserve"><tspan class="c-blue">  @acme/api</tspan></text>
+  <text class="c-code" x="24" y="156" xml:space="preserve"><tspan class="c-cyan">    clean</tspan><tspan class="c-dim">       Remove build artifacts</tspan></text>
+  <text class="c-code" x="24" y="180" xml:space="preserve"><tspan class="c-cyan">    types</tspan><tspan class="c-dim">       Generate types from JSON schema</tspan></text>
+
+  <text class="c-code" x="24" y="212" xml:space="preserve"><tspan class="c-blue">  @acme/docs</tspan></text>
+  <text class="c-code" x="24" y="236" xml:space="preserve"><tspan class="c-cyan">    docs</tspan><tspan class="c-dim">        Generate API docs using AI</tspan></text>
+
+  <text class="c-code" x="24" y="272" xml:space="preserve"><tspan class="c-dim">  3 scripts across 2 packages</tspan></text>
+
+  <!-- Prompt with blinking cursor -->
+  <text class="c-code" x="24" y="320"><tspan class="c-blue">~</tspan><tspan class="c-dim"> $ </tspan></text>
+  <rect x="52" y="308" width="8" height="14" fill="#cdd6f4">
+    <animate attributeName="opacity" values="1;1;0;0" keyTimes="0;0.5;0.501;1" dur="1s" repeatCount="indefinite"/>
+  </rect>
+
+</svg>

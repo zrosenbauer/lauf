@@ -1,0 +1,137 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 838 540">
+  <defs>
+    <style>
+      .s-code { font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', Consolas, monospace; font-size: 12px; }
+      .s-text { font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', Consolas, monospace; }
+      .s-tx { fill: #cdd6f4; }
+      .s-kw { fill: #cba6f7; }
+      .s-str { fill: #a6e3a1; }
+      .s-fn { fill: #89b4fa; }
+      .s-dim { fill: #6c7086; }
+      .s-ln { fill: #45475a; }
+      .s-pr { fill: #94e2d5; }
+      .s-vr { fill: #fab387; }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="838" height="540" rx="10" ry="10" fill="#1e1e2e" />
+
+  <!-- Title bar -->
+  <rect width="838" height="36" rx="10" ry="10" fill="#181825" />
+  <rect y="26" width="838" height="10" fill="#181825" />
+  <circle cx="20" cy="18" r="6" fill="#f38ba8" />
+  <circle cx="40" cy="18" r="6" fill="#f9e2af" />
+  <circle cx="60" cy="18" r="6" fill="#a6e3a1" />
+  <text class="s-text s-dim" font-size="12" x="419" y="22" text-anchor="middle">docs.ts</text>
+
+  <!-- Line number gutter -->
+  <line x1="42" y1="36" x2="42" y2="540" stroke="#313244" stroke-width="1" />
+
+  <!-- Line numbers -->
+  <text class="s-code s-ln" x="36" y="58" text-anchor="end">1</text>
+  <text class="s-code s-ln" x="36" y="76" text-anchor="end">2</text>
+  <text class="s-code s-ln" x="36" y="94" text-anchor="end">3</text>
+  <text class="s-code s-ln" x="36" y="112" text-anchor="end">4</text>
+  <text class="s-code s-ln" x="36" y="130" text-anchor="end">5</text>
+  <text class="s-code s-ln" x="36" y="148" text-anchor="end">6</text>
+  <text class="s-code s-ln" x="36" y="166" text-anchor="end">7</text>
+  <text class="s-code s-ln" x="36" y="184" text-anchor="end">8</text>
+  <text class="s-code s-ln" x="36" y="202" text-anchor="end">9</text>
+  <text class="s-code s-ln" x="36" y="220" text-anchor="end">10</text>
+  <text class="s-code s-ln" x="36" y="238" text-anchor="end">11</text>
+  <text class="s-code s-ln" x="36" y="256" text-anchor="end">12</text>
+  <text class="s-code s-ln" x="36" y="274" text-anchor="end">13</text>
+  <text class="s-code s-ln" x="36" y="292" text-anchor="end">14</text>
+  <text class="s-code s-ln" x="36" y="310" text-anchor="end">15</text>
+  <text class="s-code s-ln" x="36" y="328" text-anchor="end">16</text>
+  <text class="s-code s-ln" x="36" y="346" text-anchor="end">17</text>
+  <text class="s-code s-ln" x="36" y="364" text-anchor="end">18</text>
+  <text class="s-code s-ln" x="36" y="382" text-anchor="end">19</text>
+  <text class="s-code s-ln" x="36" y="400" text-anchor="end">20</text>
+  <text class="s-code s-ln" x="36" y="418" text-anchor="end">21</text>
+  <text class="s-code s-ln" x="36" y="436" text-anchor="end">22</text>
+  <text class="s-code s-ln" x="36" y="454" text-anchor="end">23</text>
+  <text class="s-code s-ln" x="36" y="472" text-anchor="end">24</text>
+  <text class="s-code s-ln" x="36" y="490" text-anchor="end">25</text>
+  <text class="s-code s-ln" x="36" y="508" text-anchor="end">26</text>
+
+  <!-- Line 1 -->
+  <text class="s-code" x="52" y="58"><tspan class="s-kw">import</tspan><tspan class="s-tx"> { readFile, writeFile } </tspan><tspan class="s-kw">from</tspan><tspan class="s-str"> 'node:fs/promises'</tspan><tspan class="s-tx">;</tspan></text>
+
+  <!-- Line 2 -->
+  <text class="s-code" x="52" y="76"><tspan class="s-kw">import</tspan><tspan class="s-tx"> { join } </tspan><tspan class="s-kw">from</tspan><tspan class="s-str"> 'node:path'</tspan><tspan class="s-tx">;</tspan></text>
+
+  <!-- Line 3 (blank) -->
+
+  <!-- Line 4 -->
+  <text class="s-code" x="52" y="112"><tspan class="s-kw">import</tspan><tspan class="s-tx"> { generateText } </tspan><tspan class="s-kw">from</tspan><tspan class="s-str"> 'ai'</tspan><tspan class="s-tx">;</tspan></text>
+
+  <!-- Line 5 -->
+  <text class="s-code" x="52" y="130"><tspan class="s-kw">import</tspan><tspan class="s-tx"> { anthropic } </tspan><tspan class="s-kw">from</tspan><tspan class="s-str"> '@ai-sdk/anthropic'</tspan><tspan class="s-tx">;</tspan></text>
+
+  <!-- Line 6 (blank) -->
+
+  <!-- Line 7 -->
+  <text class="s-code" x="52" y="166"><tspan class="s-kw">import</tspan><tspan class="s-tx"> { lauf, z } </tspan><tspan class="s-kw">from</tspan><tspan class="s-str"> 'laufen'</tspan><tspan class="s-tx">;</tspan></text>
+
+  <!-- Line 8 (blank) -->
+
+  <!-- Line 9 -->
+  <text class="s-code" x="52" y="202"><tspan class="s-kw">export default</tspan><tspan class="s-tx"> </tspan><tspan class="s-fn">lauf</tspan><tspan class="s-tx">({</tspan></text>
+
+  <!-- Line 10 -->
+  <text class="s-code" x="52" y="220" xml:space="preserve"><tspan class="s-tx">  </tspan><tspan class="s-pr">description</tspan><tspan class="s-tx">: </tspan><tspan class="s-str">'Generate API docs from source using AI'</tspan><tspan class="s-tx">,</tspan></text>
+
+  <!-- Line 11 -->
+  <text class="s-code" x="52" y="238" xml:space="preserve"><tspan class="s-tx">  </tspan><tspan class="s-pr">args</tspan><tspan class="s-tx">: {</tspan></text>
+
+  <!-- Line 12 -->
+  <text class="s-code" x="52" y="256" xml:space="preserve"><tspan class="s-tx">    </tspan><tspan class="s-pr">src</tspan><tspan class="s-tx">: z.</tspan><tspan class="s-fn">string</tspan><tspan class="s-tx">().</tspan><tspan class="s-fn">describe</tspan><tspan class="s-tx">(</tspan><tspan class="s-str">'Source file path'</tspan><tspan class="s-tx">),</tspan></text>
+
+  <!-- Line 13 -->
+  <text class="s-code" x="52" y="274" xml:space="preserve"><tspan class="s-tx">    </tspan><tspan class="s-pr">out</tspan><tspan class="s-tx">: z.</tspan><tspan class="s-fn">string</tspan><tspan class="s-tx">().</tspan><tspan class="s-fn">default</tspan><tspan class="s-tx">(</tspan><tspan class="s-str">'docs'</tspan><tspan class="s-tx">).</tspan><tspan class="s-fn">describe</tspan><tspan class="s-tx">(</tspan><tspan class="s-str">'Output dir'</tspan><tspan class="s-tx">),</tspan></text>
+
+  <!-- Line 14 -->
+  <text class="s-code" x="52" y="292" xml:space="preserve"><tspan class="s-tx">  },</tspan></text>
+
+  <!-- Line 15 -->
+  <text class="s-code" x="52" y="310" xml:space="preserve"><tspan class="s-tx">  </tspan><tspan class="s-kw">async</tspan><tspan class="s-tx"> </tspan><tspan class="s-fn">run</tspan><tspan class="s-tx">(</tspan><tspan class="s-vr">ctx</tspan><tspan class="s-tx">) {</tspan></text>
+
+  <!-- Line 16 -->
+  <text class="s-code" x="52" y="328" xml:space="preserve"><tspan class="s-tx">    </tspan><tspan class="s-vr">ctx</tspan><tspan class="s-tx">.spinner.</tspan><tspan class="s-fn">start</tspan><tspan class="s-tx">(</tspan><tspan class="s-str">'Reading source...'</tspan><tspan class="s-tx">);</tspan></text>
+
+  <!-- Line 17 -->
+  <text class="s-code" x="52" y="346" xml:space="preserve"><tspan class="s-tx">    </tspan><tspan class="s-kw">const</tspan><tspan class="s-tx"> source = </tspan><tspan class="s-kw">await</tspan><tspan class="s-tx"> </tspan><tspan class="s-fn">readFile</tspan><tspan class="s-tx">(</tspan><tspan class="s-fn">join</tspan><tspan class="s-tx">(</tspan><tspan class="s-vr">ctx</tspan><tspan class="s-tx">.packageDir, </tspan><tspan class="s-vr">ctx</tspan><tspan class="s-tx">.args.src), </tspan><tspan class="s-str">'utf-8'</tspan><tspan class="s-tx">);</tspan></text>
+
+  <!-- Line 18 (blank) -->
+
+  <!-- Line 19 -->
+  <text class="s-code" x="52" y="382" xml:space="preserve"><tspan class="s-tx">    </tspan><tspan class="s-vr">ctx</tspan><tspan class="s-tx">.spinner.</tspan><tspan class="s-fn">message</tspan><tspan class="s-tx">(</tspan><tspan class="s-str">'Generating docs...'</tspan><tspan class="s-tx">);</tspan></text>
+
+  <!-- Line 20 -->
+  <text class="s-code" x="52" y="400" xml:space="preserve"><tspan class="s-tx">    </tspan><tspan class="s-kw">const</tspan><tspan class="s-tx"> { text } = </tspan><tspan class="s-kw">await</tspan><tspan class="s-tx"> </tspan><tspan class="s-fn">generateText</tspan><tspan class="s-tx">({</tspan></text>
+
+  <!-- Line 21 -->
+  <text class="s-code" x="52" y="418" xml:space="preserve"><tspan class="s-tx">      </tspan><tspan class="s-pr">model</tspan><tspan class="s-tx">: </tspan><tspan class="s-fn">anthropic</tspan><tspan class="s-tx">(</tspan><tspan class="s-str">'claude-sonnet-4-20250514'</tspan><tspan class="s-tx">),</tspan></text>
+
+  <!-- Line 22 -->
+  <text class="s-code" x="52" y="436" xml:space="preserve"><tspan class="s-tx">      </tspan><tspan class="s-pr">prompt</tspan><tspan class="s-tx">: </tspan><tspan class="s-str">`Write API docs for:\n\n${source}`</tspan><tspan class="s-tx">,</tspan></text>
+
+  <!-- Line 23 -->
+  <text class="s-code" x="52" y="454" xml:space="preserve"><tspan class="s-tx">    });</tspan></text>
+
+  <!-- Line 24 -->
+  <text class="s-code" x="52" y="472" xml:space="preserve"><tspan class="s-tx">    </tspan><tspan class="s-kw">await</tspan><tspan class="s-tx"> </tspan><tspan class="s-fn">writeFile</tspan><tspan class="s-tx">(</tspan><tspan class="s-fn">join</tspan><tspan class="s-tx">(</tspan><tspan class="s-vr">ctx</tspan><tspan class="s-tx">.packageDir, </tspan><tspan class="s-vr">ctx</tspan><tspan class="s-tx">.args.out, </tspan><tspan class="s-str">'api.md'</tspan><tspan class="s-tx">), text, </tspan><tspan class="s-str">'utf-8'</tspan><tspan class="s-tx">);</tspan></text>
+
+  <!-- Line 25 -->
+  <text class="s-code" x="52" y="490" xml:space="preserve"><tspan class="s-tx">    </tspan><tspan class="s-vr">ctx</tspan><tspan class="s-tx">.logger.</tspan><tspan class="s-fn">success</tspan><tspan class="s-tx">(</tspan><tspan class="s-str">`Written to ${</tspan><tspan class="s-vr">ctx</tspan><tspan class="s-str">.args.out}/api.md`</tspan><tspan class="s-tx">);</tspan></text>
+
+  <!-- Line 26 -->
+  <text class="s-code" x="52" y="508" xml:space="preserve"><tspan class="s-tx">  },</tspan></text>
+
+  <!-- Line 27 -->
+  <text class="s-code s-ln" x="36" y="526" text-anchor="end">27</text>
+  <text class="s-code" x="52" y="526"><tspan class="s-tx">});</tspan></text>
+
+</svg>

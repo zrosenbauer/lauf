@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 140">
+  <defs>
+    <style>
+      .text { font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', Consolas, monospace; }
+      .neon { fill: #74c7ec; }
+    </style>
+  </defs>
+
+  <!-- ASCII Art -->
+  <g transform="translate(24, 28)">
+    <text class="text neon" font-size="13" y="0" xml:space="preserve">██╗      █████╗ ██╗   ██╗███████╗</text>
+    <text class="text neon" font-size="13" y="16" xml:space="preserve">██║     ██╔══██╗██║   ██║██╔════╝</text>
+    <text class="text neon" font-size="13" y="32" xml:space="preserve">██║     ███████║██║   ██║█████╗  </text>
+    <text class="text neon" font-size="13" y="48" xml:space="preserve">██║     ██╔══██║██║   ██║██╔══╝  </text>
+    <text class="text neon" font-size="13" y="64" xml:space="preserve">███████╗██║  ██║╚██████╔╝██║     </text>
+    <text class="text neon" font-size="13" y="80" xml:space="preserve">╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚═╝     </text>
+  </g>
+</svg>

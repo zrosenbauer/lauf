@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "FILE=$(cat /dev/stdin | jq -r '.tool_input.file_path') && case \"$FILE\" in *.ts|*.tsx) pnpm oxfmt \"$FILE\" 2>&1 && echo '--- OXLint ---' && pnpm oxlint \"$FILE\" 2>&1 ;; esac"
+          }
+        ]
+      }
+    ]
+  }
+}

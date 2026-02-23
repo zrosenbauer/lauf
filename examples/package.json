@@ -1,0 +1,17 @@
+{
+  "name": "@examples/lauf",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lauf": "lauf"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "^4.3.18",
+    "ai": "^4.3.16",
+    "rimraf": "^6.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.0"
+  }
+}

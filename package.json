@@ -1,0 +1,42 @@
+{
+  "name": "lauf-monorepo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "turbo run build",
+    "docs:build": "turbo run docs:build --filter=docs",
+    "docs:dev": "turbo run docs:dev --filter=docs",
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "prepare": "lefthook install",
+    "release": "changeset publish",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "version": "changeset version"
+  },
+  "dependencies": {
+    "laufen": "workspace:*"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.29.8",
+    "@commitlint/cli": "^20.4.2",
+    "@commitlint/config-conventional": "^20.4.2",
+    "eslint-plugin-functional": "^9.0.3",
+    "eslint-plugin-security": "^4.0.0",
+    "lefthook": "^2.1.1",
+    "oxfmt": "^0.34.0",
+    "oxlint": "^1.49.0",
+    "turbo": "^2.8.10"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "packageManager": "pnpm@10.30.1",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "lefthook"
+    ]
+  }
+}

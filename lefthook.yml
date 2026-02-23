@@ -1,0 +1,17 @@
+commit-msg:
+  commands:
+    commitlint:
+      run: pnpm commitlint --edit {1}
+
+pre-commit:
+  commands:
+    format:
+      glob: '*.{ts,tsx,js,jsx,json,md,yaml,yml}'
+      run: pnpm fmt {staged_files} && git add {staged_files}
+
+pre-push:
+  commands:
+    lint:
+      run: pnpm lint
+    typecheck:
+      run: pnpm typecheck

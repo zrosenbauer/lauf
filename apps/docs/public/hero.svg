@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 290">
+  <defs>
+    <style>
+      .terminal-bg { fill: #1e1e2e; }
+      .terminal-border { fill: #313244; }
+      .title-bar { fill: #181825; }
+      .btn-red { fill: #f38ba8; }
+      .btn-yellow { fill: #f9e2af; }
+      .btn-green { fill: #a6e3a1; }
+      .text { font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', Consolas, monospace; }
+      .command { fill: #cdd6f4; }
+      .brand { fill: #74c7ec; }
+      .green { fill: #a6e3a1; }
+      .dim { fill: #6c7086; }
+      .white { fill: #cdd6f4; }
+      .cyan { fill: #89dceb; }
+      .teal { fill: #94e2d5; }
+      .peach { fill: #fab387; }
+      .prompt { fill: #89b4fa; }
+    </style>
+  </defs>
+
+  <!-- Window frame -->
+  <rect class="terminal-border" width="480" height="290" rx="10"/>
+  <rect class="terminal-bg" x="1" y="1" width="478" height="288" rx="9"/>
+
+  <!-- Title bar -->
+  <rect class="title-bar" x="1" y="1" width="478" height="22" rx="9"/>
+
+  <!-- Window buttons -->
+  <circle class="btn-red" cx="16" cy="12" r="4"/>
+  <circle class="btn-yellow" cx="28" cy="12" r="4"/>
+  <circle class="btn-green" cx="40" cy="12" r="4"/>
+
+  <!-- Title -->
+  <text x="240" y="12" text-anchor="middle" dominant-baseline="central" class="text dim" font-size="9">lauf</text>
+
+  <!-- Content area -->
+  <g transform="translate(20, 42)">
+    <!-- Prompt line -->
+    <text class="text prompt" font-size="13" y="0">~</text>
+    <text class="text dim" font-size="13" x="11" y="0">$</text>
+    <text class="text command" font-size="13" x="23" y="0">lauf run docs/gen-docs <tspan class="teal">--format</tspan><tspan class="dim">=</tspan><tspan class="peach">md</tspan></text>
+
+    <!-- LAUF ASCII art (half size) -->
+    <g transform="translate(0, 42) scale(0.5) translate(0, -42)">
+      <text class="text brand" font-size="10" y="14" xml:space="preserve">██╗      █████╗ ██╗   ██╗███████╗</text>
+      <text class="text brand" font-size="10" y="27" xml:space="preserve">██║     ██╔══██╗██║   ██║██╔════╝</text>
+      <text class="text brand" font-size="10" y="40" xml:space="preserve">██║     ███████║██║   ██║█████╗  </text>
+      <text class="text brand" font-size="10" y="53" xml:space="preserve">██║     ██╔══██║██║   ██║██╔══╝  </text>
+      <text class="text brand" font-size="10" y="66" xml:space="preserve">███████╗██║  ██║╚██████╔╝██║     </text>
+      <text class="text brand" font-size="10" y="79" xml:space="preserve">╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚═╝     </text>
+    </g>
+
+    <!-- Version and description -->
+    <text class="text white" font-size="13" y="74">  lauf <tspan class="dim">v0.1.0</tspan></text>
+    <text class="text white" font-size="13" y="90">  Typed script runner for monorepos.</text>
+
+    <!-- Script output -->
+    <text class="text" font-size="13" y="114"><tspan class="green">  &#x2713;</tspan><tspan class="white"> erd.md</tspan></text>
+    <text class="text" font-size="13" y="130"><tspan class="green">  &#x2713;</tspan><tspan class="white"> architecture.md</tspan></text>
+    <text class="text" font-size="13" y="146"><tspan class="green">  &#x2713;</tspan><tspan class="white"> reference.md</tspan></text>
+    <text class="text" font-size="13" y="162"><tspan class="green">  &#x2713;</tspan><tspan class="white"> changelog.md</tspan></text>
+
+    <!-- Done message -->
+    <text class="text" font-size="13" y="186"><tspan class="green">  Done!</tspan><tspan class="white"> 4 files generated.</tspan></text>
+
+    <!-- New prompt -->
+    <text class="text prompt" font-size="13" y="210">~</text>
+    <text class="text dim" font-size="13" x="11" y="210">$</text>
+    <text class="text white" font-size="13" x="23" y="210">&#x2588;</text>
+  </g>
+</svg>

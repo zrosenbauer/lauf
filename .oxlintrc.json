@@ -1,0 +1,119 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/main/npm/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "unicorn", "import", "promise", "node", "oxc"],
+  "jsPlugins": ["eslint-plugin-security", "eslint-plugin-functional"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error",
+    "pedantic": "error",
+    "perf": "error",
+    "style": "off",
+    "restriction": "off",
+    "nursery": "off"
+  },
+  "rules": {
+    "prefer-const": "error",
+    "no-var": "error",
+    "no-nested-ternary": "error",
+    "no-unneeded-ternary": "error",
+    "no-ternary": "error",
+    "curly": "error",
+    "no-eval": "error",
+    "no-implied-eval": "error",
+    "no-new-func": "error",
+    "no-param-reassign": "error",
+    "no-return-assign": "error",
+    "no-sequences": "error",
+    "no-throw-literal": "error",
+    "no-void": "error",
+    "no-with": "error",
+    "no-bitwise": "error",
+    "no-continue": "error",
+    "no-plusplus": "error",
+    "no-multi-assign": "error",
+    "no-else-return": "error",
+    "typescript/no-explicit-any": "error",
+    "typescript/no-non-null-assertion": "error",
+    "unicorn/no-unreadable-iife": "error",
+    "unicorn/prefer-node-protocol": "error",
+    "import/no-cycle": "error",
+    "import/no-self-import": "error",
+    "import/no-duplicates": "error",
+    "security/detect-child-process": "error",
+    "security/detect-eval-with-expression": "error",
+    "security/detect-non-literal-fs-filename": "error",
+    "security/detect-non-literal-regexp": "error",
+    "security/detect-object-injection": "error",
+    "security/detect-possible-timing-attacks": "error",
+    "security/detect-unsafe-regex": "error",
+    "functional/no-let": "error",
+    "functional/no-loop-statements": "error",
+    "functional/immutable-data": "error",
+    "functional/no-classes": "error",
+    "functional/no-this-expressions": "error",
+    "functional/no-throw-statements": "error",
+    "functional/no-expression-statements": "error",
+    "functional/functional-parameters": "error",
+    "functional/prefer-tacit": "error",
+    "oxc/no-optional-chaining": [
+      "error",
+      {
+        "message": "Use explicit null checks (if/else or pattern matching) instead of optional chaining."
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": ["**/*.config.ts", "**/*.config.js"],
+      "rules": {
+        "functional/no-expression-statements": "off",
+        "functional/immutable-data": "off"
+      }
+    },
+    {
+      "files": ["**/*.test.ts"],
+      "rules": {
+        "max-lines": "off",
+        "max-lines-per-function": "off",
+        "require-await": "off",
+        "unicorn/no-useless-undefined": "off",
+        "unicorn/prefer-event-target": "off",
+        "unicorn/consistent-function-scoping": "off",
+        "functional/no-expression-statements": "off",
+        "functional/functional-parameters": "off",
+        "functional/no-throw-statements": "off",
+        "functional/immutable-data": "off",
+        "functional/no-let": "off",
+        "functional/no-loop-statements": "off",
+        "functional/prefer-tacit": "off",
+        "security/detect-non-literal-fs-filename": "off",
+        "security/detect-object-injection": "off"
+      }
+    },
+    {
+      "files": ["**/handlers/**", "**/runtime/**", "**/lib/**", "**/utils/**", "**/index.ts"],
+      "rules": {
+        "functional/no-expression-statements": "off",
+        "functional/functional-parameters": "off",
+        "functional/no-loop-statements": "off",
+        "functional/no-let": "off",
+        "functional/no-throw-statements": "off",
+        "functional/immutable-data": "off",
+        "security/detect-non-literal-fs-filename": "off",
+        "security/detect-object-injection": "off"
+      }
+    }
+  ],
+  "ignorePatterns": [
+    "node_modules",
+    "dist",
+    "build",
+    ".turbo",
+    "coverage",
+    "pnpm-lock.yaml",
+    "**/*.d.ts",
+    "**/bundle/**",
+    ".claude",
+    "examples"
+  ]
+}
