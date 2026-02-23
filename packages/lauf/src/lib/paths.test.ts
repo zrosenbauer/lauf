@@ -59,7 +59,7 @@ describe('resolveWorkspacePackages', () => {
     vi.mocked(fs.readFileSync).mockReturnValue('{"name": "root-pkg"}');
 
     const packages = resolveWorkspacePackages();
-    const found = packages.find((p) => p.name === 'root-pkg');
+    const found = packages.find((p) => p.name === '<root>');
     expect(found).toBeDefined();
   });
 
