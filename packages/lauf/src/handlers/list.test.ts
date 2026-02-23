@@ -715,4 +715,82 @@ describe('tree display format', () => {
     // Single package should use └── (last item connector)
     expect(lines[0]).toContain('└── ');
   });
+
+  it('renders <root> as top-level heading with scripts and packages nested beneath', async () => {
+    vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([
+      null,
+      {
+        config: { scripts: ['scripts/*.ts'], logger: undefined, spinner: true },
+        configFile: 'lauf.config.ts',
+        configDir: '/workspace',
+      },
+    ]);
+    vi.mocked(discoverScripts).mockReturnValue([
+      {
+        name: '<root>/setup',
+        path: '/workspace/scripts/setup.ts',
+        packageDir: '/workspace',
+        packageName: '<root>',
+      },
+      {
+        name: 'api/build',
+        path: '/workspace/packages/api/scripts/build.ts',
+        packageDir: '/workspace/packages/api',
+        packageName: 'api',
+      },
+    ]);
+
+    await listHandler({ flags: {} });
+
+    const noteCall = vi.mocked(p.note).mock.calls[0];
+    const output = noteCall[0] as string;
+    const lines = output.split('\n');
+    // First line should be the <root> header (no tree connector prefix)
+    expect(lines[0]).toContain('<root>');
+    expect(lines[0]).not.toContain('├── <root>');
+    expect(lines[0]).not.toContain('└── <root>');
+    // Root script should be a direct child (no indentation prefix)
+    expect(output).toContain('├── ');
+    expect(output).toContain('setup');
+    // Sub-package should appear beneath root scripts
+    expect(output).toContain('api');
+  });
+
+  it('renders <root> with only root scripts and no sub-packages', async () => {
+    vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([
+      null,
+      {
+        config: { scripts: ['scripts/*.ts'], logger: undefined, spinner: true },
+        configFile: 'lauf.config.ts',
+        configDir: '/workspace',
+      },
+    ]);
+    vi.mocked(discoverScripts).mockReturnValue([
+      {
+        name: '<root>/setup',
+        path: '/workspace/scripts/setup.ts',
+        packageDir: '/workspace',
+        packageName: '<root>',
+      },
+      {
+        name: '<root>/teardown',
+        path: '/workspace/scripts/teardown.ts',
+        packageDir: '/workspace',
+        packageName: '<root>',
+      },
+    ]);
+
+    await listHandler({ flags: {} });
+
+    const noteCall = vi.mocked(p.note).mock.calls[0];
+    const output = noteCall[0] as string;
+    const lines = output.split('\n');
+    // Header is <root>, no tree connector
+    expect(lines[0]).toContain('<root>');
+    expect(lines[0]).not.toContain('├──');
+    // Last root script uses └── connector
+    expect(output).toContain('└── ');
+    expect(output).toContain('setup');
+    expect(output).toContain('teardown');
+  });
 });
