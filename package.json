@@ -14,7 +14,8 @@
     "release": "changeset publish",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
-    "version": "changeset version"
+    "version": "changeset version",
+    "version:ci": "changeset version && oxfmt --write"
   },
   "dependencies": {
     "laufen": "workspace:*"
