@@ -1,5 +1,11 @@
 # laufen
 
+## 0.1.2
+
+### Patch Changes
+
+- ba60760: Include root workspace package scripts in `lauf list` output for monorepos
+
 ## 0.1.1
 
 ### Patch Changes
