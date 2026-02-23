@@ -1,6 +1,6 @@
 {
   "name": "laufen",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Typed script runner for monorepos — discover, validate, and execute TypeScript scripts with Zod-powered arguments",
   "keywords": [
     "bun",
