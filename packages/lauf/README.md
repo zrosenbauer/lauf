@@ -8,7 +8,8 @@
 <p align="center">
   <a href="https://www.npmjs.com/package/laufen"><img src="https://img.shields.io/npm/v/laufen.svg" alt="npm version" /></a>
   <a href="https://github.com/zrosenbauer/lauf/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/laufen.svg" alt="license" /></a>
-  <a href="https://www.npmjs.com/package/laufen"><img src="https://img.shields.io/npm/dm/laufen.svg" alt="downloads" /></a>
+  <!-- TODO: replace with valid downloads badge once npm stats are available -->
+  <!-- <a href="https://www.npmjs.com/package/laufen"><img src="https://img.shields.io/npm/dm/laufen.svg" alt="downloads" /></a> -->
 </p>
 
 ---

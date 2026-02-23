@@ -36,6 +36,7 @@
     "**/bundle/**",
     ".claude",
     "examples",
-    "scripts"
+    "scripts",
+    "**/CHANGELOG.md"
   ]
 }
