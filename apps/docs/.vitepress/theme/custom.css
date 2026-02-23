@@ -1,10 +1,12 @@
 /* ─── Geist Mono ─── */
 
 :root {
-  --vp-font-family-base: 'Geist Mono Variable', 'Geist Mono', 'SF Mono',
-    'Fira Code', 'JetBrains Mono', ui-monospace, monospace;
-  --vp-font-family-mono: 'Geist Mono Variable', 'Geist Mono', 'SF Mono',
-    'Fira Code', 'JetBrains Mono', ui-monospace, monospace;
+  --vp-font-family-base:
+    'Geist Mono Variable', 'Geist Mono', 'SF Mono', 'Fira Code', 'JetBrains Mono', ui-monospace,
+    monospace;
+  --vp-font-family-mono:
+    'Geist Mono Variable', 'Geist Mono', 'SF Mono', 'Fira Code', 'JetBrains Mono', ui-monospace,
+    monospace;
 }
 
 /* ─── Brand Colors ─── */
@@ -16,12 +18,7 @@
   --vp-c-brand-soft: rgba(116, 199, 236, 0.14);
 
   --vp-home-hero-name-color: transparent;
-  --vp-home-hero-name-background: linear-gradient(
-    135deg,
-    #74c7ec 0%,
-    #89b4fa 50%,
-    #cba6f7 100%
-  );
+  --vp-home-hero-name-background: linear-gradient(135deg, #74c7ec 0%, #89b4fa 50%, #cba6f7 100%);
 
   --vp-home-hero-image-background-image: radial-gradient(
     ellipse at 50% 50%,
