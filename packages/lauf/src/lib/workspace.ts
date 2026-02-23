@@ -79,6 +79,7 @@ function extractPackageJsonGlobs(content: string): readonly string[] | undefined
     return undefined;
   }
 
+  /* v8 ignore next 3 -- defensive: safeParseJSON only returns objects/arrays for valid JSON */
   if (typeof parsed !== 'object') {
     return undefined;
   }

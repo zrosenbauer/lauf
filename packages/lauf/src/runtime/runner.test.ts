@@ -12,9 +12,21 @@ const { mockResolveTsx } = vi.hoisted(() => ({
   mockResolveTsx: vi.fn(),
 }));
 
+const { mockExistsSync } = vi.hoisted(() => ({
+  mockExistsSync: vi.fn<(path: string) => boolean>(() => true),
+}));
+
 vi.mock('node:child_process', () => ({
   spawn: mockSpawn,
 }));
+
+vi.mock('node:fs', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:fs')>();
+  return {
+    ...actual,
+    existsSync: mockExistsSync,
+  };
+});
 
 vi.mock('@clack/prompts', () => ({
   log: {
@@ -311,9 +323,41 @@ describe('runScript', () => {
     expect(result.exitCode).toBe(0);
   });
 
+  it('falls back to source executor path when dist does not exist', () => {
+    mockExistsSync.mockImplementation((filePath: string) => !filePath.includes('dist'));
+
+    const child = new EventEmitter();
+    mockSpawn.mockReturnValue(child);
+
+    runScript(mockScript, {});
+
+    expect(mockSpawn).toHaveBeenCalledWith(
+      expect.stringContaining('tsx'),
+      expect.arrayContaining([expect.stringContaining('executor.ts')]),
+      expect.any(Object),
+    );
+
+    child.emit('close', 0);
+  });
+
+  it('returns exit code 1 when executor path is not found', async () => {
+    mockExistsSync.mockReturnValue(false);
+
+    const result = await runScript(mockScript, {});
+
+    expect(result.exitCode).toBe(1);
+    expect(result.script).toBe(mockScript);
+    expect(mockSpawn).not.toHaveBeenCalled();
+    expect(p.log.error).toHaveBeenCalledWith(
+      expect.stringContaining('Executor entry point not found'),
+    );
+  });
+
   it('returns exit code 1 and logs error when tsx binary is not found', async () => {
     mockResolveTsx.mockReturnValue([
-      'tsx binary not found at /lauf-root/node_modules/.bin/tsx. Run your package manager\'s install command (e.g. "pnpm install") to install dependencies.',
+      new Error(
+        'tsx binary not found at /lauf-root/node_modules/.bin/tsx. Run your package manager\'s install command (e.g. "pnpm install") to install dependencies.',
+      ),
       null,
     ]);
 
@@ -361,9 +405,19 @@ describe('runScript', () => {
     Object.assign(child, { kill: killFn });
     mockSpawn.mockReturnValue(child);
 
+    // Capture signal handlers registered by runScript instead of using
+    // process.emit(), which would trigger vitest's own SIGINT handler
+    // and crash the forked worker process.
+    const onSpy = vi.spyOn(process, 'on');
     runScript(mockScript, {});
 
-    process.emit('SIGINT', 'SIGINT');
+    const sigintCall = onSpy.mock.calls.find(([event]) => event === 'SIGINT');
+    expect(sigintCall).toBeDefined();
+    // Guard narrows after the assertion above (which throws on failure)
+    if (sigintCall) {
+      const handler = sigintCall[1] as () => void;
+      handler();
+    }
 
     expect(killFn).toHaveBeenCalledWith('SIGINT');
 
@@ -376,9 +430,15 @@ describe('runScript', () => {
     Object.assign(child, { kill: killFn });
     mockSpawn.mockReturnValue(child);
 
+    const onSpy = vi.spyOn(process, 'on');
     runScript(mockScript, {});
 
-    process.emit('SIGTERM', 'SIGTERM');
+    const sigtermCall = onSpy.mock.calls.find(([event]) => event === 'SIGTERM');
+    expect(sigtermCall).toBeDefined();
+    if (sigtermCall) {
+      const handler = sigtermCall[1] as () => void;
+      handler();
+    }
 
     expect(killFn).toHaveBeenCalledWith('SIGTERM');
 

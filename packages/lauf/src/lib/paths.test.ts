@@ -140,8 +140,12 @@ describe('resolveTsx', () => {
     vi.mocked(fs.existsSync).mockReturnValue(false);
 
     const result = resolveTsx();
-    expect(result[0]).toContain('tsx binary not found');
-    expect(result[0]).toContain('pnpm install');
+    const error = result[0];
+    expect(error).toBeInstanceOf(Error);
+    if (error) {
+      expect(error.message).toContain('tsx binary not found');
+      expect(error.message).toContain('pnpm install');
+    }
     expect(result[1]).toBeNull();
   });
 });

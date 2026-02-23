@@ -44,9 +44,14 @@ vi.mock('../lib/paths.ts', () => ({
   resolveTsx: vi.fn(() => [null, '/lauf-root/node_modules/.bin/tsx']),
 }));
 
+vi.mock('../lib/workspace.ts', () => ({
+  getWorkspaceInfo: vi.fn(() => ({ manager: 'pnpm', root: '/workspace', globs: ['packages/*'] })),
+}));
+
 import { loadAllLaufConfigs, safeLoadLaufConfigWithMeta } from '../lib/config.ts';
 import { discoverScripts } from '../lib/discovery.ts';
 import { resolveTsx } from '../lib/paths.ts';
+import { getWorkspaceInfo } from '../lib/workspace.ts';
 import listHandler from './list.ts';
 
 beforeEach(() => {
@@ -587,5 +592,160 @@ describe('list handler --all flag', () => {
     expect(loadAllLaufConfigs).not.toHaveBeenCalled();
     // discoverScripts should be called without scopeDir option
     expect(discoverScripts).toHaveBeenCalledWith(['scripts/*.ts']);
+  });
+});
+
+describe('root package filtering', () => {
+  it('filters out scripts from the workspace root package in monorepo mode', async () => {
+    vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([
+      null,
+      {
+        config: { scripts: ['scripts/*.ts'], logger: undefined, spinner: true },
+        configFile: 'lauf.config.ts',
+        configDir: '/workspace',
+      },
+    ]);
+    vi.mocked(discoverScripts).mockReturnValue([
+      {
+        name: 'my-monorepo/root-script',
+        path: '/workspace/scripts/root-script.ts',
+        packageDir: '/workspace',
+        packageName: 'my-monorepo',
+      },
+      {
+        name: 'pkg/build',
+        path: '/workspace/packages/pkg/scripts/build.ts',
+        packageDir: '/workspace/packages/pkg',
+        packageName: 'pkg',
+      },
+    ]);
+
+    await listHandler({ flags: {} });
+
+    // Only the sub-package script should remain after filtering
+    expect(p.note).toHaveBeenCalledWith(expect.any(String), expect.stringContaining('1 script(s)'));
+    expect(process.exit).not.toHaveBeenCalled();
+  });
+
+  it('keeps root package scripts in single-package mode', async () => {
+    vi.mocked(getWorkspaceInfo).mockReturnValue({
+      manager: 'single',
+      root: '/workspace',
+      globs: [],
+    });
+    vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([
+      null,
+      {
+        config: { scripts: ['scripts/*.ts'], logger: undefined, spinner: true },
+        configFile: 'lauf.config.ts',
+        configDir: '/workspace',
+      },
+    ]);
+    vi.mocked(discoverScripts).mockReturnValue([
+      {
+        name: 'my-pkg/build',
+        path: '/workspace/scripts/build.ts',
+        packageDir: '/workspace',
+        packageName: 'my-pkg',
+      },
+    ]);
+
+    await listHandler({ flags: {} });
+
+    expect(p.note).toHaveBeenCalledWith(expect.any(String), expect.stringContaining('1 script(s)'));
+    expect(process.exit).not.toHaveBeenCalled();
+  });
+
+  it('shows no-scripts warning when all scripts belong to root package', async () => {
+    vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([
+      null,
+      {
+        config: { scripts: ['scripts/*.ts'], logger: undefined, spinner: true },
+        configFile: 'lauf.config.ts',
+        configDir: '/workspace',
+      },
+    ]);
+    vi.mocked(discoverScripts).mockReturnValue([
+      {
+        name: 'my-monorepo/root-script',
+        path: '/workspace/scripts/root-script.ts',
+        packageDir: '/workspace',
+        packageName: 'my-monorepo',
+      },
+    ]);
+
+    await listHandler({ flags: {} });
+
+    expect(p.log.warn).toHaveBeenCalledWith('No scripts found.');
+    expect(p.note).not.toHaveBeenCalled();
+  });
+});
+
+describe('tree display format', () => {
+  it('renders tree connectors for packages and scripts', async () => {
+    vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([
+      null,
+      {
+        config: { scripts: ['scripts/*.ts'], logger: undefined, spinner: true },
+        configFile: 'lauf.config.ts',
+        configDir: '/workspace',
+      },
+    ]);
+    vi.mocked(discoverScripts).mockReturnValue([
+      {
+        name: 'api/build',
+        path: '/workspace/packages/api/scripts/build.ts',
+        packageDir: '/workspace/packages/api',
+        packageName: 'api',
+      },
+      {
+        name: 'api/test',
+        path: '/workspace/packages/api/scripts/test.ts',
+        packageDir: '/workspace/packages/api',
+        packageName: 'api',
+      },
+      {
+        name: 'web/deploy',
+        path: '/workspace/packages/web/scripts/deploy.ts',
+        packageDir: '/workspace/packages/web',
+        packageName: 'web',
+      },
+    ]);
+
+    await listHandler({ flags: {} });
+
+    const noteCall = vi.mocked(p.note).mock.calls[0];
+    const output = noteCall[0] as string;
+    // Tree connectors should be present
+    expect(output).toContain('├── ');
+    expect(output).toContain('└── ');
+    expect(output).toContain('│   ');
+  });
+
+  it('uses └── for the last package in the tree', async () => {
+    vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([
+      null,
+      {
+        config: { scripts: ['scripts/*.ts'], logger: undefined, spinner: true },
+        configFile: 'lauf.config.ts',
+        configDir: '/workspace',
+      },
+    ]);
+    vi.mocked(discoverScripts).mockReturnValue([
+      {
+        name: 'pkg/build',
+        path: '/workspace/packages/pkg/scripts/build.ts',
+        packageDir: '/workspace/packages/pkg',
+        packageName: 'pkg',
+      },
+    ]);
+
+    await listHandler({ flags: {} });
+
+    const noteCall = vi.mocked(p.note).mock.calls[0];
+    const output = noteCall[0] as string;
+    const lines = output.split('\n');
+    // Single package should use └── (last item connector)
+    expect(lines[0]).toContain('└── ');
   });
 });

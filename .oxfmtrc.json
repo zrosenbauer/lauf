@@ -35,6 +35,7 @@
     "**/*.d.ts",
     "**/bundle/**",
     ".claude",
-    "examples"
+    "examples",
+    "scripts"
   ]
 }

@@ -1,5 +1,5 @@
 import { defineConfig } from 'laufen';
 
 export default defineConfig({
-  scripts: ['examples/scripts/*.ts'],
+  scripts: ['scripts/*.ts', 'examples/scripts/*.ts'],
 });

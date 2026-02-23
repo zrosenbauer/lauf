@@ -17,6 +17,7 @@ import { getWorkspaceRoot } from './workspace.ts';
  */
 function isValidPattern(pattern: string): boolean {
   // Reject null bytes (path poisoning)
+  /* v8 ignore next 3 -- defensive security guard; callers never produce null bytes */
   if (pattern.includes('\0')) {
     return false;
   }

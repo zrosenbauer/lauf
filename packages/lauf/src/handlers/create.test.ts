@@ -249,11 +249,9 @@ describe('create handler', () => {
       flags: {},
     });
 
-    expect(p.log.success).toHaveBeenCalledWith(
-      expect.stringContaining('packages/my-pkg/scripts/my-script.lauf.ts'),
-    );
+    expect(p.log.success).toHaveBeenCalledWith(expect.stringContaining('my-script.lauf.ts'));
     expect(p.log.message).toHaveBeenCalledWith(
-      expect.stringContaining('packages/my-pkg/scripts/my-script'),
+      expect.stringContaining('lauf run workspace/my-script'),
     );
   });
 

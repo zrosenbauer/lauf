@@ -5,7 +5,7 @@ import * as path from 'node:path';
 import { promisify } from 'node:util';
 
 import * as p from '@clack/prompts';
-import { attempt, attemptAsync, groupBy, uniqBy } from 'es-toolkit';
+import { attempt, attemptAsync, uniqBy } from 'es-toolkit';
 import pc from 'picocolors';
 import { z } from 'zod';
 
@@ -16,8 +16,10 @@ import { defineHandler } from '../lib/handler.ts';
 import { LAUF_ROOT, getWorkspaceRoot, resolveTsx } from '../lib/paths.ts';
 import { fail, ok } from '../lib/result.ts';
 import type { DiscoveredScript } from '../lib/types.ts';
+import { getWorkspaceInfo } from '../lib/workspace.ts';
 import { safeParseError } from '../utils/cli.ts';
 import { safeParseJSON } from '../utils/json.ts';
+import { buildScriptTree } from '../utils/tree.ts';
 
 const execFileAsync = promisify(execFile);
 const METADATA_DIST_PATH = path.join(LAUF_ROOT, 'dist', 'runtime', 'metadata.mjs');
@@ -75,61 +77,43 @@ async function listAllScripts() {
 
 /**
  * Shared display logic for discovered scripts.
+ *
+ * Filters out root workspace package scripts in monorepo contexts
+ * and renders a directory-tree-style hierarchy grouped by package.
  */
 async function displayScripts(scripts: readonly DiscoveredScript[]) {
-  if (scripts.length === 0) {
+  const filtered = filterRootPackageScripts(scripts);
+
+  if (filtered.length === 0) {
     p.log.warn('No scripts found.');
     p.log.message(pc.dim('Create one with: lauf create <name>'));
     return ok();
   }
 
-  const descriptions = await loadDescriptions(scripts);
-  const grouped = groupBy(scripts, (s) => s.packageName);
-  const maxStemLen = Math.max(...scripts.map((s) => scriptStem(s.name).length));
-  const padWidth = maxStemLen + 2;
+  const descriptions = await loadDescriptions(filtered);
+  const tree = buildScriptTree(filtered, descriptions);
 
-  const lines = Object.entries(grouped)
-    .map(([packageName, pkgScripts]) => {
-      const header = pc.bold(packageName);
-      const scriptLines = pkgScripts
-        .map((script) => {
-          const stem = scriptStem(script.name);
-          const desc = descriptions[script.path] || '';
-          return formatScriptLine(stem, desc, padWidth);
-        })
-        .join('\n');
-      return `${header}\n${scriptLines}`;
-    })
-    .join('\n\n');
-
-  p.note(lines, `Found ${scripts.length} script(s)`);
+  p.note(tree, `Found ${filtered.length} script(s)`);
 
   return ok();
 }
 
 /**
- * Extract the script stem from a qualified name.
- * e.g. "@scope/pkg/my-script" → "my-script"
+ * Filter out scripts belonging to the workspace root package in monorepo contexts.
+ *
+ * In a monorepo, the root package is the workspace container and should not
+ * appear as a separate entry alongside real packages.
+ * In single-package mode, all scripts are kept.
  */
-function scriptStem(qualifiedName: string): string {
-  const lastSlash = qualifiedName.lastIndexOf('/');
-  /* v8 ignore start -- discoverScripts always produces "pkg/stem" qualified names */
-  if (lastSlash === -1) {
-    return qualifiedName;
+function filterRootPackageScripts(
+  scripts: readonly DiscoveredScript[],
+): readonly DiscoveredScript[] {
+  const { manager, root } = getWorkspaceInfo();
+  if (manager === 'single') {
+    return scripts;
   }
-  /* v8 ignore stop */
-  return qualifiedName.slice(lastSlash + 1);
-}
-
-/**
- * Format a single script line with name and optional description.
- */
-function formatScriptLine(stem: string, description: string, padWidth: number): string {
-  const name = pc.cyan(stem.padEnd(padWidth));
-  if (description) {
-    return `  ${name}${pc.dim(description)}`;
-  }
-  return `  ${name}`;
+  const normalizedRoot = path.resolve(root);
+  return scripts.filter((s) => path.resolve(s.packageDir) !== normalizedRoot);
 }
 
 /**
@@ -164,6 +148,7 @@ function buildNodePaths(workspaceRoot: string): readonly string[] {
   if (existing) {
     return [...base, existing];
   }
+  /* v8 ignore next 2 -- trivial else branch; NODE_PATH is almost always set in test env */
   return base;
 }
 

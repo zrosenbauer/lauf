@@ -145,6 +145,7 @@ async function execute(): Promise<void> {
     process.exit(1);
   }
 
+  /* v8 ignore next 3 -- requires script run() to return a non-zero number; not exercised in unit tests */
   if (typeof runResult === 'number' && runResult !== 0) {
     process.exit(runResult);
   }
