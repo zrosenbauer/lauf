@@ -70,7 +70,7 @@ export function resolveWorkspacePackages(): readonly PackageInfo[] {
 
   const rootPkg = readPackageInfo(root);
   if (rootPkg) {
-    return [rootPkg, ...packages];
+    return [{ ...rootPkg, name: '<root>' }, ...packages];
   }
   return packages;
 }
