@@ -16,7 +16,6 @@ import { defineHandler } from '../lib/handler.ts';
 import { LAUF_ROOT, getWorkspaceRoot, resolveTsx } from '../lib/paths.ts';
 import { fail, ok } from '../lib/result.ts';
 import type { DiscoveredScript } from '../lib/types.ts';
-import { getWorkspaceInfo } from '../lib/workspace.ts';
 import { safeParseError } from '../utils/cli.ts';
 import { safeParseJSON } from '../utils/json.ts';
 import { buildScriptTree } from '../utils/tree.ts';
@@ -78,42 +77,22 @@ async function listAllScripts() {
 /**
  * Shared display logic for discovered scripts.
  *
- * Filters out root workspace package scripts in monorepo contexts
- * and renders a directory-tree-style hierarchy grouped by package.
+ * Renders a directory-tree-style hierarchy grouped by package,
+ * including scripts from all packages (root and workspace members).
  */
 async function displayScripts(scripts: readonly DiscoveredScript[]) {
-  const filtered = filterRootPackageScripts(scripts);
-
-  if (filtered.length === 0) {
+  if (scripts.length === 0) {
     p.log.warn('No scripts found.');
     p.log.message(pc.dim('Create one with: lauf create <name>'));
     return ok();
   }
 
-  const descriptions = await loadDescriptions(filtered);
-  const tree = buildScriptTree(filtered, descriptions);
+  const descriptions = await loadDescriptions(scripts);
+  const tree = buildScriptTree(scripts, descriptions);
 
-  p.note(tree, `Found ${filtered.length} script(s)`);
+  p.note(tree, `Found ${scripts.length} script(s)`);
 
   return ok();
-}
-
-/**
- * Filter out scripts belonging to the workspace root package in monorepo contexts.
- *
- * In a monorepo, the root package is the workspace container and should not
- * appear as a separate entry alongside real packages.
- * In single-package mode, all scripts are kept.
- */
-function filterRootPackageScripts(
-  scripts: readonly DiscoveredScript[],
-): readonly DiscoveredScript[] {
-  const { manager, root } = getWorkspaceInfo();
-  if (manager === 'single') {
-    return scripts;
-  }
-  const normalizedRoot = path.resolve(root);
-  return scripts.filter((s) => path.resolve(s.packageDir) !== normalizedRoot);
 }
 
 /**
