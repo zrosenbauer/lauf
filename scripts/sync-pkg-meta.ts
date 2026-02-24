@@ -4,10 +4,10 @@ import { join } from 'node:path';
 import { lauf } from 'laufen';
 
 const FILES_TO_SYNC: ReadonlyArray<string> = ['README.md', 'LICENSE'];
-const TARGET_PACKAGE = 'packages/lauf';
+const TARGET_PACKAGE = 'packages/laufen';
 
 export default lauf({
-  description: 'Copy README.md and LICENSE from repo root into packages/lauf for npm publishing',
+  description: 'Copy README.md and LICENSE from repo root into packages/laufen for npm publishing',
   args: {},
   async run(ctx) {
     const targetDir = join(ctx.root, TARGET_PACKAGE);

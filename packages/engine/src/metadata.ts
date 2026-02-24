@@ -1,0 +1,169 @@
+// oxlint-disable max-dependencies
+import { execFile } from 'node:child_process';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { promisify } from 'node:util';
+
+import * as p from '@clack/prompts';
+import { attempt, attemptAsync } from 'es-toolkit';
+
+import { bundleScripts } from './bundler.ts';
+import type { ScriptTarget } from './types.ts';
+import { safeParseError } from './utils/cli.ts';
+import { safeParseJSON } from './utils/json.ts';
+
+const execFileAsync = promisify(execFile);
+
+const ENGINE_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+const EXTRACTOR_DIST_PATH = path.join(ENGINE_ROOT, 'dist', 'metadata-extractor.mjs');
+const EXTRACTOR_SRC_PATH = path.join(ENGINE_ROOT, 'src', 'metadata-extractor.ts');
+
+/**
+ * Resolve the metadata extractor path, preferring the built dist version
+ * and falling back to the source .ts path if dist is unavailable.
+ */
+function resolveExtractorPath(): string | undefined {
+  const [distErr, distExists] = attempt(() => fs.existsSync(EXTRACTOR_DIST_PATH));
+  if (!distErr && distExists) {
+    return EXTRACTOR_DIST_PATH;
+  }
+
+  const [srcErr, srcExists] = attempt(() => fs.existsSync(EXTRACTOR_SRC_PATH));
+  if (!srcErr && srcExists) {
+    return EXTRACTOR_SRC_PATH;
+  }
+
+  return undefined;
+}
+
+/**
+ * Build the NODE_PATH array for the metadata extractor subprocess.
+ */
+function buildNodePaths(workspaceRoot: string, cliPackageRoot: string): readonly string[] {
+  const base = [
+    path.join(ENGINE_ROOT, 'node_modules'),
+    path.join(cliPackageRoot, 'node_modules'),
+    path.join(workspaceRoot, 'node_modules'),
+  ];
+  const existing = process.env.NODE_PATH;
+  if (existing) {
+    return [...base, existing];
+  }
+  return base;
+}
+
+/**
+ * Build a minimal environment for the metadata extractor subprocess.
+ *
+ * Only exposes PATH, HOME, TERM, NODE_PATH, and any LAUF_* variables
+ * to avoid leaking secrets from the parent environment.
+ */
+function buildMinimalEnv(): Record<string, string | undefined> {
+  const laufEntries = Object.entries(process.env).filter(([key]) => key.startsWith('LAUF_'));
+  const base: Record<string, string | undefined> = {
+    PATH: process.env.PATH,
+    HOME: process.env.HOME,
+    TERM: process.env.TERM,
+    NODE_PATH: process.env.NODE_PATH,
+  };
+  return Object.assign(base, Object.fromEntries(laufEntries));
+}
+
+interface LoadDescriptionsOptions {
+  readonly workspaceRoot: string;
+  readonly cliPackageRoot: string;
+}
+
+/**
+ * Load descriptions for a set of scripts by bundling them with esbuild
+ * and spawning a metadata extractor process.
+ *
+ * Returns a record of original script path → description string.
+ * Fails gracefully — returns an empty record on any error so
+ * the list command still works, just without descriptions.
+ *
+ * @param scripts - Scripts to extract descriptions from
+ * @param options - Workspace root and CLI package root for NODE_PATH resolution
+ * @returns Record mapping script paths to description strings
+ */
+// oxlint-disable-next-line max-lines-per-function
+export async function loadDescriptions(
+  scripts: readonly ScriptTarget[],
+  options: LoadDescriptionsOptions,
+): Promise<Record<string, string>> {
+  if (scripts.length === 0) {
+    return {};
+  }
+
+  const scriptPaths = scripts.map((s) => s.path);
+  const [bundleError, bundleResult] = await bundleScripts(scriptPaths);
+  if (bundleError) {
+    p.log.warn(`Script descriptions unavailable: ${safeParseError(bundleError)}`);
+    return {};
+  }
+
+  const extractorPath = resolveExtractorPath();
+  if (!extractorPath) {
+    bundleResult.cleanup();
+    p.log.warn(
+      'Script descriptions unavailable: metadata extractor not found. Run `pnpm build` to generate it.',
+    );
+    return {};
+  }
+
+  const nodePaths = buildNodePaths(options.workspaceRoot, options.cliPackageRoot);
+
+  // Build the bundled paths list and a reverse mapping for path restoration
+  const bundledPaths = scripts.map((s) => bundleResult.outputs.get(s.path) || s.path);
+  const reverseMap: Record<string, string> = {};
+  scripts.forEach((s) => {
+    const bundled = bundleResult.outputs.get(s.path);
+    if (bundled) {
+      // oxlint-disable-next-line immutable-data -- building reverse map
+      reverseMap[bundled] = s.path;
+    }
+  });
+
+  const [error, result] = await attemptAsync(() =>
+    execFileAsync('node', [extractorPath], {
+      env: {
+        ...buildMinimalEnv(),
+        NODE_PATH: nodePaths.join(path.delimiter),
+        LAUF_SCRIPT_PATHS: JSON.stringify(bundledPaths),
+        LAUF_WORKSPACE_ROOT: options.workspaceRoot,
+      },
+      timeout: 15_000,
+    }),
+  );
+
+  bundleResult.cleanup();
+
+  // es-toolkit's attemptAsync types require the null check for TS narrowing
+  if (error || result === null) {
+    p.log.warn('Description extraction timed out or failed. Listing scripts without descriptions.');
+    return {};
+  }
+
+  const [parseError, parsed] = safeParseJSON(String(result.stdout));
+  if (parseError || parsed === null || typeof parsed !== 'object') {
+    p.log.warn('Description extraction failed: could not parse metadata output.');
+    return {};
+  }
+
+  const rawDescriptions = parsed as Record<string, string>;
+
+  // Map bundled paths back to original paths
+  const descriptions: Record<string, string> = {};
+  Object.entries(rawDescriptions).forEach(([bundledPath, desc]) => {
+    const originalPath = reverseMap[bundledPath] || bundledPath;
+    // oxlint-disable-next-line immutable-data -- building output record
+    descriptions[originalPath] = desc;
+  });
+
+  if (Object.keys(descriptions).length === 0 && scripts.length > 0) {
+    p.log.warn('Description extraction returned no results. Descriptions may be unavailable.');
+  }
+
+  return descriptions;
+}
