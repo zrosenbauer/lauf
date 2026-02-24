@@ -1,15 +1,10 @@
-// Execution
 export { runScript } from './runner.ts';
 export { loadDescriptions } from './metadata.ts';
 export { bundleScript } from './bundler.ts';
-
-// Context
 export { createContext } from './context/index.ts';
 export { createLogger } from './context/logger.ts';
 export { createPrompts } from './context/prompts.ts';
 export { createSpinner, createNoopSpinner } from './context/spinner.ts';
-
-// Types
 export type {
   ArgDefs,
   InferArgs,

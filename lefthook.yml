@@ -6,7 +6,7 @@ commit-msg:
 pre-commit:
   commands:
     sync-pkg-meta:
-      run: pnpm lauf run lauf-monorepo/sync-pkg-meta && git add packages/laufen/README.md packages/laufen/LICENSE
+      run: pnpm lauf run sync-pkg-meta && git add packages/laufen/README.md packages/laufen/LICENSE
     format:
       glob: '*.{ts,tsx,js,jsx,json,md,yaml,yml}'
       run: pnpm fmt {staged_files} && git add {staged_files}
