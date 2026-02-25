@@ -25,7 +25,7 @@ const envSchema = z.object({
   LAUF_WORKSPACE_ROOT: absolutePathString,
   LAUF_PACKAGE_DIR: absolutePathString,
   LAUF_SCRIPT_NAME: z.string(),
-  LAUF_SPINNER: z.string(),
+  LAUF_SPINNER: z.enum(['0', '1']),
   LAUF_HELP: z.string().optional(),
 });
 
@@ -86,8 +86,16 @@ async function execute(): Promise<void> {
 
   const config = mod.default;
 
-  if (!config || typeof config.run !== 'function') {
-    p.log.error(`Script "${env.LAUF_SCRIPT_NAME}" does not export a valid lauf() config`);
+  if (
+    !config ||
+    typeof config.description !== 'string' ||
+    typeof config.args !== 'object' ||
+    config.args === null ||
+    typeof config.run !== 'function'
+  ) {
+    p.log.error(
+      `Script "${env.LAUF_SCRIPT_NAME}" does not export a valid lauf() config (requires description, args, run)`,
+    );
     process.exit(1);
   }
 

@@ -82,6 +82,30 @@ export function resolveType(prop: JsonSchemaProperty): string {
   return 'string';
 }
 
+function extractProperties(obj: Record<string, unknown>): Record<string, JsonSchemaProperty> {
+  if (
+    typeof obj.properties !== 'object' ||
+    obj.properties === null ||
+    Array.isArray(obj.properties)
+  ) {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(obj.properties as Record<string, unknown>).filter(
+      ([, v]) => typeof v === 'object' && v !== null && !Array.isArray(v),
+    ),
+  ) as Record<string, JsonSchemaProperty>;
+}
+
+function extractRequired(obj: Record<string, unknown>): readonly string[] {
+  if (!Array.isArray(obj.required) || !obj.required.every((x: unknown) => typeof x === 'string')) {
+    return [];
+  }
+
+  return obj.required as readonly string[];
+}
+
 /**
  * Safely extract properties and required fields from a raw JSON Schema
  * object produced by `z.toJSONSchema`.
@@ -102,19 +126,8 @@ export function extractSchemaFields(raw: unknown): {
 
   const obj = raw as Record<string, unknown>;
 
-  let properties: Record<string, JsonSchemaProperty> = {};
-  if (typeof obj.properties === 'object' && obj.properties !== null) {
-    const rawProps = obj.properties as Record<string, unknown>;
-    const validEntries = Object.entries(rawProps).filter(
-      ([, v]) => typeof v === 'object' && v !== null,
-    );
-    properties = Object.fromEntries(validEntries) as Record<string, JsonSchemaProperty>;
-  }
-
-  let required: readonly string[] = [];
-  if (Array.isArray(obj.required) && obj.required.every((x: unknown) => typeof x === 'string')) {
-    required = obj.required as readonly string[];
-  }
-
-  return { properties, required };
+  return {
+    properties: extractProperties(obj),
+    required: extractRequired(obj),
+  };
 }

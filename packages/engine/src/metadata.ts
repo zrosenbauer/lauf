@@ -58,13 +58,13 @@ function buildNodePaths(workspaceRoot: string, cliPackageRoot: string): readonly
  */
 function buildMinimalEnv(): Record<string, string | undefined> {
   const laufEntries = Object.entries(process.env).filter(([key]) => key.startsWith('LAUF_'));
-  const base: Record<string, string | undefined> = {
+  return {
     PATH: process.env.PATH,
     HOME: process.env.HOME,
     TERM: process.env.TERM,
     NODE_PATH: process.env.NODE_PATH,
+    ...Object.fromEntries(laufEntries),
   };
-  return Object.assign(base, Object.fromEntries(laufEntries));
 }
 
 if (import.meta.vitest) {
@@ -183,14 +183,17 @@ export async function loadDescriptions(
 
   // Build the bundled paths list and a reverse mapping for path restoration
   const bundledPaths = scripts.map((s) => bundleResult.outputs.get(s.path) || s.path);
-  const reverseMap: Record<string, string> = {};
-  scripts.forEach((s) => {
-    const bundled = bundleResult.outputs.get(s.path);
-    if (bundled) {
-      // oxlint-disable-next-line immutable-data -- building reverse map
-      reverseMap[bundled] = s.path;
-    }
-  });
+  const reverseMap: Record<string, string> = Object.fromEntries(
+    scripts
+      .map((s) => {
+        const bundled = bundleResult.outputs.get(s.path);
+        if (bundled) {
+          return [bundled, s.path] as const;
+        }
+        return null;
+      })
+      .filter((entry): entry is readonly [string, string] => entry !== null),
+  );
 
   const [error, result] = await attemptAsync(() =>
     execFileAsync('node', [extractorPath], {
@@ -221,12 +224,12 @@ export async function loadDescriptions(
   const rawDescriptions = parsed as Record<string, string>;
 
   // Map bundled paths back to original paths
-  const descriptions: Record<string, string> = {};
-  Object.entries(rawDescriptions).forEach(([bundledPath, desc]) => {
-    const originalPath = reverseMap[bundledPath] || bundledPath;
-    // oxlint-disable-next-line immutable-data -- building output record
-    descriptions[originalPath] = desc;
-  });
+  const descriptions: Record<string, string> = Object.fromEntries(
+    Object.entries(rawDescriptions).map(([bundledPath, desc]) => {
+      const originalPath = reverseMap[bundledPath] || bundledPath;
+      return [originalPath, desc] as const;
+    }),
+  );
 
   if (Object.keys(descriptions).length === 0 && scripts.length > 0) {
     p.log.warn('Description extraction returned no results. Descriptions may be unavailable.');
