@@ -2,8 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // --- Hoisted mocks ---
 
-const { mockSafeParseJSON } = vi.hoisted(() => ({
+const { mockSafeParseJSON, mockTmpdir } = vi.hoisted(() => ({
   mockSafeParseJSON: vi.fn(),
+  mockTmpdir: vi.fn(() => '/tmp'),
 }));
 
 // Track attemptAsync calls for controlling top-level vs inner behavior
@@ -26,6 +27,10 @@ const { attemptAsyncCallIndex, mockModuleResults } = vi.hoisted(() => ({
 
 vi.mock('./utils/json.ts', () => ({
   safeParseJSON: mockSafeParseJSON,
+}));
+
+vi.mock('node:os', () => ({
+  tmpdir: mockTmpdir,
 }));
 
 const safeAttemptAsync = async <T>(fn: () => Promise<T>): Promise<[Error, null] | [null, T]> => {

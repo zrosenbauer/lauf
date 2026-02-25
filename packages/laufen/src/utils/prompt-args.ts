@@ -22,7 +22,10 @@ function findMissingArgs(
   const { properties, required } = extractSchemaFields(rawSchema);
 
   return Object.entries(properties)
-    .filter(([name, prop]) => required.includes(name) && !(name in rawArgs) && !hasDefault(prop))
+    .filter(
+      ([name, prop]) =>
+        required.includes(name) && !Object.hasOwn(rawArgs, name) && !hasDefault(prop),
+    )
     .map(([name, prop]) => ({
       name,
       type: resolveType(prop),
@@ -42,20 +45,29 @@ function promptSingleArg(prompts: Prompts, arg: MissingArg): Promise<PromptResul
     return prompts.confirm({ message: arg.description });
   }
   if (arg.type === 'number' || arg.type === 'integer') {
-    return promptNumber(prompts, arg.description);
+    return promptNumber(prompts, arg.description, arg.type === 'integer');
   }
   return prompts.text({ message: arg.description });
 }
 
-async function promptNumber(prompts: Prompts, message: string): Promise<PromptResult<unknown>> {
+async function promptNumber(
+  prompts: Prompts,
+  message: string,
+  isInteger: boolean,
+): Promise<PromptResult<unknown>> {
   const result = await prompts.text({
     message,
     validate: (v) => {
       if (v === undefined || v === '') {
         return 'A value is required';
       }
-      if (Number.isNaN(Number(v))) {
+      const trimmed = v.trim();
+      const num = Number(trimmed);
+      if (trimmed === '' || !Number.isFinite(num)) {
         return 'Must be a valid number';
+      }
+      if (isInteger && !Number.isInteger(num)) {
+        return 'Must be an integer';
       }
     },
   });

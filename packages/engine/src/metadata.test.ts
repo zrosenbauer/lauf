@@ -1,3 +1,5 @@
+import * as path from 'node:path';
+
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { mockExistsSync, mockBundleScripts, mockLogWarn, mockExecFileAsync, mockSafeParseJSON } =
@@ -101,20 +103,6 @@ describe('loadDescriptions', () => {
     expect(mockLogWarn).toHaveBeenCalledWith(
       expect.stringContaining('metadata extractor not found'),
     );
-  });
-
-  it('falls back to src extractor path when dist is not found', async () => {
-    mockBundleScripts.mockResolvedValue([null, defaultBundleResult]);
-    // First call (dist check) returns false, second call (src check) returns true
-    mockExistsSync.mockReturnValueOnce(false).mockReturnValueOnce(true);
-    mockExecFileAsync.mockResolvedValue({ stdout: '{}', stderr: '' });
-    mockSafeParseJSON.mockReturnValue([null, {}]);
-
-    await loadDescriptions(testScripts, testOptions);
-
-    // Should have proceeded to call execFileAsync (not returned early with warning)
-    expect(mockExecFileAsync).toHaveBeenCalled();
-    expect(mockCleanup).toHaveBeenCalled();
   });
 
   it('returns empty object and warns when execFileAsync fails', async () => {
@@ -306,12 +294,17 @@ describe('loadDescriptions', () => {
     await loadDescriptions(testScripts, testOptions);
 
     const execEnv = mockExecFileAsync.mock.calls[0][2].env;
-    const parts = (execEnv.NODE_PATH as string).split(':');
+    const parts = (execEnv.NODE_PATH as string).split(path.delimiter);
     // Should only have the 3 base paths (engine, cli, workspace node_modules)
     expect(parts).toHaveLength(3);
 
-    // oxlint-disable-next-line immutable-data
-    process.env.NODE_PATH = savedNodePath ?? '';
+    if (savedNodePath === undefined) {
+      // oxlint-disable-next-line immutable-data
+      delete process.env.NODE_PATH;
+    } else {
+      // oxlint-disable-next-line immutable-data
+      process.env.NODE_PATH = savedNodePath;
+    }
   });
 
   it('preserves paths not in the reverse map', async () => {

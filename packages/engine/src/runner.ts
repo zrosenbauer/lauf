@@ -13,7 +13,6 @@ import { safeParseError } from './utils/cli.ts';
 
 const ENGINE_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const EXECUTOR_DIST_PATH = path.join(ENGINE_ROOT, 'dist', 'executor.mjs');
-const EXECUTOR_SRC_PATH = path.join(ENGINE_ROOT, 'src', 'executor.ts');
 
 export interface RunScriptOptions {
   readonly help?: boolean;
@@ -23,20 +22,16 @@ export interface RunScriptOptions {
 }
 
 /**
- * Resolve the executor entry point, preferring the built dist version
- * and falling back to the source .ts path if dist is unavailable.
+ * Resolve the executor entry point.
  *
- * Returns undefined if neither exists.
+ * Only returns the built dist version — the executor is spawned with
+ * plain `node` which cannot run TypeScript files on all Node 22.x versions.
+ * Run `pnpm build` to generate the dist file.
  */
 function resolveExecutorPath(): string | undefined {
   const [distErr, distExists] = attempt(() => fs.existsSync(EXECUTOR_DIST_PATH));
   if (!distErr && distExists) {
     return EXECUTOR_DIST_PATH;
-  }
-
-  const [srcErr, srcExists] = attempt(() => fs.existsSync(EXECUTOR_SRC_PATH));
-  if (!srcErr && srcExists) {
-    return EXECUTOR_SRC_PATH;
   }
 
   return undefined;
@@ -110,7 +105,11 @@ if (import.meta.vitest) {
       process.env.NODE_PATH = '/custom/modules';
       const result = buildNodePath('/workspace', '/cli-root');
       expect(result).toContain('/custom/modules');
-      process.env.NODE_PATH = saved ?? '';
+      if (saved === undefined) {
+        delete process.env.NODE_PATH;
+      } else {
+        process.env.NODE_PATH = saved;
+      }
     });
 
     it('returns only base paths when NODE_PATH is empty', () => {
@@ -119,7 +118,11 @@ if (import.meta.vitest) {
       const result = buildNodePath('/workspace', '/cli-root');
       const parts = result.split(path.delimiter);
       expect(parts).toHaveLength(3);
-      process.env.NODE_PATH = saved ?? '';
+      if (saved === undefined) {
+        delete process.env.NODE_PATH;
+      } else {
+        process.env.NODE_PATH = saved;
+      }
     });
   });
 

@@ -1,5 +1,6 @@
 // oxlint-disable import/max-dependencies
 import * as path from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 import * as p from '@clack/prompts';
 import { attemptAsync } from 'es-toolkit';
@@ -69,9 +70,11 @@ async function execute(): Promise<void> {
   }
 
   // Import the bundled .mjs file (already transpiled by esbuild)
+  // Use pathToFileURL for cross-platform compatibility (Windows requires file:// URLs for ESM import)
   const resolvedScriptPath = path.resolve(env.LAUF_SCRIPT_PATH);
+  const scriptFileUrl = pathToFileURL(resolvedScriptPath).href;
   const [importError, mod] = await attemptAsync(
-    () => import(resolvedScriptPath) as Promise<{ default: ScriptConfig<ArgDefs> }>,
+    () => import(scriptFileUrl) as Promise<{ default: ScriptConfig<ArgDefs> }>,
   );
   // es-toolkit's attemptAsync types require the null check for TS narrowing
   if (importError || mod === null) {

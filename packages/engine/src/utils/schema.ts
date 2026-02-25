@@ -104,7 +104,11 @@ export function extractSchemaFields(raw: unknown): {
 
   let properties: Record<string, JsonSchemaProperty> = {};
   if (typeof obj.properties === 'object' && obj.properties !== null) {
-    properties = obj.properties as Record<string, JsonSchemaProperty>;
+    const rawProps = obj.properties as Record<string, unknown>;
+    const validEntries = Object.entries(rawProps).filter(
+      ([, v]) => typeof v === 'object' && v !== null,
+    );
+    properties = Object.fromEntries(validEntries) as Record<string, JsonSchemaProperty>;
   }
 
   let required: readonly string[] = [];

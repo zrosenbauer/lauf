@@ -47,6 +47,34 @@ describe('bundleScript', () => {
     expect(typeof result[1].cleanup).toBe('function');
   });
 
+  it('captures esbuild warnings in the result', async () => {
+    mockBuild.mockResolvedValue({
+      warnings: [{ text: 'unused import' }, { text: 'deprecated API' }],
+    });
+
+    const result = await bundleScript('/workspace/scripts/test.ts');
+
+    expect(result[0]).toBeNull();
+    expect(result[1]).not.toBeNull();
+    if (result[1] === null) {
+      return;
+    }
+    expect(result[1].warnings).toEqual(['unused import', 'deprecated API']);
+  });
+
+  it('returns empty warnings when build has no warnings', async () => {
+    mockBuild.mockResolvedValue({});
+
+    const result = await bundleScript('/workspace/scripts/test.ts');
+
+    expect(result[0]).toBeNull();
+    expect(result[1]).not.toBeNull();
+    if (result[1] === null) {
+      return;
+    }
+    expect(result[1].warnings).toEqual([]);
+  });
+
   it('passes entryPoints and default options to esbuild.build', async () => {
     mockBuild.mockResolvedValue({});
 

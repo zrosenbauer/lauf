@@ -17,21 +17,18 @@ const execFileAsync = promisify(execFile);
 
 const ENGINE_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const EXTRACTOR_DIST_PATH = path.join(ENGINE_ROOT, 'dist', 'metadata-extractor.mjs');
-const EXTRACTOR_SRC_PATH = path.join(ENGINE_ROOT, 'src', 'metadata-extractor.ts');
 
 /**
- * Resolve the metadata extractor path, preferring the built dist version
- * and falling back to the source .ts path if dist is unavailable.
+ * Resolve the metadata extractor path.
+ *
+ * Only returns the built dist version — the extractor is executed with
+ * plain `node` which cannot run TypeScript files on all Node 22.x versions.
+ * Run `pnpm build` to generate the dist file.
  */
 function resolveExtractorPath(): string | undefined {
   const [distErr, distExists] = attempt(() => fs.existsSync(EXTRACTOR_DIST_PATH));
   if (!distErr && distExists) {
     return EXTRACTOR_DIST_PATH;
-  }
-
-  const [srcErr, srcExists] = attempt(() => fs.existsSync(EXTRACTOR_SRC_PATH));
-  if (!srcErr && srcExists) {
-    return EXTRACTOR_SRC_PATH;
   }
 
   return undefined;
@@ -86,7 +83,11 @@ if (import.meta.vitest) {
       process.env.NODE_PATH = '/custom/modules';
       const result = buildNodePaths('/workspace', '/cli-root');
       expect(result).toContain('/custom/modules');
-      process.env.NODE_PATH = saved ?? '';
+      if (saved === undefined) {
+        delete process.env.NODE_PATH;
+      } else {
+        process.env.NODE_PATH = saved;
+      }
     });
 
     it('returns only base paths when NODE_PATH is unset', () => {
@@ -94,7 +95,11 @@ if (import.meta.vitest) {
       process.env.NODE_PATH = '';
       const result = buildNodePaths('/workspace', '/cli-root');
       expect(result).toHaveLength(3);
-      process.env.NODE_PATH = saved ?? '';
+      if (saved === undefined) {
+        delete process.env.NODE_PATH;
+      } else {
+        process.env.NODE_PATH = saved;
+      }
     });
   });
 

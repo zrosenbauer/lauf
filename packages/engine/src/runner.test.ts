@@ -1,4 +1,5 @@
 import { EventEmitter } from 'node:events';
+import * as path from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -146,21 +147,6 @@ describe('runScript', () => {
       expect(mockSpawn).not.toHaveBeenCalled();
     });
 
-    it('falls back to src executor path when dist is not found', async () => {
-      const mockChild = createMockChild();
-      mockSpawn.mockReturnValue(mockChild);
-      // First call (dist check) returns false, second call (src check) returns true
-      mockExistsSync.mockReturnValueOnce(false).mockReturnValueOnce(true);
-
-      const resultPromise = runScript(testScript, {}, testOptions);
-      await flushMicrotasks();
-      mockChild.emit('close', 0);
-      const result = await resultPromise;
-
-      expect(result.exitCode).toBe(0);
-      expect(mockSpawn).toHaveBeenCalled();
-    });
-
     it('returns exitCode 1 and logs error when bundleScript fails', async () => {
       mockBundleScript.mockResolvedValue([new Error('bundle failed'), null]);
 
@@ -226,8 +212,13 @@ describe('runScript', () => {
       const spawnEnv = mockSpawn.mock.calls[0][2].env;
       expect(spawnEnv.NODE_PATH).toContain('/custom/node_modules');
 
-      // oxlint-disable-next-line immutable-data
-      process.env.NODE_PATH = savedNodePath ?? '';
+      if (savedNodePath === undefined) {
+        // oxlint-disable-next-line immutable-data
+        delete process.env.NODE_PATH;
+      } else {
+        // oxlint-disable-next-line immutable-data
+        process.env.NODE_PATH = savedNodePath;
+      }
     });
 
     it('builds NODE_PATH without appending when NODE_PATH is unset', async () => {
@@ -244,12 +235,17 @@ describe('runScript', () => {
       await resultPromise;
 
       const spawnEnv = mockSpawn.mock.calls[0][2].env;
-      const parts = (spawnEnv.NODE_PATH as string).split(':');
+      const parts = (spawnEnv.NODE_PATH as string).split(path.delimiter);
       // Should only have the 3 base paths (engine, cli, workspace node_modules)
       expect(parts).toHaveLength(3);
 
-      // oxlint-disable-next-line immutable-data
-      process.env.NODE_PATH = savedNodePath ?? '';
+      if (savedNodePath === undefined) {
+        // oxlint-disable-next-line immutable-data
+        delete process.env.NODE_PATH;
+      } else {
+        // oxlint-disable-next-line immutable-data
+        process.env.NODE_PATH = savedNodePath;
+      }
     });
   });
 

@@ -1,4 +1,6 @@
+import * as os from 'node:os';
 import * as path from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 import { attemptAsync } from 'es-toolkit';
 
@@ -12,6 +14,18 @@ function isWithinWorkspace(scriptPath: string, workspaceRoot: string): boolean {
   const resolved = path.resolve(scriptPath);
   const root = path.resolve(workspaceRoot);
   return resolved.startsWith(`${root}${path.sep}`) || resolved === root;
+}
+
+/**
+ * Check whether a script path is within the system temp directory.
+ *
+ * Anchored to `os.tmpdir()` to prevent path traversal via
+ * paths that merely contain `laufen-` in an arbitrary location.
+ */
+function isWithinTmpDir(scriptPath: string): boolean {
+  const resolvedTmp = path.resolve(os.tmpdir());
+  const resolvedScript = path.resolve(scriptPath);
+  return resolvedScript.startsWith(`${resolvedTmp}${path.sep}`) || resolvedScript === resolvedTmp;
 }
 
 /**
@@ -45,17 +59,18 @@ async function extractMetadata(): Promise<void> {
       // Validate that the script path is within the workspace root
       // or is a temp directory (bundled output) to prevent importing
       // files outside the expected project boundary.
-      if (workspaceRoot && !isWithinWorkspace(scriptPath, workspaceRoot)) {
-        // Allow temp directory paths (bundled scripts)
-        const isTempPath = scriptPath.includes('laufen-');
-        if (!isTempPath) {
-          return [scriptPath, ''];
-        }
+      if (
+        workspaceRoot &&
+        !isWithinWorkspace(scriptPath, workspaceRoot) &&
+        !isWithinTmpDir(scriptPath)
+      ) {
+        return [scriptPath, ''];
       }
 
       const resolvedPath = path.resolve(scriptPath);
+      const scriptFileUrl = pathToFileURL(resolvedPath).href;
       const [importError, mod] = await attemptAsync(
-        () => import(resolvedPath) as Promise<{ default: ScriptConfig<ArgDefs> }>,
+        () => import(scriptFileUrl) as Promise<{ default: ScriptConfig<ArgDefs> }>,
       );
 
       if (importError || mod === null) {

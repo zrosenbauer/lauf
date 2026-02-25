@@ -1,6 +1,7 @@
 export { runScript } from './runner.ts';
 export { loadDescriptions } from './metadata.ts';
 export { bundleScript } from './bundler.ts';
+export { extractArgMeta, formatHelp } from './utils/help.ts';
 export { createContext } from './context/index.ts';
 export { createLogger } from './context/logger.ts';
 export { createPrompts } from './context/prompts.ts';
