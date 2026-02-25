@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
 
-language: "en-US"
+language: 'en-US'
 tone_instructions: >-
   Be direct and concise. Focus on correctness, immutability, and functional
   programming principles. Flag any use of mutation, imperative patterns, or
@@ -9,7 +9,7 @@ early_access: false
 enable_free_tier: true
 
 reviews:
-  profile: "assertive"
+  profile: 'assertive'
   request_changes_workflow: false
   high_level_summary: true
   collapse_walkthrough: true
@@ -20,20 +20,20 @@ reviews:
     auto_incremental_review: true
     drafts: false
     base_branches:
-      - "main"
+      - 'main'
 
   path_filters:
-    - "!**/dist/**"
-    - "!**/node_modules/**"
-    - "!**/.turbo/**"
-    - "!**/coverage/**"
-    - "!pnpm-lock.yaml"
-    - "!**/*.d.ts"
-    - "!**/bundle/**"
-    - "!**/CHANGELOG.md"
+    - '!**/dist/**'
+    - '!**/node_modules/**'
+    - '!**/.turbo/**'
+    - '!**/coverage/**'
+    - '!pnpm-lock.yaml'
+    - '!**/*.d.ts'
+    - '!**/bundle/**'
+    - '!**/CHANGELOG.md'
 
   path_instructions:
-    - path: "packages/lauf/src/**/*.ts"
+    - path: 'packages/lauf/src/**/*.ts'
       instructions: >-
         This is a strict functional TypeScript codebase. Enforce the following:
 
@@ -48,27 +48,27 @@ reviews:
         - Side effects (I/O, logging, process control) belong at the edges (handlers, runtime)
         - Use `es-toolkit` for utility functions, `ts-pattern` for pattern matching, `zod` for validation
 
-    - path: "packages/lauf/src/handlers/**"
+    - path: 'packages/lauf/src/handlers/**'
       instructions: >-
         Handler files are the boundary layer where side effects are permitted.
         They may use `@clack/prompts` for CLI output. Functional constraints on
         loops, let, and mutation are relaxed here, but prefer immutable patterns
         where practical.
 
-    - path: "packages/lauf/src/runtime/**"
+    - path: 'packages/lauf/src/runtime/**'
       instructions: >-
         Runtime files handle script execution and process management. Side effects
         (child processes, file I/O) are expected here. Functional constraints are
         relaxed, but keep functions small and composable. The executor uses `tsx`
         for TypeScript execution.
 
-    - path: "packages/lauf/src/lib/**"
+    - path: 'packages/lauf/src/lib/**'
       instructions: >-
         Library files handle config loading (c12), script discovery, and path
         resolution. Side effects (filesystem reads) are expected. Keep functions
         focused and prefer returning data over mutating state.
 
-    - path: "**/*.test.ts"
+    - path: '**/*.test.ts'
       instructions: >-
         Test files have relaxed functional constraints. Mutation, let bindings,
         and imperative patterns are acceptable for test setup and assertions.
@@ -101,6 +101,6 @@ knowledge_base:
   web_search:
     enabled: true
   learnings:
-    scope: "local"
+    scope: 'local'
   issues:
-    scope: "local"
+    scope: 'local'
