@@ -19,8 +19,6 @@ reviews:
     enabled: true
     auto_incremental_review: true
     drafts: false
-    base_branches:
-      - 'main'
 
   path_filters:
     - '!**/dist/**'
@@ -33,7 +31,7 @@ reviews:
     - '!**/CHANGELOG.md'
 
   path_instructions:
-    - path: 'packages/lauf/src/**/*.ts'
+    - path: 'packages/lauf/src/*.ts'
       instructions: >-
         This is a strict functional TypeScript codebase. Enforce the following:
 
