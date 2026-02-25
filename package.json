@@ -4,6 +4,8 @@
   "type": "module",
   "scripts": {
     "build": "turbo run build",
+    "clean": "rimraf **/dist **/.turbo **/node_modules/.cache",
+    "clean:all": "pnpm clean && rimraf **/node_modules pnpm-lock.yaml",
     "docs:build": "turbo run docs:build --filter=docs",
     "docs:dev": "turbo run docs:dev --filter=docs",
     "fmt": "oxfmt",
@@ -14,6 +16,7 @@
     "release": "changeset publish",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
+    "validate": "turbo run typecheck test && pnpm lint && pnpm fmt:check",
     "version": "changeset version",
     "version:ci": "changeset version && oxfmt --write"
   },
@@ -24,12 +27,13 @@
     "@changesets/cli": "^2.29.8",
     "@commitlint/cli": "^20.4.2",
     "@commitlint/config-conventional": "^20.4.2",
-    "eslint-plugin-functional": "^9.0.3",
+    "eslint-plugin-functional": "^9.0.4",
     "eslint-plugin-security": "^4.0.0",
     "lefthook": "^2.1.1",
-    "oxfmt": "^0.34.0",
-    "oxlint": "^1.49.0",
-    "turbo": "^2.8.10"
+    "oxfmt": "^0.35.0",
+    "oxlint": "^1.50.0",
+    "rimraf": "^6.1.3",
+    "turbo": "^2.8.11"
   },
   "engines": {
     "node": ">=22.0.0"
