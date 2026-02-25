@@ -231,6 +231,77 @@ describe('promptForMissingArgs', () => {
     expect(error).toBeNull();
     expect(result).toEqual({ port: 8080 });
   });
+
+  it('skips prompting for args with defaults', async () => {
+    const argDefs = {
+      name: z.string().describe('Name'),
+      verbose: z.boolean().default(false).describe('Enable verbose'),
+    };
+    const prompts = createMockPrompts({
+      text: vi.fn<Prompts['text']>().mockResolvedValue([null, 'Alice']),
+    });
+
+    const [error, result] = await promptForMissingArgs(argDefs, {}, prompts);
+
+    expect(error).toBeNull();
+    expect(result).toEqual({ name: 'Alice' });
+    expect(prompts.text).toHaveBeenCalledTimes(1);
+    expect(prompts.confirm).not.toHaveBeenCalled();
+  });
+
+  it('skips prompting for all args when all have defaults', async () => {
+    const argDefs = {
+      verbose: z.boolean().default(false).describe('Enable verbose'),
+      count: z.number().default(42).describe('Count'),
+    };
+    const prompts = createMockPrompts();
+
+    const [error, result] = await promptForMissingArgs(argDefs, {}, prompts);
+
+    expect(error).toBeNull();
+    expect(result).toEqual({});
+    expect(prompts.text).not.toHaveBeenCalled();
+    expect(prompts.confirm).not.toHaveBeenCalled();
+  });
+
+  it('still prompts for args without defaults even when others have defaults', async () => {
+    const argDefs = {
+      name: z.string().describe('Name'),
+      env: z.enum(['dev', 'prod']).describe('Environment'),
+      verbose: z.boolean().default(false).describe('Enable verbose'),
+      count: z.number().default(10).describe('Count'),
+    };
+    const textMock = vi.fn<Prompts['text']>().mockResolvedValue([null, 'Bob']);
+    const selectMock = vi.fn().mockResolvedValue([null, 'dev']) as Prompts['select'];
+    const prompts = createMockPrompts({
+      text: textMock,
+      select: selectMock,
+    });
+
+    const [error, result] = await promptForMissingArgs(argDefs, {}, prompts);
+
+    expect(error).toBeNull();
+    expect(result).toEqual({ name: 'Bob', env: 'dev' });
+    expect(textMock).toHaveBeenCalledTimes(1);
+    expect(selectMock).toHaveBeenCalledTimes(1);
+    expect(prompts.confirm).not.toHaveBeenCalled();
+  });
+
+  it('respects CLI-provided values for args that also have defaults', async () => {
+    const argDefs = {
+      name: z.string().describe('Name'),
+      verbose: z.boolean().default(false).describe('Enable verbose'),
+    };
+    const rawArgs = { name: 'Alice', verbose: true };
+    const prompts = createMockPrompts();
+
+    const [error, result] = await promptForMissingArgs(argDefs, rawArgs, prompts);
+
+    expect(error).toBeNull();
+    expect(result).toEqual({ name: 'Alice', verbose: true });
+    expect(prompts.text).not.toHaveBeenCalled();
+    expect(prompts.confirm).not.toHaveBeenCalled();
+  });
 });
 
 describe('promptForMissingArgs with mocked toJSONSchema', () => {
