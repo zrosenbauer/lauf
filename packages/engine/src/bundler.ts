@@ -10,6 +10,7 @@ import type { Result } from './result.ts';
 export interface BundleResult {
   readonly outputPath: string;
   readonly cleanup: () => void;
+  readonly warnings: readonly string[];
 }
 
 /**
@@ -37,7 +38,7 @@ export async function bundleScript(
   const outputPath = path.join(resolvedTmpDir, 'script.mjs');
   const externals = [...((options && options.externals) || [])];
 
-  const [buildError] = await attemptAsync(() =>
+  const [buildError, buildResult] = await attemptAsync(() =>
     esbuild.build({
       entryPoints: [scriptPath],
       bundle: true,
@@ -52,7 +53,6 @@ export async function bundleScript(
   );
 
   if (buildError) {
-    // Clean up temp dir on failure
     attempt(() => fs.rmSync(resolvedTmpDir, { recursive: true, force: true }));
     if (buildError instanceof Error) {
       return [new Error(`Failed to bundle script: ${buildError.message}`), null];
@@ -60,11 +60,16 @@ export async function bundleScript(
     return [new Error(`Failed to bundle script: ${String(buildError)}`), null];
   }
 
+  let warnings: readonly string[] = [];
+  if (buildResult && buildResult.warnings) {
+    warnings = buildResult.warnings.map((w) => w.text);
+  }
+
   const cleanup = (): void => {
     attempt(() => fs.rmSync(resolvedTmpDir, { recursive: true, force: true }));
   };
 
-  return [null, { outputPath, cleanup }];
+  return [null, { outputPath, cleanup, warnings }];
 }
 
 /**
@@ -94,7 +99,6 @@ export async function bundleScripts(
 
   const firstError = results.find((r) => r.result[0] !== null);
   if (firstError) {
-    // Clean up any successful bundles
     results
       .filter((r) => r.result[0] === null)
       .forEach((r) => {

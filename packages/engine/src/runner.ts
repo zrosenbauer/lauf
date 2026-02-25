@@ -94,6 +94,75 @@ function resolveHelpEnv(options: RunScriptOptions): Record<string, string> {
   return {};
 }
 
+if (import.meta.vitest) {
+  const { describe, it, expect } = import.meta.vitest;
+
+  describe('buildNodePath', () => {
+    it('includes engine, cli, and workspace node_modules', () => {
+      const result = buildNodePath('/workspace', '/cli-root');
+      expect(result).toContain(path.join(ENGINE_ROOT, 'node_modules'));
+      expect(result).toContain('/cli-root/node_modules');
+      expect(result).toContain('/workspace/node_modules');
+    });
+
+    it('appends existing NODE_PATH when set', () => {
+      const saved = process.env.NODE_PATH;
+      process.env.NODE_PATH = '/custom/modules';
+      const result = buildNodePath('/workspace', '/cli-root');
+      expect(result).toContain('/custom/modules');
+      process.env.NODE_PATH = saved ?? '';
+    });
+
+    it('returns only base paths when NODE_PATH is empty', () => {
+      const saved = process.env.NODE_PATH;
+      process.env.NODE_PATH = '';
+      const result = buildNodePath('/workspace', '/cli-root');
+      const parts = result.split(path.delimiter);
+      expect(parts).toHaveLength(3);
+      process.env.NODE_PATH = saved ?? '';
+    });
+  });
+
+  describe('resolveSpinner', () => {
+    it('returns true when spinner is undefined', () => {
+      const result = resolveSpinner({ workspaceRoot: '', cliPackageRoot: '' });
+      expect(result).toBe(true);
+    });
+
+    it('returns true when spinner is true', () => {
+      const result = resolveSpinner({ workspaceRoot: '', cliPackageRoot: '', spinner: true });
+      expect(result).toBe(true);
+    });
+
+    it('returns false when spinner is false', () => {
+      const result = resolveSpinner({ workspaceRoot: '', cliPackageRoot: '', spinner: false });
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('resolveSpinnerEnv', () => {
+    it('returns "1" for true', () => {
+      expect(resolveSpinnerEnv(true)).toBe('1');
+    });
+
+    it('returns "0" for false', () => {
+      expect(resolveSpinnerEnv(false)).toBe('0');
+    });
+  });
+
+  describe('resolveHelpEnv', () => {
+    it('returns LAUF_HELP: "1" when help is true', () => {
+      const result = resolveHelpEnv({ help: true, workspaceRoot: '', cliPackageRoot: '' });
+      expect(result).toEqual({ LAUF_HELP: '1' });
+    });
+
+    it('returns empty object when help is falsy', () => {
+      const result = resolveHelpEnv({ workspaceRoot: '', cliPackageRoot: '' });
+      expect(result).toEqual({});
+    });
+  });
+}
+
 /**
  * Register SIGINT and SIGTERM forwarding to the child process.
  * Returns a cleanup function that removes the signal handlers.

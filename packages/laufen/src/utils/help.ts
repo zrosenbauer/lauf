@@ -1,4 +1,4 @@
-import pc from 'picocolors';
+import chalk from 'chalk';
 import { z } from 'zod';
 
 import type { ArgDefs } from '../types.ts';
@@ -14,10 +14,10 @@ interface ArgMeta {
 
 function formatSuffix(meta: ArgMeta): string {
   if (meta.required) {
-    return pc.red('(required)');
+    return chalk.red('(required)');
   }
   if (meta.defaultValue !== undefined) {
-    return pc.dim(`[default: ${String(meta.defaultValue)}]`);
+    return chalk.dim(`[default: ${String(meta.defaultValue)}]`);
   }
   return '';
 }
@@ -68,7 +68,7 @@ export function formatHelp(
   description: string,
   argsMeta: readonly ArgMeta[],
 ): string {
-  const header = `${pc.cyan(scriptName)}\n\n  ${description}`;
+  const header = `${chalk.cyan(scriptName)}\n\n  ${description}`;
 
   if (argsMeta.length === 0) {
     return `${header}\n\n  No flags defined.`;
@@ -81,5 +81,5 @@ export function formatHelp(
 
   const flagLines = argsMeta.map((meta) => formatFlag(meta, maxFlagWidth));
 
-  return `${header}\n\n${pc.bold('FLAGS:')}\n\n${flagLines.join('\n')}`;
+  return `${header}\n\n${chalk.bold('FLAGS:')}\n\n${flagLines.join('\n')}`;
 }

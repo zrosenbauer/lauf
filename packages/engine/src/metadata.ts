@@ -70,6 +70,68 @@ function buildMinimalEnv(): Record<string, string | undefined> {
   return Object.assign(base, Object.fromEntries(laufEntries));
 }
 
+if (import.meta.vitest) {
+  const { describe, it, expect } = import.meta.vitest;
+
+  describe('buildNodePaths', () => {
+    it('includes engine, cli, and workspace node_modules', () => {
+      const result = buildNodePaths('/workspace', '/cli-root');
+      expect(result).toContain(path.join(ENGINE_ROOT, 'node_modules'));
+      expect(result).toContain(path.join('/cli-root', 'node_modules'));
+      expect(result).toContain(path.join('/workspace', 'node_modules'));
+    });
+
+    it('appends existing NODE_PATH when set', () => {
+      const saved = process.env.NODE_PATH;
+      process.env.NODE_PATH = '/custom/modules';
+      const result = buildNodePaths('/workspace', '/cli-root');
+      expect(result).toContain('/custom/modules');
+      process.env.NODE_PATH = saved ?? '';
+    });
+
+    it('returns only base paths when NODE_PATH is unset', () => {
+      const saved = process.env.NODE_PATH;
+      process.env.NODE_PATH = '';
+      const result = buildNodePaths('/workspace', '/cli-root');
+      expect(result).toHaveLength(3);
+      process.env.NODE_PATH = saved ?? '';
+    });
+  });
+
+  describe('buildMinimalEnv', () => {
+    it('includes PATH, HOME, and TERM from process.env', () => {
+      const env = buildMinimalEnv();
+      expect(env.PATH).toBe(process.env.PATH);
+      expect(env.HOME).toBe(process.env.HOME);
+      expect(env.TERM).toBe(process.env.TERM);
+    });
+
+    it('includes LAUF_ prefixed variables', () => {
+      const saved = process.env.LAUF_TEST_VAR;
+      process.env.LAUF_TEST_VAR = 'test-value';
+      const env = buildMinimalEnv();
+      expect(env.LAUF_TEST_VAR).toBe('test-value');
+      if (saved === undefined) {
+        delete process.env.LAUF_TEST_VAR;
+      } else {
+        process.env.LAUF_TEST_VAR = saved;
+      }
+    });
+
+    it('does not include arbitrary env variables', () => {
+      const saved = process.env.SOME_SECRET;
+      process.env.SOME_SECRET = 'secret';
+      const env = buildMinimalEnv();
+      expect(env.SOME_SECRET).toBeUndefined();
+      if (saved === undefined) {
+        delete process.env.SOME_SECRET;
+      } else {
+        process.env.SOME_SECRET = saved;
+      }
+    });
+  });
+}
+
 interface LoadDescriptionsOptions {
   readonly workspaceRoot: string;
   readonly cliPackageRoot: string;
