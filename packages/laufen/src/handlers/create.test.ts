@@ -57,6 +57,7 @@ const mockLoadedConfig = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockWriteFileSync.mockReset();
   vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
   vi.spyOn(process, 'cwd').mockReturnValue('/workspace/packages/my-pkg');
 });

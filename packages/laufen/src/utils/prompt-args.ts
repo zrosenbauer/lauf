@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import type { ArgDefs, PromptResult, Prompts } from '../types.ts';
+import type { JsonSchemaProperty } from './schema.ts';
 import { extractSchemaFields, resolveType } from './schema.ts';
 
 interface MissingArg {
@@ -10,6 +11,10 @@ interface MissingArg {
   readonly enumValues: readonly unknown[] | undefined;
 }
 
+function hasDefault(prop: JsonSchemaProperty): boolean {
+  return Object.hasOwn(prop, 'default');
+}
+
 function findMissingArgs(
   rawSchema: unknown,
   rawArgs: Record<string, unknown>,
@@ -17,7 +22,7 @@ function findMissingArgs(
   const { properties, required } = extractSchemaFields(rawSchema);
 
   return Object.entries(properties)
-    .filter(([name]) => required.includes(name) && !(name in rawArgs))
+    .filter(([name, prop]) => required.includes(name) && !(name in rawArgs) && !hasDefault(prop))
     .map(([name, prop]) => ({
       name,
       type: resolveType(prop),

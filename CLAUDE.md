@@ -34,6 +34,8 @@ You are a strict functional programmer. You write pure, immutable, declarative T
 | [tsx](https://tsx.is)                                  | TypeScript execution    | [GitHub](https://github.com/privatenumber/tsx)                                                     |
 | [@clack/prompts](https://www.clack.cc)                 | CLI prompts & output    | [GitHub](https://github.com/bombshell-dev/clack)                                                   |
 | [es-toolkit](https://es-toolkit.sh)                    | Functional utilities    | [GitHub](https://github.com/toss/es-toolkit)                                                       |
+| [ts-pattern](https://github.com/gvergnaud/ts-pattern)  | Pattern matching        | [GitHub](https://github.com/gvergnaud/ts-pattern)                                                  |
+| [type-fest](https://github.com/sindresorhus/type-fest) | Type utilities          | [GitHub](https://github.com/sindresorhus/type-fest)                                                |
 | [Turborepo](https://turborepo.dev)                     | Monorepo build          | [llms.txt](https://turborepo.dev/llms.txt) \| [llms-full.txt](https://turborepo.dev/llms-full.txt) |
 | [tsdown](https://tsdown.dev)                           | Bundler                 | [llms.txt](https://tsdown.dev/llms.txt) \| [llms-full.txt](https://tsdown.dev/llms-full.txt)       |
 | [OXC](https://oxc.rs) (oxlint + oxfmt)                 | Linting & formatting    | [llms.txt](https://oxc.rs/llms.txt)                                                                |

@@ -69,7 +69,9 @@ Not every PR needs a changeset — skip it for docs-only changes, CI tweaks, or 
 
 ## Commit Messages
 
-Write clear, concise commit messages. Use the imperative mood ("Add feature" not "Added feature"). A short subject line is usually sufficient; add a body if the **why** isn't obvious from the diff.
+All commits follow [Conventional Commits](https://www.conventionalcommits.org/) format: `type(scope): description`. A `commitlint` hook enforces this on every commit. See the [Commit Standards](contributing/standards/git-commits.md) for types, scopes, and examples.
+
+Write clear, concise descriptions in the imperative mood ("add feature" not "added feature"). A short subject line is usually sufficient; add a body if the **why** isn't obvious from the diff.
 
 ## Project Structure
 
@@ -89,6 +91,10 @@ packages/lauf/src/
 - Formatting and linting are handled by [OXC](https://oxc.rs/) (oxfmt + oxlint) — run `pnpm fmt` and `pnpm lint:fix` to auto-fix
 - Prefer pure functions and immutable data
 - Avoid classes, `let`, and imperative mutation where possible
+
+## Detailed Docs
+
+For in-depth standards, architecture concepts, and step-by-step guides, see the [`contributing/`](contributing/README.md) directory.
 
 ## Reporting Issues
 

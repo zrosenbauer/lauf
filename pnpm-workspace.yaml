@@ -2,3 +2,9 @@ packages:
   - 'packages/*'
   - 'examples'
   - 'apps/*'
+
+auditConfig:
+  ignoreGhsas:
+    # esbuild dev server CORS issue — transitive via vitepress>vite>esbuild,
+    # no fix until vitepress upgrades to vite 6. Dev-only, low risk.
+    - GHSA-67mh-4wv8-2f99

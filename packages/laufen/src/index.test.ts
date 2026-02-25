@@ -36,7 +36,7 @@ const {
 
   return {
     mockReadPackageJSON: vi.fn(),
-    mockSafeParseError: vi.fn(String),
+    mockSafeParseError: vi.fn<(err: unknown) => string>(String),
     mockErrorHint: vi.fn(),
     mockHandleCreate: vi.fn(),
     mockHandleHelp: vi.fn(),
