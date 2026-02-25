@@ -52,6 +52,8 @@ import listHandler from './list.ts';
 beforeEach(() => {
   vi.clearAllMocks();
   vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+  // Reset automock implementations (Vitest 4 no longer restores vi.fn via restoreAllMocks)
+  vi.mocked(resolveTsx).mockReturnValue([null, '/lauf-root/node_modules/.bin/tsx']);
   // Default: dist metadata path exists
   mockExistsSync.mockReturnValue(true);
   // Default: execFile fails (tsx not available in test environment)

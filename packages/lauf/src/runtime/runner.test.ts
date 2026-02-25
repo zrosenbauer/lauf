@@ -49,6 +49,7 @@ import { runScript } from './runner.ts';
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockExistsSync.mockImplementation(() => true);
   mockResolveTsx.mockReturnValue([null, '/lauf-root/node_modules/.bin/tsx']);
 });
 
