@@ -4,11 +4,11 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import * as p from '@clack/prompts';
 import { attempt } from 'es-toolkit';
 
 import { bundleScript } from './bundler.ts';
-import type { RunResult, ScriptTarget } from './types.ts';
+import { createLogger } from './context/logger.ts';
+import type { Logger, RunResult, ScriptTarget } from './types.ts';
 import { safeParseError } from './utils/cli.ts';
 
 const ENGINE_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
@@ -19,6 +19,7 @@ export interface RunScriptOptions {
   readonly workspaceRoot: string;
   readonly cliPackageRoot: string;
   readonly spinner?: boolean;
+  readonly logger?: Logger;
 }
 
 /**
@@ -208,15 +209,17 @@ export async function runScript(
   args: Record<string, unknown>,
   options: RunScriptOptions,
 ): Promise<RunResult> {
+  const log = options.logger ?? createLogger();
+
   const executorPath = resolveExecutorPath();
   if (!executorPath) {
-    p.log.error('Executor entry point not found. Run `pnpm build` to generate it.');
+    log.error('Executor entry point not found. Run `pnpm build` to generate it.');
     return { exitCode: 1, script };
   }
 
   const [bundleError, bundle] = await bundleScript(script.path);
   if (bundleError) {
-    p.log.error(`Failed to bundle script: ${safeParseError(bundleError)}`);
+    log.error(`Failed to bundle script: ${safeParseError(bundleError)}`);
     return { exitCode: 1, script };
   }
 
@@ -269,7 +272,7 @@ export async function runScript(
       ac.abort();
       signalCleanup();
       bundle.cleanup();
-      p.log.error(`Failed to spawn script executor: ${safeParseError(err)}`);
+      log.error(`Failed to spawn script executor: ${safeParseError(err)}`);
       resolve({
         exitCode: 1,
         script,

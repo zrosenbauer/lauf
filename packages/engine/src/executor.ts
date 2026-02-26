@@ -2,11 +2,12 @@
 import * as path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import * as p from '@clack/prompts';
+import { cancel } from '@clack/prompts';
 import { attemptAsync } from 'es-toolkit';
 import { z } from 'zod';
 
 import { createContext } from './context/index.ts';
+import { createLogger } from './context/logger.ts';
 import { createPrompts } from './context/prompts.ts';
 import type { ArgDefs, ScriptConfig } from './types.ts';
 import { formatArgErrors, safeParseError } from './utils/cli.ts';
@@ -43,9 +44,11 @@ const envSchema = z.object({
  */
 // oxlint-disable-next-line max-lines-per-function
 async function execute(): Promise<void> {
+  const log = createLogger();
+
   const envResult = envSchema.safeParse(process.env);
   if (!envResult.success) {
-    p.log.error(`Invalid executor environment: ${formatArgErrors(envResult.error.issues)}`);
+    log.error(`Invalid executor environment: ${formatArgErrors(envResult.error.issues)}`);
     process.exit(1);
   }
 
@@ -53,7 +56,7 @@ async function execute(): Promise<void> {
 
   const [parseError, rawArgs] = safeParseJSON(env.LAUF_ARGS);
   if (parseError) {
-    p.log.error(`Invalid JSON in LAUF_ARGS: failed to parse arguments`);
+    log.error(`Invalid JSON in LAUF_ARGS: failed to parse arguments`);
     process.exit(1);
   }
 
@@ -63,7 +66,7 @@ async function execute(): Promise<void> {
   const resolvedWorkspaceRoot = path.resolve(env.LAUF_WORKSPACE_ROOT);
   const relativePath = path.relative(resolvedWorkspaceRoot, resolvedOriginalPath);
   if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
-    p.log.error(`Script path "${env.LAUF_SCRIPT_NAME}" is outside the workspace root`);
+    log.error(`Script path "${env.LAUF_SCRIPT_NAME}" is outside the workspace root`);
     process.exit(1);
   }
 
@@ -76,9 +79,7 @@ async function execute(): Promise<void> {
   );
   // es-toolkit's attemptAsync types require the null check for TS narrowing
   if (importError || mod === null) {
-    p.log.error(
-      `Failed to import script "${env.LAUF_SCRIPT_NAME}": ${safeParseError(importError)}`,
-    );
+    log.error(`Failed to import script "${env.LAUF_SCRIPT_NAME}": ${safeParseError(importError)}`);
     process.exit(1);
   }
 
@@ -91,7 +92,7 @@ async function execute(): Promise<void> {
     config.args === null ||
     typeof config.run !== 'function'
   ) {
-    p.log.error(
+    log.error(
       `Script "${env.LAUF_SCRIPT_NAME}" does not export a valid lauf() config (requires description, args, run)`,
     );
     process.exit(1);
@@ -99,7 +100,7 @@ async function execute(): Promise<void> {
 
   if (env.LAUF_HELP === '1') {
     const argsMeta = extractArgMeta(config.args);
-    p.log.message(formatHelp(env.LAUF_SCRIPT_NAME, config.description, argsMeta));
+    log.message(formatHelp(env.LAUF_SCRIPT_NAME, config.description, argsMeta));
     process.exit(0);
   }
 
@@ -112,7 +113,7 @@ async function execute(): Promise<void> {
     prompts,
   );
   if (promptError) {
-    p.cancel('Cancelled');
+    cancel('Cancelled');
     process.exit(0);
   }
 
@@ -122,7 +123,7 @@ async function execute(): Promise<void> {
   const parseResult = argSchema.safeParse(mergedArgs);
 
   if (!parseResult.success) {
-    p.log.error(
+    log.error(
       `Script "${env.LAUF_SCRIPT_NAME}" arg validation failed:\n${formatArgErrors(parseResult.error.issues)}`,
     );
     process.exit(1);
@@ -139,7 +140,7 @@ async function execute(): Promise<void> {
 
   const [runError, runResult] = await attemptAsync(() => Promise.resolve(config.run(ctx)));
   if (runError) {
-    p.log.error(`Script "${env.LAUF_SCRIPT_NAME}" failed: ${safeParseError(runError)}`);
+    log.error(`Script "${env.LAUF_SCRIPT_NAME}" failed: ${safeParseError(runError)}`);
     process.exit(1);
   }
 
@@ -151,6 +152,7 @@ async function execute(): Promise<void> {
 
 const [topError] = await attemptAsync(execute);
 if (topError) {
-  p.log.error(`Script failed: ${safeParseError(topError)}`);
+  const topLog = createLogger();
+  topLog.error(`Script failed: ${safeParseError(topError)}`);
   process.exit(1);
 }

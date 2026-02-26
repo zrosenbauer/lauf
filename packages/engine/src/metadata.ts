@@ -5,11 +5,11 @@ import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 
-import * as p from '@clack/prompts';
 import { attempt, attemptAsync } from 'es-toolkit';
 
 import { bundleScripts } from './bundler.ts';
-import type { ScriptTarget } from './types.ts';
+import { createLogger } from './context/logger.ts';
+import type { Logger, ScriptTarget } from './types.ts';
 import { safeParseError } from './utils/cli.ts';
 import { safeParseJSON } from './utils/json.ts';
 
@@ -140,6 +140,7 @@ if (import.meta.vitest) {
 interface LoadDescriptionsOptions {
   readonly workspaceRoot: string;
   readonly cliPackageRoot: string;
+  readonly logger?: Logger;
 }
 
 /**
@@ -163,17 +164,19 @@ export async function loadDescriptions(
     return {};
   }
 
+  const log = options.logger ?? createLogger();
+
   const scriptPaths = scripts.map((s) => s.path);
   const [bundleError, bundleResult] = await bundleScripts(scriptPaths);
   if (bundleError) {
-    p.log.warn(`Script descriptions unavailable: ${safeParseError(bundleError)}`);
+    log.warn(`Script descriptions unavailable: ${safeParseError(bundleError)}`);
     return {};
   }
 
   const extractorPath = resolveExtractorPath();
   if (!extractorPath) {
     bundleResult.cleanup();
-    p.log.warn(
+    log.warn(
       'Script descriptions unavailable: metadata extractor not found. Run `pnpm build` to generate it.',
     );
     return {};
@@ -211,13 +214,13 @@ export async function loadDescriptions(
 
   // es-toolkit's attemptAsync types require the null check for TS narrowing
   if (error || result === null) {
-    p.log.warn('Description extraction timed out or failed. Listing scripts without descriptions.');
+    log.warn('Description extraction timed out or failed. Listing scripts without descriptions.');
     return {};
   }
 
   const [parseError, parsed] = safeParseJSON(String(result.stdout));
   if (parseError || parsed === null || typeof parsed !== 'object') {
-    p.log.warn('Description extraction failed: could not parse metadata output.');
+    log.warn('Description extraction failed: could not parse metadata output.');
     return {};
   }
 
@@ -232,7 +235,7 @@ export async function loadDescriptions(
   );
 
   if (Object.keys(descriptions).length === 0 && scripts.length > 0) {
-    p.log.warn('Description extraction returned no results. Descriptions may be unavailable.');
+    log.warn('Description extraction returned no results. Descriptions may be unavailable.');
   }
 
   return descriptions;
