@@ -12,7 +12,7 @@
       "dependsOn": ["^build"]
     },
     "test": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["build", "^build"]
     },
     "fmt:check": {},
     "docs:dev": {},

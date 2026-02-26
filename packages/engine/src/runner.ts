@@ -106,6 +106,7 @@ if (import.meta.vitest) {
       process.env.NODE_PATH = '/custom/modules';
       const result = buildNodePath('/workspace', '/cli-root');
       expect(result).toContain('/custom/modules');
+      /* v8 ignore next 5 -- env-var restore; which branch runs depends on whether NODE_PATH was pre-set */
       if (saved === undefined) {
         delete process.env.NODE_PATH;
       } else {
@@ -119,6 +120,7 @@ if (import.meta.vitest) {
       const result = buildNodePath('/workspace', '/cli-root');
       const parts = result.split(path.delimiter);
       expect(parts).toHaveLength(3);
+      /* v8 ignore next 5 -- env-var restore; which branch runs depends on whether NODE_PATH was pre-set */
       if (saved === undefined) {
         delete process.env.NODE_PATH;
       } else {

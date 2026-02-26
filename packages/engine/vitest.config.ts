@@ -8,7 +8,13 @@ export default defineConfig({
       enabled: true,
       provider: 'v8',
       include: ['src/**/*.ts'],
-      exclude: ['src/**/*.test.ts', 'src/types.ts', 'src/result.ts', 'src/index.ts'],
+      exclude: [
+        'src/**/*.test.ts',
+        'src/__integration__/**',
+        'src/types.ts',
+        'src/result.ts',
+        'src/index.ts',
+      ],
     },
   },
 });

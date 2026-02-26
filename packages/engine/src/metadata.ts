@@ -83,6 +83,7 @@ if (import.meta.vitest) {
       process.env.NODE_PATH = '/custom/modules';
       const result = buildNodePaths('/workspace', '/cli-root');
       expect(result).toContain('/custom/modules');
+      /* v8 ignore next 5 -- env-var restore; which branch runs depends on whether NODE_PATH was pre-set */
       if (saved === undefined) {
         delete process.env.NODE_PATH;
       } else {
@@ -95,6 +96,7 @@ if (import.meta.vitest) {
       process.env.NODE_PATH = '';
       const result = buildNodePaths('/workspace', '/cli-root');
       expect(result).toHaveLength(3);
+      /* v8 ignore next 5 -- env-var restore; which branch runs depends on whether NODE_PATH was pre-set */
       if (saved === undefined) {
         delete process.env.NODE_PATH;
       } else {
@@ -116,6 +118,7 @@ if (import.meta.vitest) {
       process.env.LAUF_TEST_VAR = 'test-value';
       const env = buildMinimalEnv();
       expect(env.LAUF_TEST_VAR).toBe('test-value');
+      /* v8 ignore next 5 -- env-var restore; which branch runs depends on whether LAUF_TEST_VAR was pre-set */
       if (saved === undefined) {
         delete process.env.LAUF_TEST_VAR;
       } else {
@@ -128,6 +131,7 @@ if (import.meta.vitest) {
       process.env.SOME_SECRET = 'secret';
       const env = buildMinimalEnv();
       expect(env.SOME_SECRET).toBeUndefined();
+      /* v8 ignore next 5 -- env-var restore; which branch runs depends on whether SOME_SECRET was pre-set */
       if (saved === undefined) {
         delete process.env.SOME_SECRET;
       } else {
