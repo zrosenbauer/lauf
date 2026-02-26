@@ -96,7 +96,14 @@
       }
     },
     {
-      "files": ["**/handlers/**", "**/runtime/**", "**/lib/**", "**/utils/**", "**/index.ts"],
+      "files": [
+        "**/handlers/**",
+        "**/runtime/**",
+        "**/lib/**",
+        "**/utils/**",
+        "**/index.ts",
+        "packages/engine/src/**"
+      ],
       "rules": {
         "functional/no-expression-statements": "off",
         "functional/functional-parameters": "off",
