@@ -1,5 +1,33 @@
 # laufen
 
+## 0.2.0
+
+### Minor Changes
+
+- 67b04dc: Extract `@laufen/engine` package from `laufen` CLI to provide a standalone execution
+  engine for script bundling, metadata extraction, and runtime context.
+
+  Key changes:
+
+  - New `@laufen/engine` package with esbuild-based TypeScript bundler, Node child
+    process runner, and script context (logger, spinner, prompts)
+  - Replace tsx-based script execution with esbuild `bundle: true` + `format: 'esm'`
+    for fully self-contained output that resolves dependencies without NODE_PATH hacks
+  - Metadata extractor subprocess for loading script descriptions in parallel
+  - Comprehensive test suite covering bundler, runner, executor, metadata, and all
+    utility modules
+  - `laufen` CLI now depends on `@laufen/engine` for all execution concerns
+
+### Patch Changes
+
+- 4de4044: fix: skip prompting for args with Zod `.default()` values
+
+  Zod 4's `toJSONSchema()` includes defaulted fields in the `required` array, which caused the CLI to prompt for args that already have defaults. The prompt filter now checks for a `default` key in the JSON Schema property and skips those fields, letting `safeParse()` apply the default during validation.
+
+- e4fabbb: chore: upgrade all dependencies to latest stable versions
+- Updated dependencies [67b04dc]
+  - @laufen/engine@0.2.0
+
 ## 0.1.5
 
 ### Patch Changes
