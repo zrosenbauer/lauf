@@ -16,7 +16,7 @@
     "release": "changeset publish",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
-    "validate": "turbo run typecheck test && pnpm lint && pnpm fmt:check",
+    "validate": "turbo run typecheck test lint fmt:check",
     "version": "changeset version",
     "version:ci": "changeset version && oxfmt --write"
   },
