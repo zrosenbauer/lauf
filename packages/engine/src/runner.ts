@@ -225,6 +225,10 @@ export async function runScript(
     return { exitCode: 1, script };
   }
 
+  bundle.warnings.forEach((w) => {
+    log.warn(`Bundle warning: ${w}`);
+  });
+
   const spinnerEnabled = resolveSpinner(options);
   const helpEnv = resolveHelpEnv(options);
   const spinnerValue = resolveSpinnerEnv(spinnerEnabled);

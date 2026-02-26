@@ -71,7 +71,7 @@ beforeEach(() => {
   mockExistsSync.mockReturnValue(true);
   mockBundleScript.mockResolvedValue([
     null,
-    { outputPath: '/tmp/laufen-abc/script.mjs', cleanup: mockCleanup },
+    { outputPath: '/tmp/laufen-abc/script.mjs', cleanup: mockCleanup, warnings: [] },
   ]);
 });
 
@@ -408,6 +408,41 @@ describe('runScript', () => {
       await resultPromise;
 
       expect(mockCleanup).toHaveBeenCalledOnce();
+    });
+  });
+
+  describe('bundle warnings', () => {
+    it('logs bundle warnings via log.warn', async () => {
+      const mockChild = createMockChild();
+      mockSpawn.mockReturnValue(mockChild);
+      mockBundleScript.mockResolvedValue([
+        null,
+        {
+          outputPath: '/tmp/laufen-abc/script.mjs',
+          cleanup: mockCleanup,
+          warnings: ['unsupported feature X', 'deprecated API Y'],
+        },
+      ]);
+
+      const resultPromise = runScript(testScript, {}, testOptions);
+      await flushMicrotasks();
+      mockChild.emit('close', 0);
+      await resultPromise;
+
+      expect(mockLogWarn).toHaveBeenCalledWith('Bundle warning: unsupported feature X');
+      expect(mockLogWarn).toHaveBeenCalledWith('Bundle warning: deprecated API Y');
+    });
+
+    it('does not log when there are no warnings', async () => {
+      const mockChild = createMockChild();
+      mockSpawn.mockReturnValue(mockChild);
+
+      const resultPromise = runScript(testScript, {}, testOptions);
+      await flushMicrotasks();
+      mockChild.emit('close', 0);
+      await resultPromise;
+
+      expect(mockLogWarn).not.toHaveBeenCalled();
     });
   });
 

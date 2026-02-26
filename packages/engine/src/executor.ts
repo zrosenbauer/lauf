@@ -27,7 +27,7 @@ const envSchema = z.object({
   LAUF_PACKAGE_DIR: absolutePathString,
   LAUF_SCRIPT_NAME: z.string(),
   LAUF_SPINNER: z.enum(['0', '1']),
-  LAUF_HELP: z.string().optional(),
+  LAUF_HELP: z.enum(['0', '1']).optional(),
 });
 
 /**
@@ -54,7 +54,7 @@ async function execute(): Promise<void> {
 
   const env = envResult.data;
 
-  const [parseError, rawArgs] = safeParseJSON(env.LAUF_ARGS);
+  const [parseError, rawArgs] = safeParseJSON(env.LAUF_ARGS, z.record(z.string(), z.unknown()));
   if (parseError) {
     log.error(`Invalid JSON in LAUF_ARGS: failed to parse arguments`);
     process.exit(1);
@@ -90,6 +90,7 @@ async function execute(): Promise<void> {
     typeof config.description !== 'string' ||
     typeof config.args !== 'object' ||
     config.args === null ||
+    Array.isArray(config.args) ||
     typeof config.run !== 'function'
   ) {
     log.error(
@@ -106,12 +107,7 @@ async function execute(): Promise<void> {
 
   // Prompt for any missing required args before validation
   const prompts = createPrompts();
-  // rawArgs is the result of JSON.parse on a stringified Record<string, unknown> from the runner
-  const [promptError, mergedArgs] = await promptForMissingArgs(
-    config.args,
-    rawArgs as Record<string, unknown>,
-    prompts,
-  );
+  const [promptError, mergedArgs] = await promptForMissingArgs(config.args, rawArgs, prompts);
   if (promptError) {
     cancel('Cancelled');
     process.exit(0);

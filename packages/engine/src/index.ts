@@ -6,6 +6,8 @@ export { createContext } from './context/index.ts';
 export { createLogger } from './context/logger.ts';
 export { createPrompts } from './context/prompts.ts';
 export { createSpinner, createNoopSpinner } from './context/spinner.ts';
+export { extractSchemaFields, resolveType } from './utils/schema.ts';
+export type { JsonSchemaProperty } from './utils/schema.ts';
 export type {
   ArgDefs,
   InferArgs,

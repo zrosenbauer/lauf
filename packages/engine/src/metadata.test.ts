@@ -149,7 +149,7 @@ describe('loadDescriptions', () => {
   it('returns empty object and warns when parsed result is non-object', async () => {
     mockBundleScripts.mockResolvedValue([null, defaultBundleResult]);
     mockExecFileAsync.mockResolvedValue({ stdout: '"string"', stderr: '' });
-    mockSafeParseJSON.mockReturnValue([null, 'a string, not an object']);
+    mockSafeParseJSON.mockReturnValue([new Error('JSON validation failed'), null]);
 
     const result = await loadDescriptions(testScripts, testOptions);
 
@@ -163,7 +163,7 @@ describe('loadDescriptions', () => {
   it('returns empty object and warns when parsed result is null', async () => {
     mockBundleScripts.mockResolvedValue([null, defaultBundleResult]);
     mockExecFileAsync.mockResolvedValue({ stdout: 'null', stderr: '' });
-    mockSafeParseJSON.mockReturnValue([null, null]);
+    mockSafeParseJSON.mockReturnValue([new Error('JSON validation failed'), null]);
 
     const result = await loadDescriptions(testScripts, testOptions);
 
@@ -257,7 +257,7 @@ describe('loadDescriptions', () => {
     );
   });
 
-  it('falls back to original path when script is missing from bundle outputs', async () => {
+  it('excludes scripts missing from bundle outputs', async () => {
     // Bundle outputs only contain script-a, not script-b
     const partialBundleResult = {
       outputs: new Map([['/workspace/scripts/a.ts', '/tmp/laufen-abc/a.mjs']]),
@@ -269,14 +269,14 @@ describe('loadDescriptions', () => {
 
     await loadDescriptions(testScripts, testOptions);
 
-    // The LAUF_SCRIPT_PATHS should contain the bundled path for a.ts
-    // and the original path for b.ts (fallback)
+    // LAUF_SCRIPT_PATHS should only contain the bundled path for a.ts;
+    // b.ts is excluded because it has no bundled output
     expect(mockExecFileAsync).toHaveBeenCalledWith(
       'node',
       expect.anything(),
       expect.objectContaining({
         env: expect.objectContaining({
-          LAUF_SCRIPT_PATHS: JSON.stringify(['/tmp/laufen-abc/a.mjs', '/workspace/scripts/b.ts']),
+          LAUF_SCRIPT_PATHS: JSON.stringify(['/tmp/laufen-abc/a.mjs']),
         }),
       }),
     );
@@ -307,7 +307,7 @@ describe('loadDescriptions', () => {
     }
   });
 
-  it('preserves paths not in the reverse map', async () => {
+  it('filters out paths not in the reverse map', async () => {
     mockBundleScripts.mockResolvedValue([null, defaultBundleResult]);
     mockExecFileAsync.mockResolvedValue({
       stdout: JSON.stringify({ '/some/other/path.mjs': 'Other desc' }),
@@ -317,8 +317,6 @@ describe('loadDescriptions', () => {
 
     const result = await loadDescriptions(testScripts, testOptions);
 
-    expect(result).toEqual({
-      '/some/other/path.mjs': 'Other desc',
-    });
+    expect(result).toEqual({});
   });
 });

@@ -207,6 +207,15 @@ describe('executor', () => {
         expect.stringContaining('Invalid executor environment'),
       );
     });
+
+    it('exits with 1 when LAUF_HELP has an invalid value', async () => {
+      await runExecutor({ LAUF_HELP: 'true' });
+
+      expect(process.exit).toHaveBeenCalledWith(1);
+      expect(mockLogError).toHaveBeenCalledWith(
+        expect.stringContaining('Invalid executor environment'),
+      );
+    });
   });
 
   describe('LAUF_ARGS parsing', () => {
@@ -275,6 +284,33 @@ describe('executor', () => {
         args: {},
         run: 'not a function' as unknown as ReturnType<typeof vi.fn>,
       };
+
+      await runExecutor();
+
+      expect(process.exit).toHaveBeenCalledWith(1);
+      expect(mockLogError).toHaveBeenCalledWith(
+        expect.stringContaining('does not export a valid lauf() config'),
+      );
+    });
+
+    it('exits with 1 when args is an array instead of an object', async () => {
+      const { attemptAsync } = await import('es-toolkit');
+      vi.mocked(attemptAsync).mockImplementation(
+        async <T>(fn: () => Promise<T>): Promise<[Error, null] | [null, T]> => {
+          // oxlint-disable-next-line immutable-data
+          attemptAsyncCallIndex.value += 1;
+          const callNum = attemptAsyncCallIndex.value;
+          if (callNum === 2) {
+            return [
+              null,
+              {
+                default: { description: 'test', args: ['not', 'valid'], run: vi.fn() },
+              } as unknown as T,
+            ];
+          }
+          return safeAttemptAsync(fn);
+        },
+      );
 
       await runExecutor();
 

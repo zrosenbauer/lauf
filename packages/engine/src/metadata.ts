@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 
 import { attempt, attemptAsync } from 'es-toolkit';
+import { z } from 'zod';
 
 import { bundleScripts } from './bundler.ts';
 import { createLogger } from './context/logger.ts';
@@ -91,7 +92,7 @@ if (import.meta.vitest) {
       }
     });
 
-    it('returns only base paths when NODE_PATH is unset', () => {
+    it('returns only base paths when NODE_PATH is empty', () => {
       const saved = process.env.NODE_PATH;
       process.env.NODE_PATH = '';
       const result = buildNodePaths('/workspace', '/cli-root');
@@ -188,19 +189,21 @@ export async function loadDescriptions(
 
   const nodePaths = buildNodePaths(options.workspaceRoot, options.cliPackageRoot);
 
-  // Build the bundled paths list and a reverse mapping for path restoration
-  const bundledPaths = scripts.map((s) => bundleResult.outputs.get(s.path) || s.path);
-  const reverseMap: Record<string, string> = Object.fromEntries(
-    scripts
-      .map((s) => {
-        const bundled = bundleResult.outputs.get(s.path);
-        if (bundled) {
-          return [bundled, s.path] as const;
-        }
-        return null;
-      })
-      .filter((entry): entry is readonly [string, string] => entry !== null),
-  );
+  // Build the bundled paths list and a reverse mapping for path restoration.
+  // Only include scripts that have a bundled output — passing raw .ts paths
+  // to the extractor would fail since it expects pre-bundled .mjs files.
+  const bundledEntries = scripts
+    .map((s) => {
+      const bundled = bundleResult.outputs.get(s.path);
+      if (bundled) {
+        return [bundled, s.path] as const;
+      }
+      return null;
+    })
+    .filter((entry): entry is readonly [string, string] => entry !== null);
+
+  const bundledPaths = bundledEntries.map(([bundled]) => bundled);
+  const reverseMap: Record<string, string> = Object.fromEntries(bundledEntries);
 
   const [error, result] = await attemptAsync(() =>
     execFileAsync('node', [extractorPath], {
@@ -222,20 +225,21 @@ export async function loadDescriptions(
     return {};
   }
 
-  const [parseError, parsed] = safeParseJSON(String(result.stdout));
-  if (parseError || parsed === null || typeof parsed !== 'object') {
+  const [parseError, parsed] = safeParseJSON(
+    String(result.stdout),
+    z.record(z.string(), z.string()),
+  );
+  if (parseError) {
     log.warn('Description extraction failed: could not parse metadata output.');
     return {};
   }
 
-  const rawDescriptions = parsed as Record<string, string>;
-
-  // Map bundled paths back to original paths
+  // Map bundled paths back to original paths, filtering out entries
+  // that don't correspond to known bundled scripts to avoid leaking temp paths.
   const descriptions: Record<string, string> = Object.fromEntries(
-    Object.entries(rawDescriptions).map(([bundledPath, desc]) => {
-      const originalPath = reverseMap[bundledPath] || bundledPath;
-      return [originalPath, desc] as const;
-    }),
+    Object.entries(parsed)
+      .filter(([bundledPath]) => bundledPath in reverseMap)
+      .map(([bundledPath, desc]) => [reverseMap[bundledPath], desc] as const),
   );
 
   if (Object.keys(descriptions).length === 0 && scripts.length > 0) {
