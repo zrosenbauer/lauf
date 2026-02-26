@@ -17,6 +17,7 @@
     "erasableSyntaxOnly": true,
     "resolveJsonModule": true,
     "verbatimModuleSyntax": true,
+    "composite": true,
     "types": ["node", "vitest/importMeta"]
   },
   "include": ["src"],
