@@ -61,10 +61,8 @@ async function execute(): Promise<void> {
   // to prevent path traversal attacks via crafted LAUF_ORIGINAL_PATH values.
   const resolvedOriginalPath = path.resolve(env.LAUF_ORIGINAL_PATH);
   const resolvedWorkspaceRoot = path.resolve(env.LAUF_WORKSPACE_ROOT);
-  if (
-    !resolvedOriginalPath.startsWith(`${resolvedWorkspaceRoot}${path.sep}`) &&
-    resolvedOriginalPath !== resolvedWorkspaceRoot
-  ) {
+  const relativePath = path.relative(resolvedWorkspaceRoot, resolvedOriginalPath);
+  if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
     p.log.error(`Script path "${env.LAUF_SCRIPT_NAME}" is outside the workspace root`);
     process.exit(1);
   }

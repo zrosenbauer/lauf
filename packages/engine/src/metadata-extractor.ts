@@ -11,9 +11,8 @@ import { safeParseJSON } from './utils/json.ts';
  * Check whether a resolved script path is within the workspace root.
  */
 function isWithinWorkspace(scriptPath: string, workspaceRoot: string): boolean {
-  const resolved = path.resolve(scriptPath);
-  const root = path.resolve(workspaceRoot);
-  return resolved.startsWith(`${root}${path.sep}`) || resolved === root;
+  const relative = path.relative(path.resolve(workspaceRoot), path.resolve(scriptPath));
+  return !relative.startsWith('..') && !path.isAbsolute(relative);
 }
 
 /**
@@ -23,9 +22,8 @@ function isWithinWorkspace(scriptPath: string, workspaceRoot: string): boolean {
  * paths that merely contain `laufen-` in an arbitrary location.
  */
 function isWithinTmpDir(scriptPath: string): boolean {
-  const resolvedTmp = path.resolve(os.tmpdir());
-  const resolvedScript = path.resolve(scriptPath);
-  return resolvedScript.startsWith(`${resolvedTmp}${path.sep}`) || resolvedScript === resolvedTmp;
+  const relative = path.relative(path.resolve(os.tmpdir()), path.resolve(scriptPath));
+  return !relative.startsWith('..') && !path.isAbsolute(relative);
 }
 
 /**
