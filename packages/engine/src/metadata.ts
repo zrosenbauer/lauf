@@ -10,6 +10,7 @@ import { z } from 'zod';
 
 import { bundleScripts } from './bundler.ts';
 import { createLogger } from './context/logger.ts';
+import { buildBaseEnv } from './env.ts';
 import type { Logger, ScriptTarget } from './types.ts';
 import { safeParseError } from './utils/cli.ts';
 import { safeParseJSON } from './utils/json.ts';
@@ -51,23 +52,6 @@ function buildNodePaths(workspaceRoot: string, cliPackageRoot: string): readonly
   return base;
 }
 
-/**
- * Build a minimal environment for the metadata extractor subprocess.
- *
- * Only exposes PATH, HOME, TERM, NODE_PATH, and any LAUF_* variables
- * to avoid leaking secrets from the parent environment.
- */
-function buildMinimalEnv(): Record<string, string | undefined> {
-  const laufEntries = Object.entries(process.env).filter(([key]) => key.startsWith('LAUF_'));
-  return {
-    PATH: process.env.PATH,
-    HOME: process.env.HOME,
-    TERM: process.env.TERM,
-    NODE_PATH: process.env.NODE_PATH,
-    ...Object.fromEntries(laufEntries),
-  };
-}
-
 if (import.meta.vitest) {
   const { describe, it, expect } = import.meta.vitest;
 
@@ -102,41 +86,6 @@ if (import.meta.vitest) {
         delete process.env.NODE_PATH;
       } else {
         process.env.NODE_PATH = saved;
-      }
-    });
-  });
-
-  describe('buildMinimalEnv', () => {
-    it('includes PATH, HOME, and TERM from process.env', () => {
-      const env = buildMinimalEnv();
-      expect(env.PATH).toBe(process.env.PATH);
-      expect(env.HOME).toBe(process.env.HOME);
-      expect(env.TERM).toBe(process.env.TERM);
-    });
-
-    it('includes LAUF_ prefixed variables', () => {
-      const saved = process.env.LAUF_TEST_VAR;
-      process.env.LAUF_TEST_VAR = 'test-value';
-      const env = buildMinimalEnv();
-      expect(env.LAUF_TEST_VAR).toBe('test-value');
-      /* v8 ignore next 5 -- env-var restore; which branch runs depends on whether LAUF_TEST_VAR was pre-set */
-      if (saved === undefined) {
-        delete process.env.LAUF_TEST_VAR;
-      } else {
-        process.env.LAUF_TEST_VAR = saved;
-      }
-    });
-
-    it('does not include arbitrary env variables', () => {
-      const saved = process.env.SOME_SECRET;
-      process.env.SOME_SECRET = 'secret';
-      const env = buildMinimalEnv();
-      expect(env.SOME_SECRET).toBeUndefined();
-      /* v8 ignore next 5 -- env-var restore; which branch runs depends on whether SOME_SECRET was pre-set */
-      if (saved === undefined) {
-        delete process.env.SOME_SECRET;
-      } else {
-        process.env.SOME_SECRET = saved;
       }
     });
   });
@@ -208,7 +157,7 @@ export async function loadDescriptions(
   const [error, result] = await attemptAsync(() =>
     execFileAsync('node', [extractorPath], {
       env: {
-        ...buildMinimalEnv(),
+        ...buildBaseEnv('isolate'),
         NODE_PATH: nodePaths.join(path.delimiter),
         LAUF_SCRIPT_PATHS: JSON.stringify(bundledPaths),
         LAUF_WORKSPACE_ROOT: options.workspaceRoot,

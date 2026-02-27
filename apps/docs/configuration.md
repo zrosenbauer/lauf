@@ -21,11 +21,14 @@ export default defineConfig({
 
 ## Options
 
-| Property  | Type       | Default            | Description                                     |
-| --------- | ---------- | ------------------ | ----------------------------------------------- |
-| `scripts` | `string[]` | `['scripts/*.ts']` | Glob patterns to discover scripts per package   |
-| `logger`  | `Logger`   | built-in           | Custom logger implementation                    |
-| `spinner` | `boolean`  | `true`             | Enable or disable the progress spinner globally |
+| Property  | Type                     | Default            | Description                                                  |
+| --------- | ------------------------ | ------------------ | ------------------------------------------------------------ |
+| `scripts` | `string[]`               | `['scripts/*.ts']` | Glob patterns to discover scripts per package                |
+| `logger`  | `Logger`                 | built-in           | Custom logger implementation                                 |
+| `spinner` | `boolean`                | `true`             | Enable or disable the progress spinner globally              |
+| `envFile` | `string \| string[]`     | `[]`               | Path(s) to `.env` files to load                              |
+| `env`     | `Record<string, string>` | `{}`               | Explicit environment variables passed to all scripts         |
+| `envMode` | `'isolate' \| 'inherit'` | `'isolate'`        | Controls base environment: minimal isolation or full inherit |
 
 ### `scripts`
 
@@ -53,6 +56,46 @@ The logger must implement these methods:
 ### `spinner`
 
 A boolean that enables or disables the global spinner. Defaults to `true`. When `false`, spinner calls in your scripts become no-ops.
+
+### `envFile`
+
+Path or array of paths to `.env` files, resolved relative to the config file directory. Missing files are silently skipped. When multiple files are provided, later files override earlier ones.
+
+```ts
+export default defineConfig({
+  envFile: '.env',
+  // or multiple files:
+  envFile: ['.env', '.env.local'],
+});
+```
+
+### `env`
+
+Explicit environment variables passed to all scripts. These override variables from `envFile` but are overridden by script-level `env` and CLI `--env` flags.
+
+```ts
+export default defineConfig({
+  env: {
+    NODE_ENV: 'development',
+    LOG_LEVEL: 'debug',
+  },
+});
+```
+
+### `envMode`
+
+Controls the base environment for child processes. Defaults to `'isolate'`.
+
+- **`'isolate'`** (default): Scripts start with a minimal environment containing only `PATH`, `HOME`, `TERM`, `SHELL`, `USER`, `LANG`, and `TMPDIR`. This prevents secrets and ambient variables from leaking into scripts.
+- **`'inherit'`**: Scripts inherit the full parent `process.env`. Use this if your scripts depend on ambient environment variables.
+
+```ts
+export default defineConfig({
+  envMode: 'inherit', // opt into full environment inheritance
+});
+```
+
+**Merge priority** (right wins): base env < envFile < config `env` < script `env` < CLI `--env`
 
 ## Config Loading Behavior
 

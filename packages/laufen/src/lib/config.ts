@@ -12,12 +12,18 @@ export interface LaufConfig {
   scripts?: string[];
   logger?: DefaultLogger;
   spinner?: boolean;
+  envFile?: string | string[];
+  env?: Record<string, string>;
+  envMode?: 'isolate' | 'inherit';
 }
 
 export interface ResolvedLaufConfig {
   scripts: string[];
   logger: DefaultLogger | undefined;
   spinner: boolean;
+  envFile: string | string[];
+  env: Record<string, string>;
+  envMode: 'isolate' | 'inherit';
 }
 
 /**
@@ -51,12 +57,18 @@ const resolvedLaufConfigSchema: z.ZodType<ResolvedLaufConfig> = z.object({
   scripts: z.array(z.string()),
   logger: loggerSchema,
   spinner: z.boolean(),
+  envFile: z.union([z.string(), z.array(z.string())]),
+  env: z.record(z.string(), z.string()),
+  envMode: z.enum(['isolate', 'inherit']),
 }) as z.ZodType<ResolvedLaufConfig>;
 
 const DEFAULTS: ResolvedLaufConfig = {
   scripts: ['scripts/*.lauf.ts'],
   logger: undefined,
   spinner: true,
+  envFile: [],
+  env: {},
+  envMode: 'isolate',
 };
 
 /**

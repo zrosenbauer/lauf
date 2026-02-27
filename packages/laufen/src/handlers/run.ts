@@ -6,10 +6,12 @@ import pc from 'picocolors';
 import { z } from 'zod';
 
 import { safeLoadLaufConfigWithMeta } from '../lib/config.ts';
+import { loadEnvFiles, mergeEnvSources } from '../lib/env.ts';
 import { defineHandler } from '../lib/handler.ts';
 import { LAUF_ROOT, getWorkspaceRoot } from '../lib/paths.ts';
+import type { HandlerResult } from '../lib/result.ts';
 import { fail, ok } from '../lib/result.ts';
-import { parseRawArgs, sliceArgvAfter } from '../utils/argv.ts';
+import { extractEnvFlags, parseRawArgs, sliceArgvAfter } from '../utils/argv.ts';
 import { safeParseError } from '../utils/cli.ts';
 import { resolveScript } from '../utils/resolve-script.ts';
 
@@ -18,11 +20,19 @@ const runParams = z.object({
 });
 
 /**
- * Handler for the `lauf run [script]` CLI command.
- *
- * Resolves the script by qualified name (or prompts for selection),
- * parses any trailing CLI flags into arguments, and spawns the script executor.
+ * Build the merged env record from env files, config-level env, and CLI --env flags.
  */
+function buildMergedEnv(
+  loaded: {
+    readonly config: { readonly envFile: string | string[]; readonly env: Record<string, string> };
+    readonly configDir: string;
+  },
+  cliEnv: Record<string, string>,
+): Record<string, string> {
+  const envFileVars = loadEnvFiles(loaded.config.envFile, loaded.configDir);
+  return mergeEnvSources(envFileVars, loaded.config.env, cliEnv);
+}
+
 export default defineHandler({
   parameters: runParams,
   handler: async (ctx) => {
@@ -37,30 +47,30 @@ export default defineHandler({
     }
 
     const rawArgv = resolveRawArgv(ctx.parameters.script);
-    const isHelp = rawArgv.includes('--help') || rawArgv.includes('-h');
+    const { env: cliEnv, remaining: cleanArgv } = extractEnvFlags(rawArgv);
+    const isHelp = cleanArgv.includes('--help') || cleanArgv.includes('-h');
     const workspaceRoot = getWorkspaceRoot();
+    const mergedEnv = buildMergedEnv(loaded, cliEnv);
 
     if (isHelp) {
-      const helpResult = await runScript(
+      return runHelpMode(
         script,
-        {},
-        {
-          help: true,
-          workspaceRoot,
-          cliPackageRoot: LAUF_ROOT,
-          spinner: loaded.config.spinner,
-        },
+        workspaceRoot,
+        loaded.config.spinner,
+        mergedEnv,
+        loaded.config.envMode,
       );
-      /* v8 ignore start -- help via runScript delegates to executor which handles its own errors */
-      if (helpResult.exitCode === 0) {
-        return ok();
-      }
-      return fail({ message: `Help failed for ${script.name}`, exitCode: helpResult.exitCode });
     }
-    /* v8 ignore stop */
 
-    const args = parseRawArgs(rawArgv);
-    const result = await executeScript(script, args, workspaceRoot, loaded.config.spinner);
+    const args = parseRawArgs(cleanArgv);
+    const result = await executeScript(
+      script,
+      args,
+      workspaceRoot,
+      loaded.config.spinner,
+      mergedEnv,
+      loaded.config.envMode,
+    );
 
     if (result.exitCode === 0) {
       return ok();
@@ -85,6 +95,36 @@ function resolveRawArgv(scriptName: string | undefined): readonly string[] {
 }
 
 /**
+ * Run the script in help mode, displaying its argument schema.
+ */
+/* v8 ignore start -- help via runScript delegates to executor which handles its own errors */
+async function runHelpMode(
+  script: ScriptTarget,
+  workspaceRoot: string,
+  spinner: boolean,
+  env: Record<string, string>,
+  envMode: 'isolate' | 'inherit',
+): Promise<HandlerResult> {
+  const helpResult = await runScript(
+    script,
+    {},
+    {
+      help: true,
+      workspaceRoot,
+      cliPackageRoot: LAUF_ROOT,
+      spinner,
+      env,
+      envMode,
+    },
+  );
+  if (helpResult.exitCode === 0) {
+    return ok();
+  }
+  return fail({ message: `Help failed for ${script.name}`, exitCode: helpResult.exitCode });
+}
+/* v8 ignore stop */
+
+/**
  * Run a script, logging start and result messages.
  *
  * The handler no longer wraps execution in a spinner because
@@ -98,6 +138,8 @@ async function executeScript(
   args: Record<string, unknown>,
   workspaceRoot: string,
   spinner: boolean,
+  env: Record<string, string>,
+  envMode: 'isolate' | 'inherit',
 ): Promise<RunResult> {
   const label = pc.cyan(script.name);
 
@@ -106,6 +148,8 @@ async function executeScript(
     workspaceRoot,
     cliPackageRoot: LAUF_ROOT,
     spinner,
+    env,
+    envMode,
   });
   if (result.exitCode === 0) {
     p.log.success(`${label} completed successfully`);

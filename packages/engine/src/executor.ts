@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { createContext } from './context/index.ts';
 import { createLogger } from './context/logger.ts';
 import { createPrompts } from './context/prompts.ts';
+import { applyEnvToProcess } from './env.ts';
 import type { ArgDefs, ScriptConfig } from './types.ts';
 import { formatArgErrors, safeParseError } from './utils/cli.ts';
 import { extractArgMeta, formatHelp } from './utils/help.ts';
@@ -28,7 +29,22 @@ const envSchema = z.object({
   LAUF_SCRIPT_NAME: z.string(),
   LAUF_SPINNER: z.enum(['0', '1']),
   LAUF_HELP: z.enum(['0', '1']).optional(),
+  LAUF_ENV: z.string().optional(),
 });
+
+const laufEnvSchema = z.record(z.string(), z.string());
+
+/**
+ * Parse `LAUF_ENV` JSON string into a record, or return an empty record if absent.
+ */
+function parseLaufEnv(
+  raw: string | undefined,
+): readonly [Error, null] | readonly [null, Record<string, string>] {
+  if (raw === undefined) {
+    return [null, {}];
+  }
+  return safeParseJSON(raw, laufEnvSchema);
+}
 
 /**
  * Entry point for script execution, spawned as a child process by the runner.
@@ -99,6 +115,18 @@ async function execute(): Promise<void> {
     process.exit(1);
   }
 
+  // Parse pre-merged env from runner and merge with script-level env
+  const parsedEnv = parseLaufEnv(env.LAUF_ENV);
+  if (parsedEnv[0]) {
+    log.error('Invalid JSON in LAUF_ENV: failed to parse environment');
+    process.exit(1);
+  }
+  const premergedEnv = parsedEnv[1];
+
+  const scriptEnv = config.env ?? {};
+  const resolvedEnv: Record<string, string> = { ...premergedEnv, ...scriptEnv };
+  applyEnvToProcess(resolvedEnv);
+
   if (env.LAUF_HELP === '1') {
     const argsMeta = extractArgMeta(config.args);
     log.message(formatHelp(env.LAUF_SCRIPT_NAME, config.description, argsMeta));
@@ -127,6 +155,7 @@ async function execute(): Promise<void> {
 
   const ctx = createContext({
     args: parseResult.data,
+    env: resolvedEnv,
     root: env.LAUF_WORKSPACE_ROOT,
     packageDir: env.LAUF_PACKAGE_DIR,
     name: env.LAUF_SCRIPT_NAME,

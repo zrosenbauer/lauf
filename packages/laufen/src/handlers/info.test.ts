@@ -32,6 +32,17 @@ vi.mock('../utils/prompt.ts', () => ({
   promptForScript: vi.fn(),
 }));
 
+vi.mock('../lib/env.ts', () => ({
+  loadEnvFiles: vi.fn(() => ({})),
+  mergeEnvSources: vi.fn(
+    (a: Record<string, string>, b: Record<string, string>, c: Record<string, string>) => ({
+      ...a,
+      ...b,
+      ...c,
+    }),
+  ),
+}));
+
 import { runScript } from '@laufen/engine';
 
 import { safeLoadLaufConfigWithMeta } from '../lib/config.ts';
@@ -48,7 +59,14 @@ const mockScript: DiscoveredScript = {
 };
 
 const mockLoadedConfig = {
-  config: { scripts: ['scripts/*.lauf.ts'], logger: undefined, spinner: true },
+  config: {
+    scripts: ['scripts/*.lauf.ts'],
+    logger: undefined,
+    spinner: true,
+    envFile: [],
+    env: {},
+    envMode: 'isolate' as const,
+  },
   configFile: '/workspace/lauf.config.ts',
   configDir: '/workspace',
 };
@@ -73,7 +91,14 @@ describe('info handler', () => {
     expect(runScript).toHaveBeenCalledWith(
       mockScript,
       {},
-      { help: true, workspaceRoot: '/workspace', cliPackageRoot: '/lauf-root', spinner: true },
+      {
+        help: true,
+        workspaceRoot: '/workspace',
+        cliPackageRoot: '/lauf-root',
+        spinner: true,
+        env: {},
+        envMode: 'isolate',
+      },
     );
     expect(process.exit).not.toHaveBeenCalled();
   });
@@ -89,7 +114,14 @@ describe('info handler', () => {
     expect(runScript).toHaveBeenCalledWith(
       mockScript,
       {},
-      { help: true, workspaceRoot: '/workspace', cliPackageRoot: '/lauf-root', spinner: true },
+      {
+        help: true,
+        workspaceRoot: '/workspace',
+        cliPackageRoot: '/lauf-root',
+        spinner: true,
+        env: {},
+        envMode: 'isolate',
+      },
     );
   });
 

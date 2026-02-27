@@ -184,6 +184,13 @@ export interface ScriptContext<T extends ArgDefs> {
   readonly args: InferArgs<T>;
 
   /**
+   * Resolved environment variables available to this script.
+   *
+   * Merged from envFile, config-level env, script-level env, and CLI --env flags.
+   */
+  readonly env: Readonly<Record<string, string>>;
+
+  /**
    * Absolute path to the monorepo root.
    */
   readonly root: string;
@@ -229,6 +236,13 @@ export interface ScriptConfig<T extends ArgDefs = ArgDefs> {
    * Argument definitions using Zod schemas. Keys become CLI flag names.
    */
   args: T;
+
+  /**
+   * Script-level environment variables.
+   *
+   * These are merged after config-level env and envFile, but before CLI --env flags.
+   */
+  env?: Record<string, string>;
 
   /**
    * The script's entry point, called with the validated context.

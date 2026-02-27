@@ -46,6 +46,9 @@ const DEFAULTS = {
   scripts: ['scripts/*.lauf.ts'],
   logger: undefined,
   spinner: true,
+  envFile: [],
+  env: {},
+  envMode: 'isolate',
 } as const;
 
 const DISCOVERED_LAUF: DiscoveredConfig = {
@@ -64,6 +67,9 @@ const VALID_CONFIG = {
   scripts: ['src/**/*.ts'],
   logger: undefined,
   spinner: true,
+  envFile: [],
+  env: {},
+  envMode: 'isolate',
 };
 
 beforeEach(() => {
@@ -195,22 +201,50 @@ describe('loadAllLaufConfigs', () => {
     mockLoadConfig
       .mockResolvedValueOnce({
         configFile: '/workspace/packages/a/lauf.config.ts',
-        config: { scripts: ['src/*.ts'], logger: undefined, spinner: true },
+        config: {
+          scripts: ['src/*.ts'],
+          logger: undefined,
+          spinner: true,
+          envFile: [],
+          env: {},
+          envMode: 'isolate',
+        },
       })
       .mockResolvedValueOnce({
         configFile: '/workspace/packages/b/laufen.config.ts',
-        config: { scripts: ['tools/*.ts'], logger: undefined, spinner: false },
+        config: {
+          scripts: ['tools/*.ts'],
+          logger: undefined,
+          spinner: false,
+          envFile: [],
+          env: {},
+          envMode: 'isolate',
+        },
       });
 
     const results = await loadAllLaufConfigs('/workspace');
     expect(results).toHaveLength(2);
     expect(results[0]).toEqual({
-      config: { scripts: ['src/*.ts'], logger: undefined, spinner: true },
+      config: {
+        scripts: ['src/*.ts'],
+        logger: undefined,
+        spinner: true,
+        envFile: [],
+        env: {},
+        envMode: 'isolate',
+      },
       configFile: '/workspace/packages/a/lauf.config.ts',
       configDir: '/workspace/packages/a',
     });
     expect(results[1]).toEqual({
-      config: { scripts: ['tools/*.ts'], logger: undefined, spinner: false },
+      config: {
+        scripts: ['tools/*.ts'],
+        logger: undefined,
+        spinner: false,
+        envFile: [],
+        env: {},
+        envMode: 'isolate',
+      },
       configFile: '/workspace/packages/b/laufen.config.ts',
       configDir: '/workspace/packages/b',
     });

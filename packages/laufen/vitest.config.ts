@@ -3,6 +3,7 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     include: ['src/**/*.test.ts'],
+    includeSource: ['src/**/*.ts'],
     reporters: ['default', 'github-actions'],
     coverage: {
       enabled: true,

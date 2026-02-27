@@ -50,7 +50,14 @@ import { promptForText } from '../utils/prompt.ts';
 import createHandler from './create.ts';
 
 const mockLoadedConfig = {
-  config: { scripts: ['scripts/*.lauf.ts'], logger: undefined, spinner: true },
+  config: {
+    scripts: ['scripts/*.lauf.ts'],
+    logger: undefined,
+    spinner: true,
+    envFile: [],
+    env: {},
+    envMode: 'isolate' as const,
+  },
   configFile: '/workspace/lauf.config.ts',
   configDir: '/workspace',
 };
@@ -267,7 +274,14 @@ describe('create handler', () => {
 
   it('falls back to scripts/ directory when config has empty scripts array', async () => {
     const emptyScriptsConfig = {
-      config: { scripts: [], logger: undefined, spinner: true },
+      config: {
+        scripts: [],
+        logger: undefined,
+        spinner: true,
+        envFile: [] as string[],
+        env: {},
+        envMode: 'isolate' as const,
+      },
       configFile: '/workspace/lauf.config.ts',
       configDir: '/workspace',
     };

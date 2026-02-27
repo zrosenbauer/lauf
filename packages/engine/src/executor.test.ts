@@ -29,6 +29,7 @@ const { mockPromptForMissingArgs } = vi.hoisted(() => ({
 const { mockCreateContext } = vi.hoisted(() => ({
   mockCreateContext: vi.fn(() => ({
     args: {},
+    env: {},
     root: '',
     packageDir: '',
     name: '',
@@ -36,6 +37,10 @@ const { mockCreateContext } = vi.hoisted(() => ({
     spinner: {},
     prompts: {},
   })),
+}));
+
+const { mockApplyEnvToProcess } = vi.hoisted(() => ({
+  mockApplyEnvToProcess: vi.fn(),
 }));
 
 const { mockCreatePrompts } = vi.hoisted(() => ({
@@ -128,6 +133,10 @@ vi.mock('./context/index.ts', () => ({
   createContext: mockCreateContext,
 }));
 
+vi.mock('./env.ts', () => ({
+  applyEnvToProcess: mockApplyEnvToProcess,
+}));
+
 vi.mock('./context/prompts.ts', () => ({
   createPrompts: mockCreatePrompts,
 }));
@@ -144,6 +153,7 @@ const validEnv = {
   LAUF_PACKAGE_DIR: '/workspace',
   LAUF_SCRIPT_NAME: 'test-script',
   LAUF_SPINNER: '1',
+  LAUF_ENV: '{}',
 };
 
 const runExecutor = async (
@@ -388,9 +398,11 @@ describe('executor', () => {
 
       await runExecutor();
 
+      expect(mockApplyEnvToProcess).toHaveBeenCalledWith({});
       expect(mockCreateContext).toHaveBeenCalledWith(
         expect.objectContaining({
           args: {},
+          env: {},
           root: '/workspace',
           packageDir: '/workspace',
           name: 'test-script',
@@ -398,6 +410,80 @@ describe('executor', () => {
         }),
       );
       expect(mockRunFn).toHaveBeenCalled();
+    });
+  });
+
+  describe('LAUF_ENV parsing', () => {
+    it('parses LAUF_ENV and merges with script env', async () => {
+      const mockRunFn = vi.fn();
+      // oxlint-disable-next-line immutable-data
+      mockScriptConfig.value = {
+        description: 'test',
+        args: {},
+        run: mockRunFn,
+      };
+      // Add env to script config
+      Object.assign(mockScriptConfig.value, { env: { SCRIPT_VAR: 'from-script' } });
+      mockPromptForMissingArgs.mockResolvedValue([null, {}]);
+      // First call = LAUF_ARGS, second call = LAUF_ENV
+      mockSafeParseJSON
+        .mockReturnValueOnce([null, {}])
+        .mockReturnValueOnce([null, { CONFIG_VAR: 'from-config' }]);
+
+      await runExecutor({ LAUF_ENV: '{"CONFIG_VAR":"from-config"}' });
+
+      expect(mockApplyEnvToProcess).toHaveBeenCalledWith({
+        CONFIG_VAR: 'from-config',
+        SCRIPT_VAR: 'from-script',
+      });
+      expect(mockCreateContext).toHaveBeenCalledWith(
+        expect.objectContaining({
+          env: { CONFIG_VAR: 'from-config', SCRIPT_VAR: 'from-script' },
+        }),
+      );
+    });
+
+    it('script env overrides LAUF_ENV for same key', async () => {
+      const mockRunFn = vi.fn();
+      // oxlint-disable-next-line immutable-data
+      mockScriptConfig.value = {
+        description: 'test',
+        args: {},
+        run: mockRunFn,
+      };
+      Object.assign(mockScriptConfig.value, { env: { KEY: 'from-script' } });
+      mockPromptForMissingArgs.mockResolvedValue([null, {}]);
+      // First call = LAUF_ARGS, second call = LAUF_ENV
+      mockSafeParseJSON
+        .mockReturnValueOnce([null, {}])
+        .mockReturnValueOnce([null, { KEY: 'from-config' }]);
+
+      await runExecutor({ LAUF_ENV: '{"KEY":"from-config"}' });
+
+      expect(mockApplyEnvToProcess).toHaveBeenCalledWith({ KEY: 'from-script' });
+    });
+
+    it('exits with 1 when LAUF_ENV contains invalid JSON', async () => {
+      const mockRunFn = vi.fn();
+      // oxlint-disable-next-line immutable-data
+      mockScriptConfig.value = {
+        description: 'test',
+        args: {},
+        run: mockRunFn,
+      };
+      mockSafeParseJSON.mockImplementation((input: string) => {
+        if (input === '{invalid}') {
+          return [new Error('bad json'), null];
+        }
+        return [null, {}];
+      });
+
+      await runExecutor({ LAUF_ENV: '{invalid}' });
+
+      expect(process.exit).toHaveBeenCalledWith(1);
+      expect(mockLogError).toHaveBeenCalledWith(
+        expect.stringContaining('Invalid JSON in LAUF_ENV'),
+      );
     });
   });
 

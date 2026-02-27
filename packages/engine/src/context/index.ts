@@ -5,6 +5,7 @@ import { createNoopSpinner, createSpinner } from './spinner.ts';
 
 interface CreateContextParams<T extends ArgDefs> {
   readonly args: InferArgs<T>;
+  readonly env: Record<string, string>;
   readonly root: string;
   readonly packageDir: string;
   readonly name: string;
@@ -22,6 +23,7 @@ function resolveSpinner(enabled: boolean) {
 export function createContext<T extends ArgDefs>(params: CreateContextParams<T>): ScriptContext<T> {
   return {
     args: params.args,
+    env: Object.freeze(params.env),
     root: params.root,
     packageDir: params.packageDir,
     name: params.name,

@@ -45,6 +45,16 @@ Values are automatically coerced before validation:
 
 Hex strings (`0x...`) and scientific notation (`1e10`) are not coerced -- they remain strings.
 
+## Environment Variables
+
+Pass `--env KEY=VALUE` to set environment variables for the script:
+
+```bash
+lauf run @my-org/api/seed --env DATABASE_URL=postgres://localhost/dev --env NODE_ENV=test
+```
+
+Both `--env KEY=VALUE` and `--env=KEY=VALUE` forms are supported. CLI env vars override config-level and envFile vars.
+
 ## Inline Help
 
 Pass `--help` or `-h` after the script name to see its arguments without running it:

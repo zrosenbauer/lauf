@@ -50,6 +50,7 @@ afterEach(() => {
 describe('createContext', () => {
   const baseParams = {
     args: { name: 'Alice' },
+    env: { NODE_ENV: 'test' },
     root: '/project',
     packageDir: '/project/packages/app',
     name: '@app/script',
@@ -60,6 +61,12 @@ describe('createContext', () => {
   it('returns context with correct args', () => {
     const ctx = createContext(baseParams);
     expect(ctx.args).toEqual({ name: 'Alice' });
+  });
+
+  it('returns context with frozen env', () => {
+    const ctx = createContext(baseParams);
+    expect(ctx.env).toEqual({ NODE_ENV: 'test' });
+    expect(Object.isFrozen(ctx.env)).toBe(true);
   });
 
   it('returns context with correct root', () => {

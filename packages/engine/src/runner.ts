@@ -9,6 +9,7 @@ import { attempt } from 'es-toolkit';
 
 import { bundleScript } from './bundler.ts';
 import { createLogger } from './context/logger.ts';
+import { buildBaseEnv } from './env.ts';
 import type { Logger, RunResult, ScriptTarget } from './types.ts';
 import { safeParseError } from './utils/cli.ts';
 
@@ -21,6 +22,8 @@ export interface RunScriptOptions {
   readonly cliPackageRoot: string;
   readonly spinner?: boolean;
   readonly logger?: Logger;
+  readonly env?: Record<string, string>;
+  readonly envMode?: 'isolate' | 'inherit';
 }
 
 /**
@@ -341,6 +344,8 @@ export async function runScript(
   const spinnerEnabled = resolveSpinner(options);
   const helpEnv = resolveHelpEnv(options);
   const spinnerValue = resolveSpinnerEnv(spinnerEnabled);
+  const baseEnv = buildBaseEnv(options.envMode ?? 'isolate');
+  const userEnv = options.env ?? {};
 
   // oxlint-disable-next-line max-lines-per-function
   return new Promise((resolve) => {
@@ -348,7 +353,8 @@ export async function runScript(
       cwd: script.packageDir,
       stdio: 'inherit',
       env: {
-        ...process.env,
+        ...baseEnv,
+        ...userEnv,
         NODE_OPTIONS: sanitizeNodeOptions(process.env.NODE_OPTIONS),
         NODE_PATH: buildNodePath(options.workspaceRoot, options.cliPackageRoot),
         LAUF_SCRIPT_PATH: bundle.outputPath,
@@ -358,6 +364,7 @@ export async function runScript(
         LAUF_PACKAGE_DIR: script.packageDir,
         LAUF_SCRIPT_NAME: script.name,
         LAUF_SPINNER: spinnerValue,
+        LAUF_ENV: JSON.stringify(userEnv),
         ...helpEnv,
       },
     });

@@ -51,7 +51,14 @@ describe('list handler', () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([
       null,
       {
-        config: { scripts: ['scripts/*.lauf.ts'], logger: undefined, spinner: true },
+        config: {
+          scripts: ['scripts/*.lauf.ts'],
+          logger: undefined,
+          spinner: true,
+          envFile: [] as string[],
+          env: {},
+          envMode: 'isolate' as const,
+        },
         configFile: 'lauf.config.ts',
         configDir: '/workspace',
       },
@@ -81,7 +88,14 @@ describe('list handler', () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([
       null,
       {
-        config: { scripts: ['scripts/*.lauf.ts'], logger: undefined, spinner: true },
+        config: {
+          scripts: ['scripts/*.lauf.ts'],
+          logger: undefined,
+          spinner: true,
+          envFile: [] as string[],
+          env: {},
+          envMode: 'isolate' as const,
+        },
         configFile: 'lauf.config.ts',
         configDir: '/workspace',
       },
@@ -106,7 +120,14 @@ describe('list handler', () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([
       null,
       {
-        config: { scripts: ['src/**/*.lauf.ts'], logger: undefined, spinner: true },
+        config: {
+          scripts: ['src/**/*.lauf.ts'],
+          logger: undefined,
+          spinner: true,
+          envFile: [] as string[],
+          env: {},
+          envMode: 'isolate' as const,
+        },
         configFile: 'lauf.config.ts',
         configDir: '/workspace',
       },
@@ -130,7 +151,14 @@ describe('list handler', () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([
       null,
       {
-        config: { scripts: ['scripts/*.lauf.ts'], logger: undefined, spinner: true },
+        config: {
+          scripts: ['scripts/*.lauf.ts'],
+          logger: undefined,
+          spinner: true,
+          envFile: [] as string[],
+          env: {},
+          envMode: 'isolate' as const,
+        },
         configFile: 'lauf.config.ts',
         configDir: '/workspace',
       },
@@ -149,7 +177,14 @@ describe('list handler', () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([
       null,
       {
-        config: { scripts: ['scripts/*.lauf.ts'], logger: undefined, spinner: true },
+        config: {
+          scripts: ['scripts/*.lauf.ts'],
+          logger: undefined,
+          spinner: true,
+          envFile: [] as string[],
+          env: {},
+          envMode: 'isolate' as const,
+        },
         configFile: 'lauf.config.ts',
         configDir: '/workspace',
       },
@@ -187,7 +222,14 @@ describe('list handler --all flag', () => {
   it('calls loadAllLaufConfigs and discoverScripts with scopeDir when --all is set', async () => {
     vi.mocked(loadAllLaufConfigs).mockResolvedValue([
       {
-        config: { scripts: ['scripts/*.lauf.ts'], logger: undefined, spinner: true },
+        config: {
+          scripts: ['scripts/*.lauf.ts'],
+          logger: undefined,
+          spinner: true,
+          envFile: [] as string[],
+          env: {},
+          envMode: 'isolate' as const,
+        },
         configFile: 'lauf.config.ts',
         configDir: '/workspace',
       },
@@ -212,7 +254,14 @@ describe('list handler --all flag', () => {
   it('does not call safeLoadLaufConfigWithMeta when --all is set', async () => {
     vi.mocked(loadAllLaufConfigs).mockResolvedValue([
       {
-        config: { scripts: ['scripts/*.lauf.ts'], logger: undefined, spinner: true },
+        config: {
+          scripts: ['scripts/*.lauf.ts'],
+          logger: undefined,
+          spinner: true,
+          envFile: [] as string[],
+          env: {},
+          envMode: 'isolate' as const,
+        },
         configFile: 'lauf.config.ts',
         configDir: '/workspace',
       },
@@ -228,12 +277,26 @@ describe('list handler --all flag', () => {
   it('aggregates scripts from multiple configs', async () => {
     vi.mocked(loadAllLaufConfigs).mockResolvedValue([
       {
-        config: { scripts: ['scripts/*.lauf.ts'], logger: undefined, spinner: true },
+        config: {
+          scripts: ['scripts/*.lauf.ts'],
+          logger: undefined,
+          spinner: true,
+          envFile: [] as string[],
+          env: {},
+          envMode: 'isolate' as const,
+        },
         configFile: 'lauf.config.ts',
         configDir: '/workspace',
       },
       {
-        config: { scripts: ['tasks/*.ts'], logger: undefined, spinner: true },
+        config: {
+          scripts: ['tasks/*.ts'],
+          logger: undefined,
+          spinner: true,
+          envFile: [] as string[],
+          env: {},
+          envMode: 'isolate' as const,
+        },
         configFile: 'lauf.config.ts',
         configDir: '/workspace/packages/api',
       },
@@ -270,12 +333,26 @@ describe('list handler --all flag', () => {
   it('deduplicates scripts by path across configs', async () => {
     vi.mocked(loadAllLaufConfigs).mockResolvedValue([
       {
-        config: { scripts: ['scripts/*.lauf.ts'], logger: undefined, spinner: true },
+        config: {
+          scripts: ['scripts/*.lauf.ts'],
+          logger: undefined,
+          spinner: true,
+          envFile: [] as string[],
+          env: {},
+          envMode: 'isolate' as const,
+        },
         configFile: 'lauf.config.ts',
         configDir: '/workspace',
       },
       {
-        config: { scripts: ['scripts/*.lauf.ts'], logger: undefined, spinner: true },
+        config: {
+          scripts: ['scripts/*.lauf.ts'],
+          logger: undefined,
+          spinner: true,
+          envFile: [] as string[],
+          env: {},
+          envMode: 'isolate' as const,
+        },
         configFile: 'lauf.config.ts',
         configDir: '/workspace/packages/pkg',
       },
@@ -308,7 +385,14 @@ describe('list handler --all flag', () => {
   it('shows warning when --all finds no scripts across all configs', async () => {
     vi.mocked(loadAllLaufConfigs).mockResolvedValue([
       {
-        config: { scripts: ['scripts/*.lauf.ts'], logger: undefined, spinner: true },
+        config: {
+          scripts: ['scripts/*.lauf.ts'],
+          logger: undefined,
+          spinner: true,
+          envFile: [] as string[],
+          env: {},
+          envMode: 'isolate' as const,
+        },
         configFile: 'lauf.config.ts',
         configDir: '/workspace',
       },
@@ -325,7 +409,14 @@ describe('list handler --all flag', () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([
       null,
       {
-        config: { scripts: ['scripts/*.lauf.ts'], logger: undefined, spinner: true },
+        config: {
+          scripts: ['scripts/*.lauf.ts'],
+          logger: undefined,
+          spinner: true,
+          envFile: [] as string[],
+          env: {},
+          envMode: 'isolate' as const,
+        },
         configFile: 'lauf.config.ts',
         configDir: '/workspace',
       },
@@ -346,7 +437,14 @@ describe('root package scripts', () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([
       null,
       {
-        config: { scripts: ['scripts/*.lauf.ts'], logger: undefined, spinner: true },
+        config: {
+          scripts: ['scripts/*.lauf.ts'],
+          logger: undefined,
+          spinner: true,
+          envFile: [] as string[],
+          env: {},
+          envMode: 'isolate' as const,
+        },
         configFile: 'lauf.config.ts',
         configDir: '/workspace',
       },
@@ -377,7 +475,14 @@ describe('root package scripts', () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([
       null,
       {
-        config: { scripts: ['scripts/*.lauf.ts'], logger: undefined, spinner: true },
+        config: {
+          scripts: ['scripts/*.lauf.ts'],
+          logger: undefined,
+          spinner: true,
+          envFile: [] as string[],
+          env: {},
+          envMode: 'isolate' as const,
+        },
         configFile: 'lauf.config.ts',
         configDir: '/workspace',
       },
@@ -404,7 +509,14 @@ describe('tree display format', () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([
       null,
       {
-        config: { scripts: ['scripts/*.lauf.ts'], logger: undefined, spinner: true },
+        config: {
+          scripts: ['scripts/*.lauf.ts'],
+          logger: undefined,
+          spinner: true,
+          envFile: [] as string[],
+          env: {},
+          envMode: 'isolate' as const,
+        },
         configFile: 'lauf.config.ts',
         configDir: '/workspace',
       },
@@ -444,7 +556,14 @@ describe('tree display format', () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([
       null,
       {
-        config: { scripts: ['scripts/*.lauf.ts'], logger: undefined, spinner: true },
+        config: {
+          scripts: ['scripts/*.lauf.ts'],
+          logger: undefined,
+          spinner: true,
+          envFile: [] as string[],
+          env: {},
+          envMode: 'isolate' as const,
+        },
         configFile: 'lauf.config.ts',
         configDir: '/workspace',
       },
@@ -471,7 +590,14 @@ describe('tree display format', () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([
       null,
       {
-        config: { scripts: ['scripts/*.lauf.ts'], logger: undefined, spinner: true },
+        config: {
+          scripts: ['scripts/*.lauf.ts'],
+          logger: undefined,
+          spinner: true,
+          envFile: [] as string[],
+          env: {},
+          envMode: 'isolate' as const,
+        },
         configFile: 'lauf.config.ts',
         configDir: '/workspace',
       },
@@ -511,7 +637,14 @@ describe('tree display format', () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([
       null,
       {
-        config: { scripts: ['scripts/*.lauf.ts'], logger: undefined, spinner: true },
+        config: {
+          scripts: ['scripts/*.lauf.ts'],
+          logger: undefined,
+          spinner: true,
+          envFile: [] as string[],
+          env: {},
+          envMode: 'isolate' as const,
+        },
         configFile: 'lauf.config.ts',
         configDir: '/workspace',
       },

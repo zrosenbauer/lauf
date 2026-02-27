@@ -18,7 +18,7 @@ Monorepos accumulate ad-hoc scripts -- data migrations, code generators, health 
 
 3. **Discovery** -- Each workspace package is scanned for scripts matching the configured glob patterns (default: `scripts/*.ts`).
 
-4. **Execution** -- When you run a script, Lauf spawns it in an isolated process, validates arguments against the Zod schema, and calls `run()` with a fully typed context.
+4. **Execution** -- When you run a script, Lauf spawns it in an isolated process with a controlled environment. By default, scripts run in `isolate` mode with only minimal env vars (`PATH`, `HOME`, etc.). You can load `.env` files, set explicit env vars, or pass `--env KEY=VALUE` on the CLI. Arguments are validated against the Zod schema, and `run()` receives a fully typed context including `ctx.env`.
 
 5. **Validation** -- Arguments are coerced from CLI strings into the correct types and validated at runtime. If validation fails, you get a clear error message.
 
