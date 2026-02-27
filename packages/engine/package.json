@@ -2,6 +2,17 @@
   "name": "@laufen/engine",
   "version": "0.2.0",
   "description": "Execution engine for laufen — esbuild bundling, Node child process spawning, and script context",
+  "homepage": "https://github.com/zrosenbauer/lauf#readme",
+  "bugs": {
+    "url": "https://github.com/zrosenbauer/lauf/issues"
+  },
+  "license": "MIT",
+  "author": "Zac Rosenbauer",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zrosenbauer/lauf.git",
+    "directory": "packages/engine"
+  },
   "files": [
     "dist"
   ],
