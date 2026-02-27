@@ -11,7 +11,8 @@ enable_free_tier: true
 reviews:
   profile: 'assertive'
   request_changes_workflow: false
-  high_level_summary: true
+  high_level_summary: false
+  high_level_summary_placeholder: ''
   collapse_walkthrough: true
   review_status: true
 
@@ -25,13 +26,16 @@ reviews:
     - '!**/node_modules/**'
     - '!**/.turbo/**'
     - '!**/coverage/**'
-    - '!pnpm-lock.yaml'
-    - '!**/*.d.ts'
     - '!**/bundle/**'
+    - '!**/*.d.ts'
+    - '!pnpm-lock.yaml'
     - '!**/CHANGELOG.md'
+    - '!examples/**'
 
   path_instructions:
-    - path: 'packages/lauf/src/*.ts'
+    # ── laufen package (CLI) ──────────────────────────────────────────────
+
+    - path: 'packages/laufen/src/**/*.ts'
       instructions: >-
         This is a strict functional TypeScript codebase. Enforce the following:
 
@@ -46,30 +50,100 @@ reviews:
         - Side effects (I/O, logging, process control) belong at the edges (handlers, runtime)
         - Use `es-toolkit` for utility functions, `ts-pattern` for pattern matching, `zod` for validation
 
-    - path: 'packages/lauf/src/handlers/**'
+    - path: 'packages/laufen/src/handlers/**'
       instructions: >-
-        Handler files are the boundary layer where side effects are permitted.
+        Handler files are the CLI boundary layer where side effects are permitted.
         They may use `@clack/prompts` for CLI output. Functional constraints on
         loops, let, and mutation are relaxed here, but prefer immutable patterns
         where practical.
 
-    - path: 'packages/lauf/src/runtime/**'
-      instructions: >-
-        Runtime files handle script execution and process management. Side effects
-        (child processes, file I/O) are expected here. Functional constraints are
-        relaxed, but keep functions small and composable. The executor uses `tsx`
-        for TypeScript execution.
-
-    - path: 'packages/lauf/src/lib/**'
+    - path: 'packages/laufen/src/lib/**'
       instructions: >-
         Library files handle config loading (c12), script discovery, and path
         resolution. Side effects (filesystem reads) are expected. Keep functions
         focused and prefer returning data over mutating state.
 
+    - path: 'packages/laufen/src/templates/**'
+      instructions: >-
+        Template files generate config and script scaffolding for the `init` and
+        `create` commands. Keep templates as pure string-returning functions.
+
+    - path: 'packages/laufen/src/utils/**'
+      instructions: >-
+        Utility functions for CLI output, filesystem helpers, JSON parsing,
+        prompt arguments, and schema helpers. Prefer pure functions. Side effects
+        (filesystem, prompts) are acceptable but should be isolated.
+
+    # ── engine package ────────────────────────────────────────────────────
+
+    - path: 'packages/engine/src/**/*.ts'
+      instructions: >-
+        The engine package handles script execution, bundling, and runtime context.
+        Enforce the same functional TypeScript principles as the laufen package:
+        no `any`, no `throw`, no ternaries, no optional chaining, prefer `const`.
+        Side effects (child processes, file I/O) are expected in the runner and
+        executor but should be pushed to the edges.
+
+    - path: 'packages/engine/src/runner.ts'
+      instructions: >-
+        The runner spawns child processes to execute bundled scripts via `tsx`.
+        Side effects (child_process.spawn, filesystem) are expected. Keep the
+        process lifecycle logic clean and handle errors as return values.
+
+    - path: 'packages/engine/src/executor.ts'
+      instructions: >-
+        The executor is the child-process entry point. It parses environment
+        variables (via Zod), dynamically imports the target script, and runs it
+        with a ScriptContext. Side effects are expected. Validate all inputs.
+
+    - path: 'packages/engine/src/context/**'
+      instructions: >-
+        Context files build the ScriptContext (logger, prompts, spinner) passed
+        to user scripts. Keep factory functions small and composable. The context
+        object should be immutable once created (Object.freeze).
+
+    - path: 'packages/engine/src/utils/**'
+      instructions: >-
+        Engine utility functions for CLI formatting, help text, JSON parsing,
+        prompt argument resolution, and schema helpers. Prefer pure functions.
+
+    - path: 'packages/engine/src/env.ts'
+      instructions: >-
+        Environment variable handling for script execution. Manages env isolation
+        (envMode), envFile loading, and NODE_OPTIONS stripping. Side effects are
+        expected. Validate env shapes with Zod.
+
+    - path: 'packages/engine/src/bundler.ts'
+      instructions: >-
+        Script bundler using esbuild. Side effects (filesystem, esbuild API) are
+        expected. Keep the bundling config declarative and the error handling
+        value-based (no throw).
+
+    # ── tests ─────────────────────────────────────────────────────────────
+
     - path: '**/*.test.ts'
       instructions: >-
         Test files have relaxed functional constraints. Mutation, let bindings,
         and imperative patterns are acceptable for test setup and assertions.
+        Tests use Vitest. Prefer clear arrange-act-assert structure.
+
+    - path: 'packages/engine/src/__integration__/**'
+      instructions: >-
+        Integration tests for the engine runner. These spawn real child processes
+        and test end-to-end script execution. Relaxed constraints apply. Fixtures
+        in __integration__/fixtures/ are minimal scripts used as test targets.
+
+    # ── config & CI ───────────────────────────────────────────────────────
+
+    - path: '*.config.ts'
+      instructions: >-
+        Config files (tsdown, vite, vitest, etc.) are exempt from
+        no-expression-statements and immutable-data lint rules.
+
+    - path: '.github/workflows/**'
+      instructions: >-
+        GitHub Actions workflows. CI runs: lint, format check, build, typecheck,
+        test. Uses pnpm + Turborepo. Node 22+. Changesets for versioning.
 
   tools:
     biome:

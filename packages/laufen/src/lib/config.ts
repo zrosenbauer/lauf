@@ -12,7 +12,7 @@ export interface LaufConfig {
   scripts?: string[];
   logger?: DefaultLogger;
   spinner?: boolean;
-  envFile?: string | string[];
+  envFile?: string | readonly string[];
   env?: Record<string, string>;
   envMode?: 'isolate' | 'inherit';
 }
@@ -21,7 +21,7 @@ export interface ResolvedLaufConfig {
   scripts: string[];
   logger: DefaultLogger | undefined;
   spinner: boolean;
-  envFile: string | string[];
+  envFile: string | readonly string[];
   env: Record<string, string>;
   envMode: 'isolate' | 'inherit';
 }

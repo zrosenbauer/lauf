@@ -443,7 +443,7 @@ describe('executor', () => {
       );
     });
 
-    it('script env overrides LAUF_ENV for same key', async () => {
+    it('script env overrides config env from LAUF_ENV for same key', async () => {
       const mockRunFn = vi.fn();
       // oxlint-disable-next-line immutable-data
       mockScriptConfig.value = {
@@ -461,6 +461,50 @@ describe('executor', () => {
       await runExecutor({ LAUF_ENV: '{"KEY":"from-config"}' });
 
       expect(mockApplyEnvToProcess).toHaveBeenCalledWith({ KEY: 'from-script' });
+    });
+
+    it('CLI env (LAUF_CLI_ENV) overrides script env for same key', async () => {
+      const mockRunFn = vi.fn();
+      // oxlint-disable-next-line immutable-data
+      mockScriptConfig.value = {
+        description: 'test',
+        args: {},
+        run: mockRunFn,
+      };
+      Object.assign(mockScriptConfig.value, { env: { KEY: 'from-script' } });
+      mockPromptForMissingArgs.mockResolvedValue([null, {}]);
+      // First call = LAUF_ARGS, second call = LAUF_ENV, third call = LAUF_CLI_ENV
+      mockSafeParseJSON
+        .mockReturnValueOnce([null, {}])
+        .mockReturnValueOnce([null, {}])
+        .mockReturnValueOnce([null, { KEY: 'from-cli' }]);
+
+      await runExecutor({ LAUF_ENV: '{}', LAUF_CLI_ENV: '{"KEY":"from-cli"}' });
+
+      expect(mockApplyEnvToProcess).toHaveBeenCalledWith({ KEY: 'from-cli' });
+    });
+
+    it('filters LAUF_ prefixed keys before applying to process.env', async () => {
+      const mockRunFn = vi.fn();
+      // oxlint-disable-next-line immutable-data
+      mockScriptConfig.value = {
+        description: 'test',
+        args: {},
+        run: mockRunFn,
+      };
+      mockPromptForMissingArgs.mockResolvedValue([null, {}]);
+      mockSafeParseJSON
+        .mockReturnValueOnce([null, {}])
+        .mockReturnValueOnce([null, { LAUF_EVIL: 'bad', SAFE_KEY: 'ok' }]);
+
+      await runExecutor({ LAUF_ENV: '{"LAUF_EVIL":"bad","SAFE_KEY":"ok"}' });
+
+      expect(mockApplyEnvToProcess).toHaveBeenCalledWith({ SAFE_KEY: 'ok' });
+      expect(mockCreateContext).toHaveBeenCalledWith(
+        expect.objectContaining({
+          env: { LAUF_EVIL: 'bad', SAFE_KEY: 'ok' },
+        }),
+      );
     });
 
     it('exits with 1 when LAUF_ENV contains invalid JSON', async () => {

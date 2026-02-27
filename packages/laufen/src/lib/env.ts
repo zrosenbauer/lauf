@@ -25,11 +25,27 @@ function normalizeEnvFiles(envFile: string | readonly string[]): readonly string
 }
 
 /**
+ * Check whether an error represents a missing file (ENOENT).
+ */
+function isFileNotFound(error: Error): boolean {
+  return 'code' in error && (error as NodeJS.ErrnoException).code === 'ENOENT';
+}
+
+/**
  * Read a single env file and return its entries, or empty array on failure.
+ *
+ * Missing files (ENOENT) are silently skipped. Other read errors
+ * (permissions, IO failures) emit a warning so they are not silently lost.
  */
 function readEnvFileEntries(filePath: string): readonly (readonly [string, string])[] {
-  const [readError, content] = attempt(() => fs.readFileSync(filePath, 'utf-8'));
-  if (readError || content === null) {
+  const [readError, content] = attempt<string, Error>(() => fs.readFileSync(filePath, 'utf-8'));
+  if (readError) {
+    if (!isFileNotFound(readError)) {
+      console.warn(`Warning: Failed to read env file "${filePath}": ${readError.message}`);
+    }
+    return [];
+  }
+  if (content === null) {
     return [];
   }
   return Object.entries(parse(content));

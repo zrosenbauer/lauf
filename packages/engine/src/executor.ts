@@ -30,6 +30,7 @@ const envSchema = z.object({
   LAUF_SPINNER: z.enum(['0', '1']),
   LAUF_HELP: z.enum(['0', '1']).optional(),
   LAUF_ENV: z.string().optional(),
+  LAUF_CLI_ENV: z.string().optional(),
 });
 
 const laufEnvSchema = z.record(z.string(), z.string());
@@ -115,7 +116,7 @@ async function execute(): Promise<void> {
     process.exit(1);
   }
 
-  // Parse pre-merged env from runner and merge with script-level env
+  // Parse pre-merged env (envFile + config.env) from runner
   const parsedEnv = parseLaufEnv(env.LAUF_ENV);
   if (parsedEnv[0]) {
     log.error('Invalid JSON in LAUF_ENV: failed to parse environment');
@@ -123,9 +124,23 @@ async function execute(): Promise<void> {
   }
   const premergedEnv = parsedEnv[1];
 
+  // Parse CLI --env flags (highest priority layer)
+  const parsedCliEnv = parseLaufEnv(env.LAUF_CLI_ENV);
+  if (parsedCliEnv[0]) {
+    log.error('Invalid JSON in LAUF_CLI_ENV: failed to parse CLI environment');
+    process.exit(1);
+  }
+  const cliEnv = parsedCliEnv[1];
+
+  // Merge order: envFile + config.env < script.env < CLI --env
   const scriptEnv = config.env ?? {};
-  const resolvedEnv: Record<string, string> = { ...premergedEnv, ...scriptEnv };
-  applyEnvToProcess(resolvedEnv);
+  const resolvedEnv: Record<string, string> = { ...premergedEnv, ...scriptEnv, ...cliEnv };
+
+  // Filter LAUF_ prefixed keys to prevent overwriting internal control variables
+  const safeResolvedEnv = Object.fromEntries(
+    Object.entries(resolvedEnv).filter(([key]) => !key.startsWith('LAUF_')),
+  );
+  applyEnvToProcess(safeResolvedEnv);
 
   if (env.LAUF_HELP === '1') {
     const argsMeta = extractArgMeta(config.args);

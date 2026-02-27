@@ -23,6 +23,7 @@ export interface RunScriptOptions {
   readonly spinner?: boolean;
   readonly logger?: Logger;
   readonly env?: Record<string, string>;
+  readonly cliEnv?: Record<string, string>;
   readonly envMode?: 'isolate' | 'inherit';
 }
 
@@ -91,7 +92,7 @@ function resolveHelpEnv(options: RunScriptOptions): Record<string, string> {
   if (options.help) {
     return { LAUF_HELP: '1' };
   }
-  return {};
+  return { LAUF_HELP: '0' };
 }
 
 /**
@@ -219,9 +220,9 @@ if (import.meta.vitest) {
       expect(result).toEqual({ LAUF_HELP: '1' });
     });
 
-    it('returns empty object when help is falsy', () => {
+    it('returns LAUF_HELP: "0" when help is falsy', () => {
       const result = resolveHelpEnv({ workspaceRoot: '', cliPackageRoot: '' });
-      expect(result).toEqual({});
+      expect(result).toEqual({ LAUF_HELP: '0' });
     });
   });
 
@@ -346,6 +347,7 @@ export async function runScript(
   const spinnerValue = resolveSpinnerEnv(spinnerEnabled);
   const baseEnv = buildBaseEnv(options.envMode ?? 'isolate');
   const userEnv = options.env ?? {};
+  const cliEnv = options.cliEnv ?? {};
 
   // oxlint-disable-next-line max-lines-per-function
   return new Promise((resolve) => {
@@ -355,6 +357,7 @@ export async function runScript(
       env: {
         ...baseEnv,
         ...userEnv,
+        ...cliEnv,
         NODE_OPTIONS: sanitizeNodeOptions(process.env.NODE_OPTIONS),
         NODE_PATH: buildNodePath(options.workspaceRoot, options.cliPackageRoot),
         LAUF_SCRIPT_PATH: bundle.outputPath,
@@ -365,6 +368,7 @@ export async function runScript(
         LAUF_SCRIPT_NAME: script.name,
         LAUF_SPINNER: spinnerValue,
         LAUF_ENV: JSON.stringify(userEnv),
+        LAUF_CLI_ENV: JSON.stringify(cliEnv),
         ...helpEnv,
       },
     });

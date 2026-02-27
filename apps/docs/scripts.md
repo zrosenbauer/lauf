@@ -26,12 +26,12 @@ export default lauf({
 
 ### Parameters
 
-| Property      | Type                                              | Description                                                     |
-| ------------- | ------------------------------------------------- | --------------------------------------------------------------- |
-| `description` | `string`                                          | Human-readable description shown in `lauf list` and `lauf info` |
-| `args`        | `Record<string, z.ZodType>`                       | Zod schemas for each argument                                   |
-| `env`         | `Record<string, string>`                          | Script-level environment variables (optional)                   |
-| `run`         | `(ctx: ScriptContext) => Promise<void \| number>` | The script's entry point                                        |
+| Property      | Type                                                                | Description                                                     |
+| ------------- | ------------------------------------------------------------------- | --------------------------------------------------------------- |
+| `description` | `string`                                                            | Human-readable description shown in `lauf list` and `lauf info` |
+| `args`        | `Record<string, z.ZodType>`                                         | Zod schemas for each argument                                   |
+| `env`         | `Record<string, string>`                                            | Script-level environment variables (optional)                   |
+| `run`         | `(ctx: ScriptContext) => void \| number \| Promise<void \| number>` | The script's entry point                                        |
 
 ## Defining Arguments with Zod
 

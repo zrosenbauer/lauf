@@ -388,7 +388,7 @@ describe('runScript', () => {
       expect(spawnEnv.LAUF_HELP).toBe('1');
     });
 
-    it('does not set LAUF_HELP when help is falsy', async () => {
+    it('sets LAUF_HELP to 0 when help is falsy', async () => {
       const mockChild = createMockChild();
       mockSpawn.mockReturnValue(mockChild);
 
@@ -398,7 +398,21 @@ describe('runScript', () => {
       await resultPromise;
 
       const spawnEnv = mockSpawn.mock.calls[0][2].env;
-      expect(spawnEnv.LAUF_HELP).toBeUndefined();
+      expect(spawnEnv.LAUF_HELP).toBe('0');
+    });
+
+    it('does not allow user env to override LAUF_HELP', async () => {
+      const mockChild = createMockChild();
+      mockSpawn.mockReturnValue(mockChild);
+
+      const userEnv = { LAUF_HELP: '1' };
+      const resultPromise = runScript(testScript, {}, { ...testOptions, env: userEnv });
+      await flushMicrotasks();
+      mockChild.emit('close', 0);
+      await resultPromise;
+
+      const spawnEnv = mockSpawn.mock.calls[0][2].env;
+      expect(spawnEnv.LAUF_HELP).toBe('0');
     });
   });
 

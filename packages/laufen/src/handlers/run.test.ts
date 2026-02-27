@@ -78,6 +78,7 @@ const expectedRunOptions = {
   cliPackageRoot: '/lauf-root',
   spinner: true,
   env: {},
+  cliEnv: {},
   envMode: 'isolate',
 };
 
@@ -180,6 +181,7 @@ describe('run handler', () => {
         cliPackageRoot: '/lauf-root',
         spinner: true,
         env: {},
+        cliEnv: {},
         envMode: 'isolate',
       },
     );
@@ -207,6 +209,7 @@ describe('run handler', () => {
         cliPackageRoot: '/lauf-root',
         spinner: true,
         env: {},
+        cliEnv: {},
         envMode: 'isolate',
       },
     );

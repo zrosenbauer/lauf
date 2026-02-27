@@ -6,7 +6,7 @@ import pc from 'picocolors';
 import { z } from 'zod';
 
 import { safeLoadLaufConfigWithMeta } from '../lib/config.ts';
-import { loadEnvFiles, mergeEnvSources } from '../lib/env.ts';
+import { loadEnvFiles } from '../lib/env.ts';
 import { defineHandler } from '../lib/handler.ts';
 import { LAUF_ROOT, getWorkspaceRoot } from '../lib/paths.ts';
 import type { HandlerResult } from '../lib/result.ts';
@@ -20,17 +20,20 @@ const runParams = z.object({
 });
 
 /**
- * Build the merged env record from env files, config-level env, and CLI --env flags.
+ * Build the config-level env record from env files and config-level env.
+ *
+ * CLI --env flags are kept as a separate layer so they can be merged
+ * after script-level env in the executor (preserving CLI-last precedence).
  */
-function buildMergedEnv(
-  loaded: {
-    readonly config: { readonly envFile: string | string[]; readonly env: Record<string, string> };
-    readonly configDir: string;
-  },
-  cliEnv: Record<string, string>,
-): Record<string, string> {
+function buildConfigEnv(loaded: {
+  readonly config: {
+    readonly envFile: string | readonly string[];
+    readonly env: Record<string, string>;
+  };
+  readonly configDir: string;
+}): Record<string, string> {
   const envFileVars = loadEnvFiles(loaded.config.envFile, loaded.configDir);
-  return mergeEnvSources(envFileVars, loaded.config.env, cliEnv);
+  return { ...envFileVars, ...loaded.config.env };
 }
 
 export default defineHandler({
@@ -50,14 +53,15 @@ export default defineHandler({
     const { env: cliEnv, remaining: cleanArgv } = extractEnvFlags(rawArgv);
     const isHelp = cleanArgv.includes('--help') || cleanArgv.includes('-h');
     const workspaceRoot = getWorkspaceRoot();
-    const mergedEnv = buildMergedEnv(loaded, cliEnv);
+    const configEnv = buildConfigEnv(loaded);
 
     if (isHelp) {
       return runHelpMode(
         script,
         workspaceRoot,
         loaded.config.spinner,
-        mergedEnv,
+        configEnv,
+        cliEnv,
         loaded.config.envMode,
       );
     }
@@ -68,7 +72,8 @@ export default defineHandler({
       args,
       workspaceRoot,
       loaded.config.spinner,
-      mergedEnv,
+      configEnv,
+      cliEnv,
       loaded.config.envMode,
     );
 
@@ -103,6 +108,7 @@ async function runHelpMode(
   workspaceRoot: string,
   spinner: boolean,
   env: Record<string, string>,
+  cliEnv: Record<string, string>,
   envMode: 'isolate' | 'inherit',
 ): Promise<HandlerResult> {
   const helpResult = await runScript(
@@ -114,6 +120,7 @@ async function runHelpMode(
       cliPackageRoot: LAUF_ROOT,
       spinner,
       env,
+      cliEnv,
       envMode,
     },
   );
@@ -139,6 +146,7 @@ async function executeScript(
   workspaceRoot: string,
   spinner: boolean,
   env: Record<string, string>,
+  cliEnv: Record<string, string>,
   envMode: 'isolate' | 'inherit',
 ): Promise<RunResult> {
   const label = pc.cyan(script.name);
@@ -149,6 +157,7 @@ async function executeScript(
     cliPackageRoot: LAUF_ROOT,
     spinner,
     env,
+    cliEnv,
     envMode,
   });
   if (result.exitCode === 0) {

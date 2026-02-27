@@ -11,12 +11,31 @@ interface ExtractEnvResult {
 }
 
 /**
+ * Parse a `KEY=VALUE` pair, rejecting option-like keys (starting with `-`).
+ *
+ * @returns Tuple of `[key, value]` or `null` if invalid
+ */
+function parseEnvPair(pair: string): readonly [string, string] | null {
+  const eqIdx = pair.indexOf('=');
+  if (eqIdx <= 0) {
+    return null;
+  }
+  const key = pair.slice(0, eqIdx);
+  if (key.startsWith('-')) {
+    return null;
+  }
+  return [key, pair.slice(eqIdx + 1)];
+}
+
+/**
  * Extract `--env KEY=VALUE` pairs from raw argv.
  *
  * Supports both `--env KEY=VALUE` and `--env=KEY=VALUE` forms.
  * Only `KEY=VALUE` format is accepted (no `--env KEY VALUE` to avoid
- * ambiguity with script args). Returns extracted env record and
- * remaining argv with `--env` entries removed.
+ * ambiguity with script args). Keys that look like options (starting
+ * with `-`) are rejected to prevent swallowing real CLI flags.
+ * Returns extracted env record and remaining argv with `--env`
+ * entries removed.
  *
  * @param argv - Raw argument strings
  * @returns Object with extracted env record and remaining argv
@@ -35,12 +54,9 @@ function extractEnvFlagsRec(
 
   // --env=KEY=VALUE form
   if (arg.startsWith('--env=')) {
-    const pair = arg.slice(6);
-    const eqIdx = pair.indexOf('=');
-    if (eqIdx !== -1) {
-      const key = pair.slice(0, eqIdx);
-      const value = pair.slice(eqIdx + 1);
-      return extractEnvFlagsRec(rest, { ...env, [key]: value }, kept);
+    const parsed = parseEnvPair(arg.slice(6));
+    if (parsed) {
+      return extractEnvFlagsRec(rest, { ...env, [parsed[0]]: parsed[1] }, kept);
     }
     return extractEnvFlagsRec(rest, env, kept);
   }
@@ -48,11 +64,11 @@ function extractEnvFlagsRec(
   // --env KEY=VALUE form
   if (arg === '--env') {
     const next = rest[0];
-    if (next !== undefined && next.includes('=')) {
-      const eqIdx = next.indexOf('=');
-      const key = next.slice(0, eqIdx);
-      const value = next.slice(eqIdx + 1);
-      return extractEnvFlagsRec(rest.slice(1), { ...env, [key]: value }, kept);
+    if (next !== undefined) {
+      const parsed = parseEnvPair(next);
+      if (parsed) {
+        return extractEnvFlagsRec(rest.slice(1), { ...env, [parsed[0]]: parsed[1] }, kept);
+      }
     }
     return extractEnvFlagsRec(rest, env, kept);
   }
@@ -193,7 +209,7 @@ export function sliceArgvAfter(name: string): readonly string[] {
 if (import.meta.vitest) {
   const { describe, it, expect } = import.meta.vitest;
 
-  describe('extractEnvFlags', () => {
+  describe('extractEnvFlags — parsing', () => {
     it('extracts --env KEY=VALUE pairs', () => {
       const result = extractEnvFlags(['--env', 'FOO=bar', '--env', 'BAZ=qux']);
       expect(result.env).toEqual({ FOO: 'bar', BAZ: 'qux' });
@@ -223,6 +239,13 @@ if (import.meta.vitest) {
       expect(result.env).toEqual({ URL: 'postgres://host:5432/db?opt=1' });
     });
 
+    it('later --env overrides earlier for same key', () => {
+      const result = extractEnvFlags(['--env', 'X=first', '--env', 'X=second']);
+      expect(result.env).toEqual({ X: 'second' });
+    });
+  });
+
+  describe('extractEnvFlags — edge cases', () => {
     it('skips --env without KEY=VALUE next', () => {
       const result = extractEnvFlags(['--env', '--verbose']);
       expect(result.env).toEqual({});
@@ -235,9 +258,16 @@ if (import.meta.vitest) {
       expect(result.remaining).toEqual([]);
     });
 
-    it('later --env overrides earlier for same key', () => {
-      const result = extractEnvFlags(['--env', 'X=first', '--env', 'X=second']);
-      expect(result.env).toEqual({ X: 'second' });
+    it('rejects option-like keys in --env KEY=VALUE form', () => {
+      const result = extractEnvFlags(['--env', '--count=5', '--verbose']);
+      expect(result.env).toEqual({});
+      expect(result.remaining).toEqual(['--count=5', '--verbose']);
+    });
+
+    it('rejects option-like keys in --env=KEY=VALUE form', () => {
+      const result = extractEnvFlags(['--env=--flag=val']);
+      expect(result.env).toEqual({});
+      expect(result.remaining).toEqual([]);
     });
   });
 }
