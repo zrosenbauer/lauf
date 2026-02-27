@@ -1,3 +1,4 @@
+// oxlint-disable max-lines
 import type { ChildProcess } from 'node:child_process';
 import { spawn } from 'node:child_process';
 import * as fs from 'node:fs';
@@ -90,6 +91,59 @@ function resolveHelpEnv(options: RunScriptOptions): Record<string, string> {
   return {};
 }
 
+/**
+ * Flags that register Node.js module loaders / require hooks.
+ * When present in `NODE_OPTIONS`, these cause external loaders (tsx, ts-node, etc.)
+ * to transform the already-bundled ESM scripts, breaking top-level await.
+ */
+const LOADER_FLAGS: readonly string[] = [
+  '--import',
+  '--loader',
+  '--experimental-loader',
+  '--require',
+];
+
+/**
+ * Strip loader-related flags from a `NODE_OPTIONS` string.
+ *
+ * Removes `--import`, `--loader`, `--experimental-loader`, and `--require`
+ * in both `--flag value` (space-separated) and `--flag=value` (equals) forms.
+ * All other options (memory limits, diagnostic flags, etc.) are preserved.
+ *
+ * @param nodeOptions - The raw `NODE_OPTIONS` env value (may be undefined)
+ * @returns Cleaned string with loader flags removed
+ */
+function sanitizeNodeOptions(nodeOptions: string | undefined): string {
+  if (!nodeOptions) {
+    return '';
+  }
+
+  const tokens = nodeOptions.split(/\s+/).filter(Boolean);
+
+  const { result } = tokens.reduce(
+    (acc: { readonly result: readonly string[]; readonly skipNext: boolean }, token: string) => {
+      if (acc.skipNext) {
+        return { result: acc.result, skipNext: false };
+      }
+
+      // --flag=value form: drop the entire token
+      if (LOADER_FLAGS.some((flag) => token.startsWith(`${flag}=`))) {
+        return { result: acc.result, skipNext: false };
+      }
+
+      // --flag value form: drop this token and skip the next one
+      if (LOADER_FLAGS.some((flag) => token === flag)) {
+        return { result: acc.result, skipNext: true };
+      }
+
+      return { result: [...acc.result, token], skipNext: false };
+    },
+    { result: [] as readonly string[], skipNext: false },
+  );
+
+  return result.join(' ');
+}
+
 if (import.meta.vitest) {
   const { describe, it, expect } = import.meta.vitest;
 
@@ -167,6 +221,61 @@ if (import.meta.vitest) {
       expect(result).toEqual({});
     });
   });
+
+  // oxlint-disable-next-line max-lines-per-function
+  describe('sanitizeNodeOptions', () => {
+    it('returns empty string for undefined input', () => {
+      // oxlint-disable-next-line no-useless-undefined
+      expect(sanitizeNodeOptions(undefined)).toBe('');
+    });
+
+    it('returns empty string for empty string input', () => {
+      expect(sanitizeNodeOptions('')).toBe('');
+    });
+
+    it('strips --import with space-separated value', () => {
+      expect(sanitizeNodeOptions('--import tsx/esm')).toBe('');
+    });
+
+    it('strips --import with equals form', () => {
+      expect(sanitizeNodeOptions('--import=tsx/esm')).toBe('');
+    });
+
+    it('strips --require with space-separated value', () => {
+      expect(sanitizeNodeOptions('--require tsx/cjs')).toBe('');
+    });
+
+    it('strips --require with equals form', () => {
+      expect(sanitizeNodeOptions('--require=tsx/cjs')).toBe('');
+    });
+
+    it('strips --loader with space-separated value', () => {
+      expect(sanitizeNodeOptions('--loader tsx/esm')).toBe('');
+    });
+
+    it('strips --experimental-loader with space-separated value', () => {
+      expect(sanitizeNodeOptions('--experimental-loader tsx/esm')).toBe('');
+    });
+
+    it('preserves non-loader flags', () => {
+      expect(sanitizeNodeOptions('--max-old-space-size=4096')).toBe('--max-old-space-size=4096');
+    });
+
+    it('handles mixed flags, preserving non-loader ones', () => {
+      const input = '--max-old-space-size=4096 --import tsx/esm --inspect';
+      expect(sanitizeNodeOptions(input)).toBe('--max-old-space-size=4096 --inspect');
+    });
+
+    it('strips multiple loader flags in one string', () => {
+      const input = '--import tsx/esm --require tsx/cjs --loader ts-node/esm';
+      expect(sanitizeNodeOptions(input)).toBe('');
+    });
+
+    it('strips multiple loader flags while preserving others', () => {
+      const input = '--inspect --import tsx/esm --max-old-space-size=4096 --require=tsx/cjs';
+      expect(sanitizeNodeOptions(input)).toBe('--inspect --max-old-space-size=4096');
+    });
+  });
 }
 
 /**
@@ -240,6 +349,7 @@ export async function runScript(
       stdio: 'inherit',
       env: {
         ...process.env,
+        NODE_OPTIONS: sanitizeNodeOptions(process.env.NODE_OPTIONS),
         NODE_PATH: buildNodePath(options.workspaceRoot, options.cliPackageRoot),
         LAUF_SCRIPT_PATH: bundle.outputPath,
         LAUF_ORIGINAL_PATH: script.path,

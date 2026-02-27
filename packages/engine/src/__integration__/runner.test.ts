@@ -103,4 +103,13 @@ describe('runner integration', () => {
 
     expect(result.exitCode).toBe(0);
   }, 30_000);
+
+  it('script with top-level await runs successfully', async () => {
+    const markerPath = path.join(tmpDir, 'marker.json');
+    const result = await runScript(makeScript('top-level-await'), { markerPath }, defaultOptions);
+
+    expect(result.exitCode).toBe(0);
+    const marker = JSON.parse(fs.readFileSync(markerPath, 'utf-8'));
+    expect(marker).toEqual({ ran: true, delay: 42 });
+  }, 30_000);
 });
