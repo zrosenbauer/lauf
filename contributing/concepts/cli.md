@@ -8,13 +8,13 @@ lauf uses [Clerc](https://github.com/mrozio13pl/clerc) for command routing and [
 
 ## Commands
 
-| Command         | Description                                     | Parameters                                | Flags                                       |
-| --------------- | ----------------------------------------------- | ----------------------------------------- | ------------------------------------------- |
-| `init`          | Write `lauf.config.ts` in the current directory | --                                        | --                                          |
-| `list`          | Discover and display all scripts as a tree      | --                                        | `--all` / `-a` (include nested configs)     |
-| `info [script]` | Show details and help for a script              | `[script]` (optional, prompts if omitted) | --                                          |
-| `run [script]`  | Execute a script in a child process             | `[script]` (optional, prompts if omitted) | --                                          |
-| `create [name]` | Scaffold a new script file from a template      | `[name]` (optional, prompts if omitted)   | `--dir` (target directory relative to root) |
+| Command         | Description                                     | Parameters                                | Flags                                                                                     |
+| --------------- | ----------------------------------------------- | ----------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `init`          | Write `lauf.config.ts` in the current directory | --                                        | --                                                                                        |
+| `list`          | Discover and display all scripts as a tree      | --                                        | `--all` / `-a` (include nested configs), `--filter` / `-f` (filter packages by name glob) |
+| `info [script]` | Show details and help for a script              | `[script]` (optional, prompts if omitted) | --                                                                                        |
+| `run [script]`  | Execute a script in a child process             | `[script]` (optional, prompts if omitted) | --                                                                                        |
+| `create [name]` | Scaffold a new script file from a template      | `[name]` (optional, prompts if omitted)   | `--dir` (target directory relative to root)                                               |
 
 Commands with optional parameters prompt the user interactively when the parameter is omitted.
 

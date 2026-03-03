@@ -22,7 +22,7 @@ vi.mock('./workspace.ts', () => ({
   getWorkspaceRoot: vi.fn(() => '/workspace'),
 }));
 
-import { LAUF_ROOT, resolveWorkspacePackages } from './paths.ts';
+import { LAUF_ROOT, resolveCurrentPackage, resolveWorkspacePackages } from './paths.ts';
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -122,5 +122,50 @@ describe('resolveWorkspacePackages', () => {
         absolute: true,
       }),
     );
+  });
+});
+
+describe('resolveCurrentPackage', () => {
+  it('returns matching package when cwd is inside a workspace package', () => {
+    vi.mocked(fg.sync).mockReturnValue(['/workspace/packages/my-pkg']);
+    vi.mocked(fs.readFileSync).mockReturnValue('{"name": "my-pkg"}');
+
+    const result = resolveCurrentPackage('/workspace/packages/my-pkg/src');
+    expect(result).toEqual({ name: 'my-pkg', dir: '/workspace/packages/my-pkg' });
+  });
+
+  it('returns <root> when cwd is at workspace root', () => {
+    vi.mocked(fg.sync).mockReturnValue(['/workspace/packages/my-pkg']);
+    vi.mocked(fs.readFileSync).mockReturnValue('{"name": "root-pkg"}');
+
+    const result = resolveCurrentPackage('/workspace');
+    expect(result).toEqual({ name: '<root>', dir: '/workspace' });
+  });
+
+  it('returns deepest package for nested matches', () => {
+    vi.mocked(fg.sync).mockReturnValue(['/workspace/packages', '/workspace/packages/nested']);
+    vi.mocked(fs.readFileSync).mockImplementation((filePath) => {
+      const pathStr = String(filePath);
+      if (pathStr.includes('nested')) {
+        return '{"name": "nested-pkg"}';
+      }
+      if (pathStr.includes('packages')) {
+        return '{"name": "parent-pkg"}';
+      }
+      return '{"name": "root"}';
+    });
+
+    const result = resolveCurrentPackage('/workspace/packages/nested/src');
+    expect(result).toEqual({ name: 'nested-pkg', dir: '/workspace/packages/nested' });
+  });
+
+  it('returns undefined when outside workspace', () => {
+    vi.mocked(fg.sync).mockReturnValue(['/workspace/packages/my-pkg']);
+    vi.mocked(fs.readFileSync).mockImplementation(() => {
+      throw new Error('ENOENT');
+    });
+
+    const result = resolveCurrentPackage('/outside/workspace');
+    expect(result).toBeUndefined();
   });
 });

@@ -25,6 +25,7 @@ vi.mock('../lib/discovery.ts', () => ({
 vi.mock('../lib/paths.ts', () => ({
   getWorkspaceRoot: vi.fn(() => '/workspace'),
   LAUF_ROOT: '/lauf-root',
+  resolveCurrentPackage: vi.fn(() => ({ name: 'my-pkg', dir: '/workspace/packages/my-pkg' })),
 }));
 
 vi.mock('@laufen/engine', () => ({
@@ -35,11 +36,16 @@ import { loadDescriptions } from '@laufen/engine';
 
 import { loadAllLaufConfigs, safeLoadLaufConfigWithMeta } from '../lib/config.ts';
 import { discoverScripts } from '../lib/discovery.ts';
+import { resolveCurrentPackage } from '../lib/paths.ts';
 import listHandler from './list.ts';
 
 beforeEach(() => {
   vi.clearAllMocks();
   vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+  vi.mocked(resolveCurrentPackage).mockReturnValue({
+    name: 'my-pkg',
+    dir: '/workspace/packages/my-pkg',
+  });
 });
 
 afterEach(() => {
@@ -114,7 +120,7 @@ describe('list handler', () => {
     expect(process.exit).toHaveBeenCalledWith(1);
   });
 
-  it('calls discoverScripts with config patterns', async () => {
+  it('calls discoverScripts with config patterns and packageDir', async () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([
       null,
       {
@@ -133,7 +139,9 @@ describe('list handler', () => {
 
     await listHandler({ flags: {} });
 
-    expect(discoverScripts).toHaveBeenCalledWith(['src/**/*.lauf.ts']);
+    expect(discoverScripts).toHaveBeenCalledWith(['src/**/*.lauf.ts'], {
+      packageDir: '/workspace/packages/my-pkg',
+    });
   });
 
   it('calls loadDescriptions with scripts and options', async () => {
@@ -393,7 +401,7 @@ describe('list handler --all flag', () => {
     expect(process.exit).not.toHaveBeenCalled();
   });
 
-  it('uses scoped path when --all is not set', async () => {
+  it('uses current package when --all is not set', async () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([
       null,
       {
@@ -414,8 +422,150 @@ describe('list handler --all flag', () => {
 
     expect(safeLoadLaufConfigWithMeta).toHaveBeenCalledWith(process.cwd());
     expect(loadAllLaufConfigs).not.toHaveBeenCalled();
-    // discoverScripts should be called without scopeDir option
-    expect(discoverScripts).toHaveBeenCalledWith(['scripts/*.lauf.ts']);
+    expect(resolveCurrentPackage).toHaveBeenCalledWith(process.cwd());
+    // discoverScripts should be called with packageDir from resolveCurrentPackage
+    expect(discoverScripts).toHaveBeenCalledWith(['scripts/*.lauf.ts'], {
+      packageDir: '/workspace/packages/my-pkg',
+    });
+  });
+});
+
+describe('list handler --filter flag', () => {
+  it('calls discoverScripts with filterGlobs when --filter is set', async () => {
+    vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([
+      null,
+      {
+        config: {
+          scripts: ['scripts/*.lauf.ts'],
+          logger: undefined,
+          spinner: true,
+          sandbox: true,
+          env: {},
+        },
+        configFile: 'lauf.config.ts',
+        configDir: '/workspace',
+      },
+    ]);
+    vi.mocked(discoverScripts).mockReturnValue([
+      {
+        name: '@apps/api/build',
+        path: '/workspace/packages/api/scripts/build.ts',
+        packageDir: '/workspace/packages/api',
+        packageName: '@apps/api',
+      },
+    ]);
+
+    await listHandler({ flags: { filter: '@apps/*' } });
+
+    expect(safeLoadLaufConfigWithMeta).toHaveBeenCalledWith(process.cwd());
+    expect(discoverScripts).toHaveBeenCalledWith(['scripts/*.lauf.ts'], {
+      filterGlobs: ['@apps/*'],
+    });
+    expect(p.note).toHaveBeenCalledWith(expect.any(String), expect.stringContaining('1 script(s)'));
+    expect(process.exit).not.toHaveBeenCalled();
+  });
+
+  it('does not call loadAllLaufConfigs or resolveCurrentPackage when --filter is set', async () => {
+    vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([
+      null,
+      {
+        config: {
+          scripts: ['scripts/*.lauf.ts'],
+          logger: undefined,
+          spinner: true,
+          sandbox: true,
+          env: {},
+        },
+        configFile: 'lauf.config.ts',
+        configDir: '/workspace',
+      },
+    ]);
+    vi.mocked(discoverScripts).mockReturnValue([]);
+
+    await listHandler({ flags: { filter: '@apps/*' } });
+
+    expect(loadAllLaufConfigs).not.toHaveBeenCalled();
+    expect(resolveCurrentPackage).not.toHaveBeenCalled();
+  });
+
+  it('--filter takes priority over --all', async () => {
+    vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([
+      null,
+      {
+        config: {
+          scripts: ['scripts/*.lauf.ts'],
+          logger: undefined,
+          spinner: true,
+          sandbox: true,
+          env: {},
+        },
+        configFile: 'lauf.config.ts',
+        configDir: '/workspace',
+      },
+    ]);
+    vi.mocked(discoverScripts).mockReturnValue([]);
+
+    await listHandler({ flags: { filter: '@apps/*', all: true } });
+
+    expect(discoverScripts).toHaveBeenCalledWith(['scripts/*.lauf.ts'], {
+      filterGlobs: ['@apps/*'],
+    });
+    expect(loadAllLaufConfigs).not.toHaveBeenCalled();
+  });
+
+  it('fails when config cannot be loaded with --filter', async () => {
+    vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([new Error('config error'), null]);
+
+    await listHandler({ flags: { filter: '@apps/*' } });
+
+    expect(process.exit).toHaveBeenCalledWith(1);
+  });
+});
+
+describe('list handler default mode (current package)', () => {
+  it('fails with hint when resolveCurrentPackage returns undefined', async () => {
+    vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([
+      null,
+      {
+        config: {
+          scripts: ['scripts/*.lauf.ts'],
+          logger: undefined,
+          spinner: true,
+          sandbox: true,
+          env: {},
+        },
+        configFile: 'lauf.config.ts',
+        configDir: '/workspace',
+      },
+    ]);
+    vi.mocked(resolveCurrentPackage).mockReturnValue(undefined);
+
+    await listHandler({ flags: {} });
+
+    expect(process.exit).toHaveBeenCalledWith(1);
+    expect(p.log.error).toHaveBeenCalledWith('Could not determine the current package.');
+  });
+
+  it('calls resolveCurrentPackage with process.cwd()', async () => {
+    vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([
+      null,
+      {
+        config: {
+          scripts: ['scripts/*.lauf.ts'],
+          logger: undefined,
+          spinner: true,
+          sandbox: true,
+          env: {},
+        },
+        configFile: 'lauf.config.ts',
+        configDir: '/workspace',
+      },
+    ]);
+    vi.mocked(discoverScripts).mockReturnValue([]);
+
+    await listHandler({ flags: {} });
+
+    expect(resolveCurrentPackage).toHaveBeenCalledWith(process.cwd());
   });
 });
 

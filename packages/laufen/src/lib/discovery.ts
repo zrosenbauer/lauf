@@ -1,7 +1,9 @@
 import * as path from 'node:path';
 
 import fg from 'fast-glob';
+import picomatch from 'picomatch';
 
+import type { PackageInfo } from './paths.ts';
 import { resolveWorkspacePackages } from './paths.ts';
 import type { DiscoveredScript } from './types.ts';
 import { getWorkspaceRoot } from './workspace.ts';
@@ -83,6 +85,16 @@ interface DiscoverOptions {
    * discovery to its own subtree.
    */
   readonly scopeDir?: string;
+  /**
+   * When provided, only discover scripts in packages whose names match
+   * one of the given glob patterns (e.g. `["@apps/*"]`).
+   */
+  readonly filterGlobs?: readonly string[];
+  /**
+   * When provided, only discover scripts in the package whose directory
+   * exactly matches this path.
+   */
+  readonly packageDir?: string;
 }
 
 /**
@@ -116,7 +128,7 @@ export function discoverScripts(
 
   const packages = resolveWorkspacePackages();
   const workspaceRoot = getWorkspaceRoot();
-  const scopedPackages = filterPackagesByScope(packages, options);
+  const scopedPackages = applyPackageFilters(packages, options);
 
   const scripts = scopedPackages
     .flatMap((pkg) => {
@@ -142,18 +154,59 @@ export function discoverScripts(
 }
 
 /**
- * Filter packages to those whose directories are within the scope directory.
+ * Apply all package filters in priority order: packageDir > filterGlobs > scopeDir > none.
  *
- * When no scopeDir is provided, returns all packages unchanged.
+ * Only the highest-priority filter present in options is applied.
  */
-function filterPackagesByScope(
-  packages: readonly { readonly name: string; readonly dir: string }[],
+function applyPackageFilters(
+  packages: readonly PackageInfo[],
   options: DiscoverOptions | undefined,
-): readonly { readonly name: string; readonly dir: string }[] {
-  if (!options || !options.scopeDir) {
+): readonly PackageInfo[] {
+  if (!options) {
     return packages;
   }
-  const scope = path.resolve(options.scopeDir);
+  if (options.packageDir) {
+    return filterPackagesByDir(packages, options.packageDir);
+  }
+  if (options.filterGlobs && options.filterGlobs.length > 0) {
+    return filterPackagesByNameGlob(packages, options.filterGlobs);
+  }
+  if (options.scopeDir) {
+    return filterPackagesByScope(packages, options.scopeDir);
+  }
+  return packages;
+}
+
+/**
+ * Filter packages to the one whose directory exactly matches the given path.
+ */
+function filterPackagesByDir(
+  packages: readonly PackageInfo[],
+  dir: string,
+): readonly PackageInfo[] {
+  const resolved = path.resolve(dir);
+  return packages.filter((pkg) => path.resolve(pkg.dir) === resolved);
+}
+
+/**
+ * Filter packages whose names match at least one of the given glob patterns.
+ */
+function filterPackagesByNameGlob(
+  packages: readonly PackageInfo[],
+  globs: readonly string[],
+): readonly PackageInfo[] {
+  const isMatch = picomatch([...globs]);
+  return packages.filter((pkg) => isMatch(pkg.name));
+}
+
+/**
+ * Filter packages to those whose directories are within the scope directory.
+ */
+function filterPackagesByScope(
+  packages: readonly PackageInfo[],
+  scopeDir: string,
+): readonly PackageInfo[] {
+  const scope = path.resolve(scopeDir);
   return packages.filter((pkg) => {
     const resolved = path.resolve(pkg.dir);
     return resolved === scope || resolved.startsWith(`${scope}${path.sep}`);

@@ -15,7 +15,7 @@ export { getWorkspaceRoot };
  */
 export const LAUF_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 
-interface PackageInfo {
+export interface PackageInfo {
   readonly name: string;
   readonly dir: string;
 }
@@ -52,6 +52,44 @@ export function resolveWorkspacePackages(): readonly PackageInfo[] {
     return [{ ...rootPkg, name: '<root>' }, ...packages];
   }
   return packages;
+}
+
+/**
+ * Read the package name from a directory's `package.json`.
+ *
+ * @param dir - Absolute path to the directory
+ * @returns Package info if valid, or `undefined` if missing or malformed
+ * @private
+ */
+/**
+ * Determine which workspace package contains the given directory.
+ *
+ * Returns the deepest (most specific) matching package, or `undefined`
+ * if the directory is not inside any known workspace package.
+ *
+ * @param cwd - The directory to resolve (defaults to `process.cwd()`)
+ * @returns The matching package info, or `undefined`
+ */
+export function resolveCurrentPackage(cwd: string = process.cwd()): PackageInfo | undefined {
+  const packages = resolveWorkspacePackages();
+  const resolved = path.resolve(cwd);
+
+  const matching = packages.filter((pkg) => {
+    const pkgDir = path.resolve(pkg.dir);
+    return resolved === pkgDir || resolved.startsWith(`${pkgDir}${path.sep}`);
+  });
+
+  if (matching.length === 0) {
+    return undefined;
+  }
+
+  // Deepest match (longest dir path = most specific package)
+  return matching.reduce((deepest, pkg) => {
+    if (pkg.dir.length > deepest.dir.length) {
+      return pkg;
+    }
+    return deepest;
+  });
 }
 
 /**

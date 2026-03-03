@@ -51,6 +51,11 @@ Clerc.create()
         description: 'Discover scripts from all nested configs',
         alias: 'a',
       },
+      filter: {
+        type: String,
+        description: 'Filter packages by name glob (e.g. "@apps/*")',
+        alias: 'f',
+      },
     },
   })
   .on('list', handleList)
