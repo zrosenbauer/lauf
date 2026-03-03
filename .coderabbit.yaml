@@ -135,7 +135,7 @@ reviews:
 
     # ── config & CI ───────────────────────────────────────────────────────
 
-    - path: '*.config.ts'
+    - path: '**/*.config.ts'
       instructions: >-
         Config files (tsdown, vite, vitest, etc.) are exempt from
         no-expression-statements and immutable-data lint rules.
