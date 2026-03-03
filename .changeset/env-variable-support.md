@@ -3,16 +3,22 @@
 '@laufen/engine': major
 ---
 
-Add environment variable support with envFile, env, and envMode
+## Consolidate env API
 
-**BREAKING CHANGE**: Scripts now run in isolated environment mode by default (`envMode: 'isolate'`), receiving only minimal env vars (PATH, HOME, TERM, SHELL, USER, LANG, TMPDIR). Previously, scripts inherited the full parent `process.env`. To restore the old behavior, set `envMode: 'inherit'` in your `lauf.config.ts`.
+Consolidate the environment variable API into a single `env` field and `sandbox` boolean.
+
+**BREAKING CHANGES**:
+
+- `envFile` config option removed — use the `dotenv()` helper inside an `env` function instead
+- `envMode` config option removed — replaced by `sandbox: boolean` (default: `true`)
+- `ScriptConfig.env` now accepts a function `(ctx: EnvContext) => Record<string, string>` in addition to a static record
 
 New features:
 
-- `envFile` config option to load `.env` files
-- `env` config option (and script-level `env`) for explicit env vars
-- `envMode` config option (`'isolate'` or `'inherit'`) to control base environment
-- `--env KEY=VALUE` CLI flag to pass env vars per-run
-- `ctx.env` in script context for typed access to resolved env vars
+- `sandbox` config option (`true` = isolated, `false` = full `process.env`)
+- `env` accepts an async function with `EnvContext` for dynamic env resolution
+- `dotenv()` standalone helper exported from `laufen` for loading `.env` files
+- `EnvContext` type exported from both `@laufen/engine` and `laufen`
+- `resolveEnvValue()` helper exported from `@laufen/engine`
 
-Merge priority (right wins): base < envFile < config.env < script.env < CLI --env
+Merge priority (right wins): base (sandbox) < config `env` < script `env` < CLI `--env`

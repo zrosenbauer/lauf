@@ -28,24 +28,14 @@ vi.mock('../lib/paths.ts', () => ({
 
 vi.mock('@laufen/engine', () => ({
   runScript: vi.fn(),
+  resolveEnvValue: vi.fn(() => Promise.resolve([null, {}])),
 }));
 
 vi.mock('../utils/prompt.ts', () => ({
   promptForScript: vi.fn(),
 }));
 
-vi.mock('../lib/env.ts', () => ({
-  loadEnvFiles: vi.fn(() => ({})),
-  mergeEnvSources: vi.fn(
-    (a: Record<string, string>, b: Record<string, string>, c: Record<string, string>) => ({
-      ...a,
-      ...b,
-      ...c,
-    }),
-  ),
-}));
-
-import { runScript } from '@laufen/engine';
+import { resolveEnvValue, runScript } from '@laufen/engine';
 
 import { safeLoadLaufConfigWithMeta } from '../lib/config.ts';
 import { findScript } from '../lib/discovery.ts';
@@ -65,9 +55,8 @@ const mockLoadedConfig = {
     scripts: ['scripts/*.lauf.ts'],
     logger: undefined,
     spinner: true,
-    envFile: [],
+    sandbox: true,
     env: {},
-    envMode: 'isolate' as const,
   },
   configFile: '/workspace/lauf.config.ts',
   configDir: '/workspace',
@@ -79,7 +68,7 @@ const expectedRunOptions = {
   spinner: true,
   env: {},
   cliEnv: {},
-  envMode: 'isolate',
+  sandbox: true,
 };
 
 beforeEach(() => {
@@ -91,6 +80,8 @@ beforeEach(() => {
     writable: true,
     configurable: true,
   });
+  // Default: resolveEnvValue succeeds with empty object
+  vi.mocked(resolveEnvValue).mockResolvedValue([null, {}]);
 });
 
 afterEach(() => {
@@ -182,7 +173,7 @@ describe('run handler', () => {
         spinner: true,
         env: {},
         cliEnv: {},
-        envMode: 'isolate',
+        sandbox: true,
       },
     );
   });
@@ -210,7 +201,7 @@ describe('run handler', () => {
         spinner: true,
         env: {},
         cliEnv: {},
-        envMode: 'isolate',
+        sandbox: true,
       },
     );
   });
@@ -537,5 +528,21 @@ describe('run handler', () => {
     );
     const passedArgs = vi.mocked(runScript).mock.calls[0][1] as Record<string, unknown>;
     expect(Object.keys(passedArgs).length).toBe(0);
+  });
+
+  it('fails when resolveEnvValue returns error', async () => {
+    vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([null, mockLoadedConfig]);
+    vi.mocked(findScript).mockReturnValue(mockScript);
+    vi.mocked(resolveEnvValue).mockResolvedValue([new Error('env fn failed'), null]);
+
+    Object.defineProperty(process, 'argv', {
+      value: ['node', 'lauf', 'run', 'my-pkg/build'],
+      writable: true,
+      configurable: true,
+    });
+
+    await runHandler({ parameters: { script: 'my-pkg/build' } });
+
+    expect(process.exit).toHaveBeenCalledWith(1);
   });
 });

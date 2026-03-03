@@ -2,6 +2,7 @@ export { z } from 'zod';
 export type {
   ArgDefs,
   DefaultLogger,
+  EnvContext,
   InferArgs,
   Logger,
   PromptCancelled,
@@ -13,6 +14,7 @@ export type {
   Spinner,
 } from '@laufen/engine';
 export type { LaufConfig } from './lib/config.ts';
+export { dotenv } from './lib/env.ts';
 
 import type { ArgDefs, ScriptConfig } from '@laufen/engine';
 

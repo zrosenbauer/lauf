@@ -157,7 +157,7 @@ export async function loadDescriptions(
   const [error, result] = await attemptAsync(() =>
     execFileAsync('node', [extractorPath], {
       env: {
-        ...buildBaseEnv('isolate'),
+        ...buildBaseEnv(true),
         NODE_PATH: nodePaths.join(path.delimiter),
         LAUF_SCRIPT_PATHS: JSON.stringify(bundledPaths),
         LAUF_WORKSPACE_ROOT: options.workspaceRoot,

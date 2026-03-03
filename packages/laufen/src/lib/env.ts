@@ -5,23 +5,13 @@ import { parse } from 'dotenv';
 import { attempt } from 'es-toolkit';
 
 /**
- * Load environment variables from one or more `.env` files.
- *
- * Files are parsed using `dotenv.parse()`. Missing files are silently skipped.
- * When multiple files are provided, later files override earlier ones (right-wins).
- *
- * @param envFile - Path or array of paths to `.env` files
- * @param baseDir - Base directory for resolving relative paths
- * @returns Merged environment variables from all parsed files
+ * Normalize a file path input to an array.
  */
-/**
- * Normalize envFile to an array.
- */
-function normalizeEnvFiles(envFile: string | readonly string[]): readonly string[] {
-  if (typeof envFile === 'string') {
-    return [envFile];
+function normalizeFiles(files: string | readonly string[]): readonly string[] {
+  if (typeof files === 'string') {
+    return [files];
   }
-  return envFile;
+  return files;
 }
 
 /**
@@ -51,67 +41,41 @@ function readEnvFileEntries(filePath: string): readonly (readonly [string, strin
   return Object.entries(parse(content));
 }
 
-export function loadEnvFiles(
-  envFile: string | readonly string[],
-  baseDir: string,
-): Record<string, string> {
-  const files = normalizeEnvFiles(envFile);
-  const allEntries = files.flatMap((file: string) =>
-    readEnvFileEntries(path.resolve(baseDir, file)),
+/**
+ * Load environment variables from one or more `.env` files.
+ *
+ * Files are parsed using `dotenv.parse()`. Missing files are silently skipped.
+ * When multiple files are provided, later files override earlier ones (right-wins).
+ * Paths are resolved relative to `process.cwd()`.
+ *
+ * @param files - Path or array of paths to `.env` files
+ * @returns Merged environment variables from all parsed files
+ */
+export function dotenv(files: string | readonly string[]): Record<string, string> {
+  const normalized = normalizeFiles(files);
+  const cwd = process.cwd();
+  const allEntries = normalized.flatMap((file: string) =>
+    readEnvFileEntries(path.resolve(cwd, file)),
   );
   return Object.fromEntries(allEntries);
-}
-
-/**
- * Merge environment variable sources with right-wins priority.
- *
- * Merge order: envFile vars < config-level env < CLI --env flags.
- *
- * @param envFileVars - Variables loaded from .env files
- * @param configEnv - Variables from lauf.config.ts `env` property
- * @param cliEnv - Variables from CLI `--env KEY=VALUE` flags
- * @returns Merged environment record
- */
-export function mergeEnvSources(
-  envFileVars: Record<string, string>,
-  configEnv: Record<string, string>,
-  cliEnv: Record<string, string>,
-): Record<string, string> {
-  return { ...envFileVars, ...configEnv, ...cliEnv };
 }
 
 if (import.meta.vitest) {
   const { describe, it, expect } = import.meta.vitest;
 
-  describe('loadEnvFiles', () => {
+  describe('dotenv', () => {
     it('returns empty record for non-existent file', () => {
-      const result = loadEnvFiles('.env.nonexistent', '/tmp');
+      const result = dotenv('.env.nonexistent');
       expect(result).toEqual({});
     });
 
     it('returns empty record for empty array', () => {
-      const result = loadEnvFiles([], '/tmp');
+      const result = dotenv([]);
       expect(result).toEqual({});
     });
-  });
 
-  describe('mergeEnvSources', () => {
-    it('merges with right-wins priority', () => {
-      const result = mergeEnvSources(
-        { A: 'from-file', B: 'from-file' },
-        { B: 'from-config', C: 'from-config' },
-        { C: 'from-cli', D: 'from-cli' },
-      );
-      expect(result).toEqual({
-        A: 'from-file',
-        B: 'from-config',
-        C: 'from-cli',
-        D: 'from-cli',
-      });
-    });
-
-    it('returns empty record when all sources are empty', () => {
-      const result = mergeEnvSources({}, {}, {});
+    it('accepts a single string path', () => {
+      const result = dotenv('.env.does-not-exist');
       expect(result).toEqual({});
     });
   });

@@ -250,8 +250,8 @@ describe('runScript', () => {
     });
   });
 
-  describe('env and envMode', () => {
-    it('uses isolate mode by default (does not spread full process.env)', async () => {
+  describe('env and sandbox', () => {
+    it('uses sandbox mode by default (does not spread full process.env)', async () => {
       const mockChild = createMockChild();
       mockSpawn.mockReturnValue(mockChild);
 
@@ -277,7 +277,7 @@ describe('runScript', () => {
       }
     });
 
-    it('spreads full process.env in inherit mode', async () => {
+    it('spreads full process.env when sandbox is false', async () => {
       const mockChild = createMockChild();
       mockSpawn.mockReturnValue(mockChild);
 
@@ -285,7 +285,7 @@ describe('runScript', () => {
       // oxlint-disable-next-line immutable-data
       process.env.MY_INHERIT_VAR = 'should-be-inherited';
 
-      const resultPromise = runScript(testScript, {}, { ...testOptions, envMode: 'inherit' });
+      const resultPromise = runScript(testScript, {}, { ...testOptions, sandbox: false });
       await flushMicrotasks();
       mockChild.emit('close', 0);
       await resultPromise;

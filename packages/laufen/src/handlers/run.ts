@@ -1,15 +1,15 @@
 // oxlint-disable import/max-dependencies
 import * as p from '@clack/prompts';
-import type { RunResult, ScriptTarget } from '@laufen/engine';
-import { runScript } from '@laufen/engine';
+import type { EnvContext, RunResult, ScriptConfig, ScriptTarget } from '@laufen/engine';
+import { resolveEnvValue, runScript } from '@laufen/engine';
 import pc from 'picocolors';
 import { z } from 'zod';
 
+import type { ResolvedLaufConfig } from '../lib/config.ts';
 import { safeLoadLaufConfigWithMeta } from '../lib/config.ts';
-import { loadEnvFiles } from '../lib/env.ts';
 import { defineHandler } from '../lib/handler.ts';
 import { LAUF_ROOT, getWorkspaceRoot } from '../lib/paths.ts';
-import type { HandlerResult } from '../lib/result.ts';
+import type { HandlerResult, Result } from '../lib/result.ts';
 import { fail, ok } from '../lib/result.ts';
 import { extractEnvFlags, parseRawArgs, sliceArgvAfter } from '../utils/argv.ts';
 import { safeParseError } from '../utils/cli.ts';
@@ -18,23 +18,6 @@ import { resolveScript } from '../utils/resolve-script.ts';
 const runParams = z.object({
   parameters: z.object({ script: z.string().min(1).optional() }),
 });
-
-/**
- * Build the config-level env record from env files and config-level env.
- *
- * CLI --env flags are kept as a separate layer so they can be merged
- * after script-level env in the executor (preserving CLI-last precedence).
- */
-function buildConfigEnv(loaded: {
-  readonly config: {
-    readonly envFile: string | readonly string[];
-    readonly env: Record<string, string>;
-  };
-  readonly configDir: string;
-}): Record<string, string> {
-  const envFileVars = loadEnvFiles(loaded.config.envFile, loaded.configDir);
-  return { ...envFileVars, ...loaded.config.env };
-}
 
 export default defineHandler({
   parameters: runParams,
@@ -53,7 +36,11 @@ export default defineHandler({
     const { env: cliEnv, remaining: cleanArgv } = extractEnvFlags(rawArgv);
     const isHelp = cleanArgv.includes('--help') || cleanArgv.includes('-h');
     const workspaceRoot = getWorkspaceRoot();
-    const configEnv = buildConfigEnv(loaded);
+
+    const [envError, configEnv] = await resolveConfigEnv(loaded.config.env, script, workspaceRoot);
+    if (envError) {
+      return fail({ message: `Failed to resolve config env: ${safeParseError(envError)}` });
+    }
 
     if (isHelp) {
       return runHelpMode(
@@ -62,29 +49,18 @@ export default defineHandler({
         loaded.config.spinner,
         configEnv,
         cliEnv,
-        loaded.config.envMode,
+        loaded.config.sandbox,
       );
     }
 
-    const args = parseRawArgs(cleanArgv);
-    const result = await executeScript(
+    return runNormalMode(
       script,
-      args,
+      parseRawArgs(cleanArgv),
       workspaceRoot,
-      loaded.config.spinner,
+      loaded.config,
       configEnv,
       cliEnv,
-      loaded.config.envMode,
     );
-
-    if (result.exitCode === 0) {
-      return ok();
-    }
-
-    return fail({
-      message: `${pc.cyan(script.name)} exited with code ${result.exitCode}`,
-      exitCode: result.exitCode,
-    });
   },
 });
 
@@ -100,6 +76,21 @@ function resolveRawArgv(scriptName: string | undefined): readonly string[] {
 }
 
 /**
+ * Build an EnvContext and resolve config-level env (may be a function).
+ */
+function resolveConfigEnv(
+  envValue: ScriptConfig['env'],
+  script: ScriptTarget,
+  workspaceRoot: string,
+): Promise<Result<Record<string, string>>> {
+  const envCtx: EnvContext = {
+    script: { name: script.name, path: script.path, packageDir: script.packageDir },
+    workspace: workspaceRoot,
+  };
+  return resolveEnvValue(envValue, envCtx);
+}
+
+/**
  * Run the script in help mode, displaying its argument schema.
  */
 /* v8 ignore start -- help via runScript delegates to executor which handles its own errors */
@@ -109,20 +100,12 @@ async function runHelpMode(
   spinner: boolean,
   env: Record<string, string>,
   cliEnv: Record<string, string>,
-  envMode: 'isolate' | 'inherit',
+  sandbox: boolean,
 ): Promise<HandlerResult> {
   const helpResult = await runScript(
     script,
     {},
-    {
-      help: true,
-      workspaceRoot,
-      cliPackageRoot: LAUF_ROOT,
-      spinner,
-      env,
-      cliEnv,
-      envMode,
-    },
+    { help: true, workspaceRoot, cliPackageRoot: LAUF_ROOT, spinner, env, cliEnv, sandbox },
   );
   if (helpResult.exitCode === 0) {
     return ok();
@@ -132,13 +115,38 @@ async function runHelpMode(
 /* v8 ignore stop */
 
 /**
+ * Run a script in normal (non-help) mode, logging start and result.
+ */
+async function runNormalMode(
+  script: ScriptTarget,
+  args: Record<string, unknown>,
+  workspaceRoot: string,
+  config: ResolvedLaufConfig,
+  configEnv: Record<string, string>,
+  cliEnv: Record<string, string>,
+): Promise<HandlerResult> {
+  const result = await executeScript(
+    script,
+    args,
+    workspaceRoot,
+    config.spinner,
+    configEnv,
+    cliEnv,
+    config.sandbox,
+  );
+
+  if (result.exitCode === 0) {
+    return ok();
+  }
+
+  return fail({
+    message: `${pc.cyan(script.name)} exited with code ${result.exitCode}`,
+    exitCode: result.exitCode,
+  });
+}
+
+/**
  * Run a script, logging start and result messages.
- *
- * The handler no longer wraps execution in a spinner because
- * the child process may prompt for missing arguments, and the
- * spinner animation conflicts with interactive prompts.
- * Scripts can use `ctx.spinner` for progress indication during
- * their own execution after all prompts are resolved.
  */
 async function executeScript(
   script: ScriptTarget,
@@ -147,7 +155,7 @@ async function executeScript(
   spinner: boolean,
   env: Record<string, string>,
   cliEnv: Record<string, string>,
-  envMode: 'isolate' | 'inherit',
+  sandbox: boolean,
 ): Promise<RunResult> {
   const label = pc.cyan(script.name);
 
@@ -158,7 +166,7 @@ async function executeScript(
     spinner,
     env,
     cliEnv,
-    envMode,
+    sandbox,
   });
   if (result.exitCode === 0) {
     p.log.success(`${label} completed successfully`);

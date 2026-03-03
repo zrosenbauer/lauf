@@ -24,7 +24,7 @@ export interface RunScriptOptions {
   readonly logger?: Logger;
   readonly env?: Record<string, string>;
   readonly cliEnv?: Record<string, string>;
-  readonly envMode?: 'isolate' | 'inherit';
+  readonly sandbox?: boolean;
 }
 
 /**
@@ -345,7 +345,7 @@ export async function runScript(
   const spinnerEnabled = resolveSpinner(options);
   const helpEnv = resolveHelpEnv(options);
   const spinnerValue = resolveSpinnerEnv(spinnerEnabled);
-  const baseEnv = buildBaseEnv(options.envMode ?? 'isolate');
+  const baseEnv = buildBaseEnv(options.sandbox ?? true);
   const userEnv = options.env ?? {};
   const cliEnv = options.cliEnv ?? {};
 

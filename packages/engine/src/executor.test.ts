@@ -133,8 +133,13 @@ vi.mock('./context/index.ts', () => ({
   createContext: mockCreateContext,
 }));
 
+const { mockResolveEnvValue } = vi.hoisted(() => ({
+  mockResolveEnvValue: vi.fn(),
+}));
+
 vi.mock('./env.ts', () => ({
   applyEnvToProcess: mockApplyEnvToProcess,
+  resolveEnvValue: mockResolveEnvValue,
 }));
 
 vi.mock('./context/prompts.ts', () => ({
@@ -182,6 +187,8 @@ beforeEach(() => {
   mockSafeParseJSON.mockReturnValue([null, {}]);
   // Default: promptForMissingArgs succeeds
   mockPromptForMissingArgs.mockResolvedValue([null, {}]);
+  // Default: resolveEnvValue succeeds with empty object
+  mockResolveEnvValue.mockResolvedValue([null, {}]);
 });
 
 afterEach(() => {
@@ -422,9 +429,9 @@ describe('executor', () => {
         args: {},
         run: mockRunFn,
       };
-      // Add env to script config
-      Object.assign(mockScriptConfig.value, { env: { SCRIPT_VAR: 'from-script' } });
       mockPromptForMissingArgs.mockResolvedValue([null, {}]);
+      // resolveEnvValue returns script-level env
+      mockResolveEnvValue.mockResolvedValue([null, { SCRIPT_VAR: 'from-script' }]);
       // First call = LAUF_ARGS, second call = LAUF_ENV
       mockSafeParseJSON
         .mockReturnValueOnce([null, {}])
@@ -451,8 +458,9 @@ describe('executor', () => {
         args: {},
         run: mockRunFn,
       };
-      Object.assign(mockScriptConfig.value, { env: { KEY: 'from-script' } });
       mockPromptForMissingArgs.mockResolvedValue([null, {}]);
+      // resolveEnvValue returns script-level env
+      mockResolveEnvValue.mockResolvedValue([null, { KEY: 'from-script' }]);
       // First call = LAUF_ARGS, second call = LAUF_ENV
       mockSafeParseJSON
         .mockReturnValueOnce([null, {}])
@@ -471,8 +479,9 @@ describe('executor', () => {
         args: {},
         run: mockRunFn,
       };
-      Object.assign(mockScriptConfig.value, { env: { KEY: 'from-script' } });
       mockPromptForMissingArgs.mockResolvedValue([null, {}]);
+      // resolveEnvValue returns script-level env
+      mockResolveEnvValue.mockResolvedValue([null, { KEY: 'from-script' }]);
       // First call = LAUF_ARGS, second call = LAUF_ENV, third call = LAUF_CLI_ENV
       mockSafeParseJSON
         .mockReturnValueOnce([null, {}])
@@ -527,6 +536,49 @@ describe('executor', () => {
       expect(process.exit).toHaveBeenCalledWith(1);
       expect(mockLogError).toHaveBeenCalledWith(
         expect.stringContaining('Invalid JSON in LAUF_ENV'),
+      );
+    });
+
+    it('exits with 1 when resolveEnvValue returns error', async () => {
+      const mockRunFn = vi.fn();
+      // oxlint-disable-next-line immutable-data
+      mockScriptConfig.value = {
+        description: 'test',
+        args: {},
+        run: mockRunFn,
+      };
+      mockResolveEnvValue.mockResolvedValue([new Error('env fn failed'), null]);
+
+      await runExecutor();
+
+      expect(process.exit).toHaveBeenCalledWith(1);
+      expect(mockLogError).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to resolve script env'),
+      );
+    });
+
+    it('passes EnvContext to resolveEnvValue', async () => {
+      const mockRunFn = vi.fn();
+      // oxlint-disable-next-line immutable-data
+      mockScriptConfig.value = {
+        description: 'test',
+        args: {},
+        run: mockRunFn,
+      };
+      mockPromptForMissingArgs.mockResolvedValue([null, {}]);
+
+      await runExecutor();
+
+      expect(mockResolveEnvValue).toHaveBeenCalledWith(
+        undefined,
+        expect.objectContaining({
+          script: {
+            name: 'test-script',
+            path: '/workspace/scripts/test.ts',
+            packageDir: '/workspace',
+          },
+          workspace: '/workspace',
+        }),
       );
     });
   });

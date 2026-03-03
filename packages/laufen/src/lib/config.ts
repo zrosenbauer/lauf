@@ -1,4 +1,5 @@
 import * as p from '@clack/prompts';
+import type { EnvContext } from '@laufen/engine';
 import { loadConfig } from 'c12';
 import { attemptAsync } from 'es-toolkit';
 import { z } from 'zod';
@@ -8,22 +9,27 @@ import type { DiscoveredConfig } from './config-discovery.ts';
 import { discoverAllConfigs, findConfigFile } from './config-discovery.ts';
 import type { Result } from './result.ts';
 
+/**
+ * Env value type: a static record or a function that receives an EnvContext.
+ */
+type EnvValue =
+  | Record<string, string>
+  | ((ctx: EnvContext) => Record<string, string> | Promise<Record<string, string>>);
+
 export interface LaufConfig {
   scripts?: string[];
   logger?: DefaultLogger;
   spinner?: boolean;
-  envFile?: string | readonly string[];
-  env?: Record<string, string>;
-  envMode?: 'isolate' | 'inherit';
+  sandbox?: boolean;
+  env?: EnvValue;
 }
 
 export interface ResolvedLaufConfig {
   scripts: string[];
   logger: DefaultLogger | undefined;
   spinner: boolean;
-  envFile: string | readonly string[];
-  env: Record<string, string>;
-  envMode: 'isolate' | 'inherit';
+  sandbox: boolean;
+  env: EnvValue;
 }
 
 /**
@@ -52,23 +58,24 @@ const loggerSchema = z
 
 /**
  * Zod schema that validates the shape of a resolved lauf config.
+ *
+ * The `env` field accepts either a plain record or a function, so
+ * we use a union of `z.record` and `z.function()`.
  */
 const resolvedLaufConfigSchema: z.ZodType<ResolvedLaufConfig> = z.object({
   scripts: z.array(z.string()),
   logger: loggerSchema,
   spinner: z.boolean(),
-  envFile: z.union([z.string(), z.array(z.string())]),
-  env: z.record(z.string(), z.string()),
-  envMode: z.enum(['isolate', 'inherit']),
+  sandbox: z.boolean(),
+  env: z.union([z.record(z.string(), z.string()), z.function()]),
 }) as z.ZodType<ResolvedLaufConfig>;
 
 const DEFAULTS: ResolvedLaufConfig = {
   scripts: ['scripts/*.lauf.ts'],
   logger: undefined,
   spinner: true,
-  envFile: [],
+  sandbox: true,
   env: {},
-  envMode: 'isolate',
 };
 
 /**

@@ -46,9 +46,8 @@ const DEFAULTS = {
   scripts: ['scripts/*.lauf.ts'],
   logger: undefined,
   spinner: true,
-  envFile: [],
+  sandbox: true,
   env: {},
-  envMode: 'isolate',
 } as const;
 
 const DISCOVERED_LAUF: DiscoveredConfig = {
@@ -67,9 +66,8 @@ const VALID_CONFIG = {
   scripts: ['src/**/*.ts'],
   logger: undefined,
   spinner: true,
-  envFile: [],
+  sandbox: true,
   env: {},
-  envMode: 'isolate',
 };
 
 beforeEach(() => {
@@ -205,9 +203,8 @@ describe('loadAllLaufConfigs', () => {
           scripts: ['src/*.ts'],
           logger: undefined,
           spinner: true,
-          envFile: [],
+          sandbox: true,
           env: {},
-          envMode: 'isolate',
         },
       })
       .mockResolvedValueOnce({
@@ -216,9 +213,8 @@ describe('loadAllLaufConfigs', () => {
           scripts: ['tools/*.ts'],
           logger: undefined,
           spinner: false,
-          envFile: [],
+          sandbox: true,
           env: {},
-          envMode: 'isolate',
         },
       });
 
@@ -229,9 +225,8 @@ describe('loadAllLaufConfigs', () => {
         scripts: ['src/*.ts'],
         logger: undefined,
         spinner: true,
-        envFile: [],
+        sandbox: true,
         env: {},
-        envMode: 'isolate',
       },
       configFile: '/workspace/packages/a/lauf.config.ts',
       configDir: '/workspace/packages/a',
@@ -241,9 +236,8 @@ describe('loadAllLaufConfigs', () => {
         scripts: ['tools/*.ts'],
         logger: undefined,
         spinner: false,
-        envFile: [],
+        sandbox: true,
         env: {},
-        envMode: 'isolate',
       },
       configFile: '/workspace/packages/b/laufen.config.ts',
       configDir: '/workspace/packages/b',

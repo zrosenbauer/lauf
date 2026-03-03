@@ -2,6 +2,12 @@ import type { z } from 'zod';
 
 import type { Result } from './result.ts';
 
+/** Context passed to env resolver functions for dynamic env generation. */
+export interface EnvContext {
+  readonly script: { readonly name: string; readonly path: string; readonly packageDir: string };
+  readonly workspace: string;
+}
+
 /**
  * A record of named argument definitions using Zod schemas.
  */
@@ -186,7 +192,7 @@ export interface ScriptContext<T extends ArgDefs> {
   /**
    * Resolved environment variables available to this script.
    *
-   * Merged from envFile, config-level env, script-level env, and CLI --env flags.
+   * Merged from base (sandbox) < config env < script env < CLI --env flags.
    */
   readonly env: Readonly<Record<string, string>>;
 
@@ -240,9 +246,13 @@ export interface ScriptConfig<T extends ArgDefs = ArgDefs> {
   /**
    * Script-level environment variables.
    *
-   * These are merged after config-level env and envFile, but before CLI --env flags.
+   * Accepts a static record or a function that receives an {@link EnvContext}
+   * and returns a record (sync or async). Merged after config-level env
+   * but before CLI --env flags.
    */
-  env?: Record<string, string>;
+  env?:
+    | Record<string, string>
+    | ((ctx: EnvContext) => Record<string, string> | Promise<Record<string, string>>);
 
   /**
    * The script's entry point, called with the validated context.
