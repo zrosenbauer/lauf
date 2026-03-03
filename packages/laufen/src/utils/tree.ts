@@ -85,6 +85,38 @@ function formatPackageBranches(
 }
 
 /**
+ * Render a single package as a top-level heading with scripts directly beneath.
+ *
+ * Used when exactly one non-root package is present so the output looks
+ * like a root-level tree instead of a nested branch:
+ *
+ * ```
+ * @apps/api
+ * ├── build           Build the project
+ * └── test            Run tests
+ * ```
+ */
+function formatSinglePackage(
+  entry: readonly [string, DiscoveredScript[]],
+  descriptions: Record<string, string>,
+  padWidth: number,
+): string {
+  const [packageName, pkgScripts] = entry;
+  const header = pc.bold(packageName);
+  const scriptLines = pkgScripts
+    .map((script, idx) => {
+      const isLast = idx === pkgScripts.length - 1;
+      const connector = treeConnector(isLast);
+      const stem = scriptStem(script.name);
+      const desc = descriptions[script.path] || '';
+      return formatTreeScriptLine('', connector, stem, desc, padWidth);
+    })
+    .join('\n');
+
+  return `${header}\n${scriptLines}`;
+}
+
+/**
  * Render root scripts as top-level tree children (no indentation prefix).
  */
 function formatRootScriptLines(
@@ -143,6 +175,9 @@ export function buildScriptTree(
   const padWidth = maxStemLen + 2;
 
   if (rootScripts.length === 0) {
+    if (packageEntries.length === 1) {
+      return formatSinglePackage(packageEntries[0], descriptions, padWidth);
+    }
     return formatPackageBranches(packageEntries, descriptions, padWidth);
   }
 

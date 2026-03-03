@@ -13,7 +13,9 @@ import handleInfo from './handlers/info.ts';
 import handleInit from './handlers/init.ts';
 import handleList from './handlers/list.ts';
 import handleRun from './handlers/run.ts';
+import { markScriptHelpRequested } from './state/script-help.ts';
 import { errorHint, readPackageJSON, safeParseError } from './utils/cli.ts';
+import { rewriteHelpArgv } from './utils/help-rewrite.ts';
 
 const pkgDir = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const [pkgError, pkg] = readPackageJSON(pkgDir);
@@ -23,6 +25,12 @@ if (pkgError || pkg === null || !pkg.version) {
     'Fatal error, unable to execute lauf, please log an issue on github: https://github.com/zrosenbauer/lauf/issues',
   );
   process.exit(1);
+}
+
+const { argv: rewrittenArgv, scriptHelpRequested } = rewriteHelpArgv(process.argv.slice(2));
+
+if (scriptHelpRequested) {
+  markScriptHelpRequested();
 }
 
 Clerc.create()
@@ -77,4 +85,4 @@ Clerc.create()
     },
   })
   .on('create', handleCreate)
-  .parse();
+  .parse([...rewrittenArgv]);

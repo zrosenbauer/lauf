@@ -90,6 +90,9 @@ describe('bundleScript', () => {
       outfile: '/tmp/laufen-abc123/script.mjs',
       sourcemap: 'inline',
       logLevel: 'silent',
+      banner: {
+        js: "import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);",
+      },
     });
   });
 
