@@ -3,6 +3,7 @@ export type {
   ArgDefs,
   DefaultLogger,
   EnvContext,
+  EnvFn,
   InferArgs,
   Logger,
   PromptCancelled,
@@ -15,6 +16,8 @@ export type {
 } from '@laufen/engine';
 export type { LaufConfig } from './lib/config.ts';
 export { dotenv } from './lib/env.ts';
+export { infisical } from './lib/infisical.ts';
+export type { InfisicalConfig } from './lib/infisical.ts';
 
 import type { ArgDefs, ScriptConfig } from '@laufen/engine';
 

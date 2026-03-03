@@ -12,6 +12,7 @@ export type { JsonSchemaProperty } from './utils/schema.ts';
 export type {
   ArgDefs,
   EnvContext,
+  EnvFn,
   InferArgs,
   ScriptConfig,
   ScriptContext,

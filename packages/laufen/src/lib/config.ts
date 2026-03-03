@@ -1,5 +1,5 @@
 import * as p from '@clack/prompts';
-import type { EnvContext } from '@laufen/engine';
+import type { EnvFn } from '@laufen/engine';
 import { loadConfig } from 'c12';
 import { attemptAsync } from 'es-toolkit';
 import { z } from 'zod';
@@ -12,9 +12,7 @@ import type { Result } from './result.ts';
 /**
  * Env value type: a static record or a function that receives an EnvContext.
  */
-type EnvValue =
-  | Record<string, string>
-  | ((ctx: EnvContext) => Record<string, string> | Promise<Record<string, string>>);
+type EnvValue = Record<string, string> | EnvFn;
 
 export interface LaufConfig {
   scripts?: string[];

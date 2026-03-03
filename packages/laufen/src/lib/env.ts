@@ -1,18 +1,9 @@
-import * as fs from 'node:fs';
+import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 
+import type { EnvContext, EnvFn } from '@laufen/engine';
 import { parse } from 'dotenv';
-import { attempt } from 'es-toolkit';
-
-/**
- * Normalize a file path input to an array.
- */
-function normalizeFiles(files: string | readonly string[]): readonly string[] {
-  if (typeof files === 'string') {
-    return [files];
-  }
-  return files;
-}
+import { attemptAsync } from 'es-toolkit';
 
 /**
  * Check whether an error represents a missing file (ENOENT).
@@ -27,8 +18,12 @@ function isFileNotFound(error: Error): boolean {
  * Missing files (ENOENT) are silently skipped. Other read errors
  * (permissions, IO failures) emit a warning so they are not silently lost.
  */
-function readEnvFileEntries(filePath: string): readonly (readonly [string, string])[] {
-  const [readError, content] = attempt<string, Error>(() => fs.readFileSync(filePath, 'utf-8'));
+async function readEnvFileEntries(
+  filePath: string,
+): Promise<readonly (readonly [string, string])[]> {
+  const [readError, content] = await attemptAsync<string, Error>(() =>
+    fs.readFile(filePath, 'utf-8'),
+  );
   if (readError) {
     if (!isFileNotFound(readError)) {
       console.warn(`Warning: Failed to read env file "${filePath}": ${readError.message}`);
@@ -44,38 +39,54 @@ function readEnvFileEntries(filePath: string): readonly (readonly [string, strin
 /**
  * Load environment variables from one or more `.env` files.
  *
+ * Returns an {@link EnvFn} that, when called, reads and merges the given files.
  * Files are parsed using `dotenv.parse()`. Missing files are silently skipped.
  * When multiple files are provided, later files override earlier ones (right-wins).
- * Paths are resolved relative to `process.cwd()`.
+ * Paths are resolved relative to `ctx.workspace`.
  *
- * @param files - Path or array of paths to `.env` files
- * @returns Merged environment variables from all parsed files
+ * @param files - Paths to `.env` files (defaults to `['.env']` when none provided)
+ * @returns An EnvFn that resolves the merged environment variables
  */
-export function dotenv(files: string | readonly string[]): Record<string, string> {
-  const normalized = normalizeFiles(files);
-  const cwd = process.cwd();
-  const allEntries = normalized.flatMap((file: string) =>
-    readEnvFileEntries(path.resolve(cwd, file)),
-  );
-  return Object.fromEntries(allEntries);
+export function dotenv(...files: readonly string[]): EnvFn {
+  const resolved = files.length === 0 ? ['.env'] : files; // oxlint-disable-line no-ternary -- simple default
+
+  return async (ctx: EnvContext): Promise<Record<string, string>> => {
+    const allEntries = await Promise.all(
+      resolved.map((file: string) => readEnvFileEntries(path.resolve(ctx.workspace, file))),
+    );
+    return Object.fromEntries(allEntries.flat());
+  };
 }
 
 if (import.meta.vitest) {
   const { describe, it, expect } = import.meta.vitest;
 
+  const ctx: EnvContext = {
+    script: { name: 'test', path: '/test.ts', packageDir: '/pkg' },
+    workspace: '/nonexistent-workspace',
+  };
+
   describe('dotenv', () => {
-    it('returns empty record for non-existent file', () => {
-      const result = dotenv('.env.nonexistent');
+    it('returns an EnvFn', () => {
+      const fn = dotenv();
+      expect(typeof fn).toBe('function');
+    });
+
+    it('returns empty record for non-existent file', async () => {
+      const fn = dotenv('.env.nonexistent');
+      const result = await fn(ctx);
       expect(result).toEqual({});
     });
 
-    it('returns empty record for empty array', () => {
-      const result = dotenv([]);
+    it('returns empty record when no files match', async () => {
+      const fn = dotenv('.env.a', '.env.b');
+      const result = await fn(ctx);
       expect(result).toEqual({});
     });
 
-    it('accepts a single string path', () => {
-      const result = dotenv('.env.does-not-exist');
+    it('defaults to .env when called with no arguments', async () => {
+      const fn = dotenv();
+      const result = await fn(ctx);
       expect(result).toEqual({});
     });
   });

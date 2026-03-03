@@ -30,7 +30,7 @@ export default lauf({
 | ------------- | ------------------------------------------------------------------- | ---------------------------------------------------------------- |
 | `description` | `string`                                                            | Human-readable description shown in `lauf list` and `lauf info`  |
 | `args`        | `Record<string, z.ZodType>`                                         | Zod schemas for each argument                                    |
-| `env`         | `Record<string, string> \| (ctx: EnvContext) => Record`             | Script-level environment variables (static or dynamic, optional) |
+| `env`         | `Record<string, string> \| EnvFn`                                   | Script-level environment variables (static or dynamic, optional) |
 | `run`         | `(ctx: ScriptContext) => void \| number \| Promise<void \| number>` | The script's entry point                                         |
 
 ## Defining Arguments with Zod

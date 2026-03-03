@@ -8,6 +8,9 @@ export interface EnvContext {
   readonly workspace: string;
 }
 
+/** A function that resolves environment variables from context. */
+export type EnvFn = (ctx: EnvContext) => Record<string, string> | Promise<Record<string, string>>;
+
 /**
  * A record of named argument definitions using Zod schemas.
  */
@@ -250,9 +253,7 @@ export interface ScriptConfig<T extends ArgDefs = ArgDefs> {
    * and returns a record (sync or async). Merged after config-level env
    * but before CLI --env flags.
    */
-  env?:
-    | Record<string, string>
-    | ((ctx: EnvContext) => Record<string, string> | Promise<Record<string, string>>);
+  env?: Record<string, string> | EnvFn;
 
   /**
    * The script's entry point, called with the validated context.

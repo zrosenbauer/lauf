@@ -21,13 +21,13 @@ export default defineConfig({
 
 ## Options
 
-| Property  | Type                                        | Default            | Description                                                     |
-| --------- | ------------------------------------------- | ------------------ | --------------------------------------------------------------- |
-| `scripts` | `string[]`                                  | `['scripts/*.ts']` | Glob patterns to discover scripts per package                   |
-| `logger`  | `Logger`                                    | built-in           | Custom logger implementation                                    |
-| `spinner` | `boolean`                                   | `true`             | Enable or disable the progress spinner globally                 |
-| `sandbox` | `boolean`                                   | `true`             | Controls base environment: minimal sandbox or full inherit      |
-| `env`     | `Record<string, string> \| (ctx) => Record` | `{}`               | Environment variables passed to all scripts (static or dynamic) |
+| Property  | Type                              | Default            | Description                                                     |
+| --------- | --------------------------------- | ------------------ | --------------------------------------------------------------- |
+| `scripts` | `string[]`                        | `['scripts/*.ts']` | Glob patterns to discover scripts per package                   |
+| `logger`  | `Logger`                          | built-in           | Custom logger implementation                                    |
+| `spinner` | `boolean`                         | `true`             | Enable or disable the progress spinner globally                 |
+| `sandbox` | `boolean`                         | `true`             | Controls base environment: minimal sandbox or full inherit      |
+| `env`     | `Record<string, string> \| EnvFn` | `{}`               | Environment variables passed to all scripts (static or dynamic) |
 
 ### `scripts`
 
@@ -87,21 +87,54 @@ export default defineConfig({
 // Dynamic function
 export default defineConfig({
   env: async (ctx) => ({
-    ...dotenv(['.env', '.env.local']),
+    ...(await dotenv('.env', '.env.local')(ctx)),
     SCRIPT: ctx.script.name,
   }),
 });
 ```
 
-Use the `dotenv()` helper (exported from `laufen`) to load `.env` files inside the function:
+Use the `dotenv()` helper (exported from `laufen`) to load `.env` files. `dotenv()` returns an `EnvFn`, so it can be used directly:
 
 ```ts
 import { defineConfig, dotenv } from 'laufen';
 
+// Single .env file (default)
 export default defineConfig({
-  env: () => ({
-    ...dotenv('.env'),
-    ...dotenv('.env.local'),
+  env: dotenv(),
+});
+
+// Multiple files (right wins)
+export default defineConfig({
+  env: dotenv('.env', '.env.local'),
+});
+```
+
+Use the `infisical()` helper to load secrets from [Infisical](https://infisical.com). Requires the Infisical CLI to be installed and authenticated:
+
+```ts
+import { defineConfig, infisical } from 'laufen';
+
+// Single path
+export default defineConfig({
+  env: infisical({ path: '/', env: 'dev', projectId: 'abc' }),
+});
+
+// Multiple paths (right wins)
+export default defineConfig({
+  env: infisical([{ path: '/dev' }, { path: '/shared' }]),
+});
+```
+
+Compose multiple sources with an async function:
+
+```ts
+import { defineConfig, dotenv, infisical } from 'laufen';
+
+export default defineConfig({
+  env: async (ctx) => ({
+    ...(await dotenv('.env')(ctx)),
+    ...(await infisical({ path: '/' })(ctx)),
+    CUSTOM: 'value',
   }),
 });
 ```
