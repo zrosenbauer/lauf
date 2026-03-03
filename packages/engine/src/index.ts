@@ -1,5 +1,6 @@
 export { runScript } from './runner.ts';
 export { loadDescriptions } from './metadata.ts';
+export { buildBaseEnv, applyEnvToProcess, resolveEnvValue } from './env.ts';
 export { bundleScript } from './bundler.ts';
 export { extractArgMeta, formatHelp } from './utils/help.ts';
 export { createContext } from './context/index.ts';
@@ -10,6 +11,8 @@ export { extractSchemaFields, resolveType } from './utils/schema.ts';
 export type { JsonSchemaProperty } from './utils/schema.ts';
 export type {
   ArgDefs,
+  EnvContext,
+  EnvFn,
   InferArgs,
   ScriptConfig,
   ScriptContext,

@@ -9,7 +9,8 @@ import { z } from 'zod';
 import { createContext } from './context/index.ts';
 import { createLogger } from './context/logger.ts';
 import { createPrompts } from './context/prompts.ts';
-import type { ArgDefs, ScriptConfig } from './types.ts';
+import { applyEnvToProcess, resolveEnvValue } from './env.ts';
+import type { ArgDefs, EnvContext, ScriptConfig } from './types.ts';
 import { formatArgErrors, safeParseError } from './utils/cli.ts';
 import { extractArgMeta, formatHelp } from './utils/help.ts';
 import { safeParseJSON } from './utils/json.ts';
@@ -28,7 +29,23 @@ const envSchema = z.object({
   LAUF_SCRIPT_NAME: z.string(),
   LAUF_SPINNER: z.enum(['0', '1']),
   LAUF_HELP: z.enum(['0', '1']).optional(),
+  LAUF_ENV: z.string().optional(),
+  LAUF_CLI_ENV: z.string().optional(),
 });
+
+const laufEnvSchema = z.record(z.string(), z.string());
+
+/**
+ * Parse `LAUF_ENV` JSON string into a record, or return an empty record if absent.
+ */
+function parseLaufEnv(
+  raw: string | undefined,
+): readonly [Error, null] | readonly [null, Record<string, string>] {
+  if (raw === undefined) {
+    return [null, {}];
+  }
+  return safeParseJSON(raw, laufEnvSchema);
+}
 
 /**
  * Entry point for script execution, spawned as a child process by the runner.
@@ -99,6 +116,50 @@ async function execute(): Promise<void> {
     process.exit(1);
   }
 
+  // Parse pre-merged env (config.env) from runner
+  const parsedEnv = parseLaufEnv(env.LAUF_ENV);
+  if (parsedEnv[0]) {
+    log.error('Invalid JSON in LAUF_ENV: failed to parse environment');
+    process.exit(1);
+  }
+  const premergedEnv = parsedEnv[1];
+
+  // Parse CLI --env flags (highest priority layer)
+  const parsedCliEnv = parseLaufEnv(env.LAUF_CLI_ENV);
+  if (parsedCliEnv[0]) {
+    log.error('Invalid JSON in LAUF_CLI_ENV: failed to parse CLI environment');
+    process.exit(1);
+  }
+  const cliEnv = parsedCliEnv[1];
+
+  // Build EnvContext for script-level env function resolution
+  const envCtx: EnvContext = {
+    script: {
+      name: env.LAUF_SCRIPT_NAME,
+      path: env.LAUF_ORIGINAL_PATH,
+      packageDir: env.LAUF_PACKAGE_DIR,
+    },
+    workspace: env.LAUF_WORKSPACE_ROOT,
+  };
+
+  // Resolve script-level env (may be a function)
+  const [scriptEnvError, scriptEnv] = await resolveEnvValue(config.env, envCtx);
+  if (scriptEnvError) {
+    log.error(
+      `Failed to resolve script env for "${env.LAUF_SCRIPT_NAME}": ${safeParseError(scriptEnvError)}`,
+    );
+    process.exit(1);
+  }
+
+  // Merge order: config.env < script.env < CLI --env
+  const resolvedEnv: Record<string, string> = { ...premergedEnv, ...scriptEnv, ...cliEnv };
+
+  // Filter LAUF_ prefixed keys to prevent overwriting internal control variables
+  const safeResolvedEnv = Object.fromEntries(
+    Object.entries(resolvedEnv).filter(([key]) => !key.startsWith('LAUF_')),
+  );
+  applyEnvToProcess(safeResolvedEnv);
+
   if (env.LAUF_HELP === '1') {
     const argsMeta = extractArgMeta(config.args);
     log.message(formatHelp(env.LAUF_SCRIPT_NAME, config.description, argsMeta));
@@ -127,6 +188,7 @@ async function execute(): Promise<void> {
 
   const ctx = createContext({
     args: parseResult.data,
+    env: resolvedEnv,
     root: env.LAUF_WORKSPACE_ROOT,
     packageDir: env.LAUF_PACKAGE_DIR,
     name: env.LAUF_SCRIPT_NAME,

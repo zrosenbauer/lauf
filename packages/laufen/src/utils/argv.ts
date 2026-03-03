@@ -3,6 +3,84 @@ import * as p from '@clack/prompts';
 const BLOCKED_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 
 /**
+ * Result of extracting `--env KEY=VALUE` flags from raw argv.
+ */
+interface ExtractEnvResult {
+  readonly env: Record<string, string>;
+  readonly remaining: readonly string[];
+}
+
+/**
+ * Parse a `KEY=VALUE` pair, rejecting option-like keys (starting with `-`).
+ *
+ * @returns Tuple of `[key, value]` or `null` if invalid
+ */
+function parseEnvPair(pair: string): readonly [string, string] | null {
+  const eqIdx = pair.indexOf('=');
+  if (eqIdx <= 0) {
+    return null;
+  }
+  const key = pair.slice(0, eqIdx);
+  if (key.startsWith('-')) {
+    return null;
+  }
+  return [key, pair.slice(eqIdx + 1)];
+}
+
+/**
+ * Extract `--env KEY=VALUE` pairs from raw argv.
+ *
+ * Supports both `--env KEY=VALUE` and `--env=KEY=VALUE` forms.
+ * Only `KEY=VALUE` format is accepted (no `--env KEY VALUE` to avoid
+ * ambiguity with script args). Keys that look like options (starting
+ * with `-`) are rejected to prevent swallowing real CLI flags.
+ * Returns extracted env record and remaining argv with `--env`
+ * entries removed.
+ *
+ * @param argv - Raw argument strings
+ * @returns Object with extracted env record and remaining argv
+ */
+function extractEnvFlagsRec(
+  remaining: readonly string[],
+  env: Record<string, string>,
+  kept: readonly string[],
+): ExtractEnvResult {
+  const arg = remaining[0];
+  if (arg === undefined) {
+    return { env, remaining: kept };
+  }
+
+  const rest = remaining.slice(1);
+
+  // --env=KEY=VALUE form
+  if (arg.startsWith('--env=')) {
+    const parsed = parseEnvPair(arg.slice(6));
+    if (parsed) {
+      return extractEnvFlagsRec(rest, { ...env, [parsed[0]]: parsed[1] }, kept);
+    }
+    return extractEnvFlagsRec(rest, env, kept);
+  }
+
+  // --env KEY=VALUE form
+  if (arg === '--env') {
+    const next = rest[0];
+    if (next !== undefined) {
+      const parsed = parseEnvPair(next);
+      if (parsed) {
+        return extractEnvFlagsRec(rest.slice(1), { ...env, [parsed[0]]: parsed[1] }, kept);
+      }
+    }
+    return extractEnvFlagsRec(rest, env, kept);
+  }
+
+  return extractEnvFlagsRec(rest, env, [...kept, arg]);
+}
+
+export function extractEnvFlags(argv: readonly string[]): ExtractEnvResult {
+  return extractEnvFlagsRec(argv, {}, []);
+}
+
+/**
  * Check whether a key is safe (not a prototype pollution vector).
  */
 function isSafeKey(key: string): boolean {
@@ -126,4 +204,70 @@ export function sliceArgvAfter(name: string): readonly string[] {
     return [];
   }
   return scriptArgs.slice(idx + 1);
+}
+
+if (import.meta.vitest) {
+  const { describe, it, expect } = import.meta.vitest;
+
+  describe('extractEnvFlags — parsing', () => {
+    it('extracts --env KEY=VALUE pairs', () => {
+      const result = extractEnvFlags(['--env', 'FOO=bar', '--env', 'BAZ=qux']);
+      expect(result.env).toEqual({ FOO: 'bar', BAZ: 'qux' });
+      expect(result.remaining).toEqual([]);
+    });
+
+    it('extracts --env=KEY=VALUE pairs', () => {
+      const result = extractEnvFlags(['--env=FOO=bar', '--env=BAZ=qux']);
+      expect(result.env).toEqual({ FOO: 'bar', BAZ: 'qux' });
+      expect(result.remaining).toEqual([]);
+    });
+
+    it('preserves non-env flags in remaining', () => {
+      const result = extractEnvFlags(['--verbose', '--env', 'FOO=bar', '--count', '5']);
+      expect(result.env).toEqual({ FOO: 'bar' });
+      expect(result.remaining).toEqual(['--verbose', '--count', '5']);
+    });
+
+    it('handles empty argv', () => {
+      const result = extractEnvFlags([]);
+      expect(result.env).toEqual({});
+      expect(result.remaining).toEqual([]);
+    });
+
+    it('handles value with equals sign', () => {
+      const result = extractEnvFlags(['--env', 'URL=postgres://host:5432/db?opt=1']);
+      expect(result.env).toEqual({ URL: 'postgres://host:5432/db?opt=1' });
+    });
+
+    it('later --env overrides earlier for same key', () => {
+      const result = extractEnvFlags(['--env', 'X=first', '--env', 'X=second']);
+      expect(result.env).toEqual({ X: 'second' });
+    });
+  });
+
+  describe('extractEnvFlags — edge cases', () => {
+    it('skips --env without KEY=VALUE next', () => {
+      const result = extractEnvFlags(['--env', '--verbose']);
+      expect(result.env).toEqual({});
+      expect(result.remaining).toEqual(['--verbose']);
+    });
+
+    it('skips --env=KEY without value', () => {
+      const result = extractEnvFlags(['--env=NOVALUE']);
+      expect(result.env).toEqual({});
+      expect(result.remaining).toEqual([]);
+    });
+
+    it('rejects option-like keys in --env KEY=VALUE form', () => {
+      const result = extractEnvFlags(['--env', '--count=5', '--verbose']);
+      expect(result.env).toEqual({});
+      expect(result.remaining).toEqual(['--count=5', '--verbose']);
+    });
+
+    it('rejects option-like keys in --env=KEY=VALUE form', () => {
+      const result = extractEnvFlags(['--env=--flag=val']);
+      expect(result.env).toEqual({});
+      expect(result.remaining).toEqual([]);
+    });
+  });
 }

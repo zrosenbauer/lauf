@@ -2,6 +2,15 @@ import type { z } from 'zod';
 
 import type { Result } from './result.ts';
 
+/** Context passed to env resolver functions for dynamic env generation. */
+export interface EnvContext {
+  readonly script: { readonly name: string; readonly path: string; readonly packageDir: string };
+  readonly workspace: string;
+}
+
+/** A function that resolves environment variables from context. */
+export type EnvFn = (ctx: EnvContext) => Record<string, string> | Promise<Record<string, string>>;
+
 /**
  * A record of named argument definitions using Zod schemas.
  */
@@ -184,6 +193,13 @@ export interface ScriptContext<T extends ArgDefs> {
   readonly args: InferArgs<T>;
 
   /**
+   * Resolved environment variables available to this script.
+   *
+   * Merged from base (sandbox) < config env < script env < CLI --env flags.
+   */
+  readonly env: Readonly<Record<string, string>>;
+
+  /**
    * Absolute path to the monorepo root.
    */
   readonly root: string;
@@ -229,6 +245,15 @@ export interface ScriptConfig<T extends ArgDefs = ArgDefs> {
    * Argument definitions using Zod schemas. Keys become CLI flag names.
    */
   args: T;
+
+  /**
+   * Script-level environment variables.
+   *
+   * Accepts a static record or a function that receives an {@link EnvContext}
+   * and returns a record (sync or async). Merged after config-level env
+   * but before CLI --env flags.
+   */
+  env?: Record<string, string> | EnvFn;
 
   /**
    * The script's entry point, called with the validated context.

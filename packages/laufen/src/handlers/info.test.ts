@@ -26,13 +26,14 @@ vi.mock('../lib/paths.ts', () => ({
 
 vi.mock('@laufen/engine', () => ({
   runScript: vi.fn(),
+  resolveEnvValue: vi.fn(() => Promise.resolve([null, {}])),
 }));
 
 vi.mock('../utils/prompt.ts', () => ({
   promptForScript: vi.fn(),
 }));
 
-import { runScript } from '@laufen/engine';
+import { resolveEnvValue, runScript } from '@laufen/engine';
 
 import { safeLoadLaufConfigWithMeta } from '../lib/config.ts';
 import { findScript } from '../lib/discovery.ts';
@@ -48,7 +49,13 @@ const mockScript: DiscoveredScript = {
 };
 
 const mockLoadedConfig = {
-  config: { scripts: ['scripts/*.lauf.ts'], logger: undefined, spinner: true },
+  config: {
+    scripts: ['scripts/*.lauf.ts'],
+    logger: undefined,
+    spinner: true,
+    sandbox: true,
+    env: {},
+  },
   configFile: '/workspace/lauf.config.ts',
   configDir: '/workspace',
 };
@@ -56,6 +63,8 @@ const mockLoadedConfig = {
 beforeEach(() => {
   vi.clearAllMocks();
   vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+  // Default: resolveEnvValue succeeds with empty object
+  vi.mocked(resolveEnvValue).mockResolvedValue([null, {}]);
 });
 
 afterEach(() => {
@@ -73,7 +82,14 @@ describe('info handler', () => {
     expect(runScript).toHaveBeenCalledWith(
       mockScript,
       {},
-      { help: true, workspaceRoot: '/workspace', cliPackageRoot: '/lauf-root', spinner: true },
+      {
+        help: true,
+        workspaceRoot: '/workspace',
+        cliPackageRoot: '/lauf-root',
+        spinner: true,
+        env: {},
+        sandbox: true,
+      },
     );
     expect(process.exit).not.toHaveBeenCalled();
   });
@@ -89,7 +105,14 @@ describe('info handler', () => {
     expect(runScript).toHaveBeenCalledWith(
       mockScript,
       {},
-      { help: true, workspaceRoot: '/workspace', cliPackageRoot: '/lauf-root', spinner: true },
+      {
+        help: true,
+        workspaceRoot: '/workspace',
+        cliPackageRoot: '/lauf-root',
+        spinner: true,
+        env: {},
+        sandbox: true,
+      },
     );
   });
 
@@ -127,5 +150,15 @@ describe('info handler', () => {
     await infoHandler({ parameters: {} } as never);
 
     expect(process.exit).toHaveBeenCalledWith(0);
+  });
+
+  it('fails when resolveEnvValue returns error', async () => {
+    vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([null, mockLoadedConfig]);
+    vi.mocked(findScript).mockReturnValue(mockScript);
+    vi.mocked(resolveEnvValue).mockResolvedValue([new Error('env fn failed'), null]);
+
+    await infoHandler({ parameters: { script: 'my-pkg/build' } } as never);
+
+    expect(process.exit).toHaveBeenCalledWith(1);
   });
 });
