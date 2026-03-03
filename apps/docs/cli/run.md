@@ -55,7 +55,7 @@ lauf run @my-org/api/seed --env DATABASE_URL=postgres://localhost/dev --env NODE
 
 Both `--env KEY=VALUE` and `--env=KEY=VALUE` forms are supported. CLI env vars override config-level and script-level env vars.
 
-**Merge priority** (right wins): base env (sandbox) < config `env` < script `env` < CLI `--env`
+**Merge priority** (later takes precedence): base env (sandbox) < config `env` < script `env` < CLI `--env`
 
 ## Inline Help
 

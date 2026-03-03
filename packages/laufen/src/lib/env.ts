@@ -41,7 +41,7 @@ async function readEnvFileEntries(
  *
  * Returns an {@link EnvFn} that, when called, reads and merges the given files.
  * Files are parsed using `dotenv.parse()`. Missing files are silently skipped.
- * When multiple files are provided, later files override earlier ones (right-wins).
+ * When multiple files are provided, later files take precedence.
  * Paths are resolved relative to `ctx.workspace`.
  *
  * @param files - Paths to `.env` files (defaults to `['.env']` when none provided)

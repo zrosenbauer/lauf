@@ -59,14 +59,12 @@ async function fetchSecrets(config: InfisicalConfig): Promise<Record<string, str
  *
  * Returns an {@link EnvFn} that, when called, fetches secrets from Infisical.
  * Requires the `infisical` CLI to be installed and authenticated.
- * When multiple configs are provided, results are merged left-to-right (right wins).
+ * When multiple configs are provided, later configs take precedence.
  *
- * @param configs - A single config or array of configs specifying paths and options
+ * @param configs - One or more configs specifying paths and options
  * @returns An EnvFn that resolves the fetched secrets
  */
-export function infisical(configs: InfisicalConfig | readonly InfisicalConfig[]): EnvFn {
-  const normalized = Array.isArray(configs) ? configs : [configs]; // oxlint-disable-line no-ternary -- simple normalization
-
+export function infisical(...configs: readonly InfisicalConfig[]): EnvFn {
   return async (_ctx: EnvContext): Promise<Record<string, string>> => {
     const [versionError] = await attemptAsync(() => execFileAsync('infisical', ['--version']));
     if (versionError) {
@@ -78,7 +76,7 @@ export function infisical(configs: InfisicalConfig | readonly InfisicalConfig[])
       );
     }
 
-    const results = await Promise.all(normalized.map((config) => fetchSecrets(config)));
+    const results = await Promise.all(configs.map((config) => fetchSecrets(config)));
     return Object.assign({}, ...results) as Record<string, string>;
   };
 }
