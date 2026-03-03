@@ -24,4 +24,4 @@ New features:
 - `resolveEnvValue()` helper exported from `@laufen/engine`
 - `infisical()` helper + `InfisicalConfig` type for loading secrets from Infisical CLI
 
-Merge priority (later takes precedence): base (sandbox) < config `env` < script `env` < CLI `--env`
+Merge priority (later overwrites earlier): base (sandbox) < config `env` < script `env` < CLI `--env`

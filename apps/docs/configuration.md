@@ -103,7 +103,7 @@ export default defineConfig({
   env: dotenv(),
 });
 
-// Multiple files (later files take precedence)
+// Multiple files (later files overwrite earlier ones)
 export default defineConfig({
   env: dotenv('.env', '.env.local'),
 });
@@ -119,7 +119,7 @@ export default defineConfig({
   env: infisical({ path: '/', env: 'dev', projectId: 'abc' }),
 });
 
-// Multiple paths (later paths take precedence)
+// Multiple paths (later paths overwrite earlier ones)
 export default defineConfig({
   env: infisical({ path: '/dev' }, { path: '/shared' }),
 });
@@ -139,7 +139,7 @@ export default defineConfig({
 });
 ```
 
-**Merge priority** (later takes precedence): base env (sandbox) < config `env` < script `env` < CLI `--env`
+**Merge priority** (later overwrites earlier): base env (sandbox) < config `env` < script `env` < CLI `--env`
 
 ## Config Loading Behavior
 
