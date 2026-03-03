@@ -21,13 +21,13 @@ export default defineConfig({
 
 ## Options
 
-| Property  | Type                              | Default            | Description                                                     |
-| --------- | --------------------------------- | ------------------ | --------------------------------------------------------------- |
-| `scripts` | `string[]`                        | `['scripts/*.ts']` | Glob patterns to discover scripts per package                   |
-| `logger`  | `Logger`                          | built-in           | Custom logger implementation                                    |
-| `spinner` | `boolean`                         | `true`             | Enable or disable the progress spinner globally                 |
-| `sandbox` | `boolean`                         | `true`             | Controls base environment: minimal sandbox or full inherit      |
-| `env`     | `Record<string, string> \| EnvFn` | `{}`               | Environment variables passed to all scripts (static or dynamic) |
+| Property  | Type                              | Default                 | Description                                                     |
+| --------- | --------------------------------- | ----------------------- | --------------------------------------------------------------- |
+| `scripts` | `string[]`                        | `['scripts/*.lauf.ts']` | Glob patterns to discover scripts per package                   |
+| `logger`  | `Logger`                          | built-in                | Custom logger implementation                                    |
+| `spinner` | `boolean`                         | `true`                  | Enable or disable the progress spinner globally                 |
+| `sandbox` | `boolean`                         | `true`                  | Controls base environment: minimal sandbox or full inherit      |
+| `env`     | `Record<string, string> \| EnvFn` | `{}`                    | Environment variables passed to all scripts (static or dynamic) |
 
 ### `scripts`
 

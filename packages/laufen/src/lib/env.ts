@@ -47,8 +47,18 @@ async function readEnvFileEntries(
  * @param files - Paths to `.env` files (defaults to `['.env']` when none provided)
  * @returns An EnvFn that resolves the merged environment variables
  */
+/**
+ * Resolve file list, defaulting to `['.env']` when no files are provided.
+ */
+function resolveFiles(files: readonly string[]): readonly string[] {
+  if (files.length === 0) {
+    return ['.env'];
+  }
+  return files;
+}
+
 export function dotenv(...files: readonly string[]): EnvFn {
-  const resolved = files.length === 0 ? ['.env'] : files; // oxlint-disable-line no-ternary -- simple default
+  const resolved = resolveFiles(files);
 
   return async (ctx: EnvContext): Promise<Record<string, string>> => {
     const allEntries = await Promise.all(

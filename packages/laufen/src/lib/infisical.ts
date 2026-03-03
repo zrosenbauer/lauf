@@ -3,9 +3,11 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 
 import type { EnvContext, EnvFn } from '@laufen/engine';
-import { attemptAsync } from 'es-toolkit';
+import { attempt, attemptAsync } from 'es-toolkit';
 
 const execFileAsync = promisify(execFile);
+const EXEC_TIMEOUT_MS = 15_000;
+const EXEC_OPTS = { timeout: EXEC_TIMEOUT_MS, maxBuffer: 1024 * 1024 } as const;
 
 /**
  * Configuration for a single Infisical secret path.
@@ -21,28 +23,34 @@ export interface InfisicalConfig {
  * Build CLI arguments for a single Infisical export invocation.
  */
 function buildArgs(config: InfisicalConfig): readonly string[] {
-  const args: string[] = ['export', '--format=json', `--path=${config.path}`];
-  if (config.recursive) {
-    // oxlint-disable-next-line immutable-data
-    args.push('--recursive');
-  }
-  if (config.env) {
-    // oxlint-disable-next-line immutable-data
-    args.push(`--env=${config.env}`);
-  }
-  if (config.projectId) {
-    // oxlint-disable-next-line immutable-data
-    args.push(`--projectId=${config.projectId}`);
-  }
-  return args;
+  const base = ['export', '--format=json', `--path=${config.path}`];
+  const optional = [
+    config.recursive && '--recursive',
+    config.env && `--env=${config.env}`,
+    config.projectId && `--projectId=${config.projectId}`,
+  ].filter((arg): arg is string => typeof arg === 'string');
+  return [...base, ...optional];
 }
 
 /**
  * Parse Infisical JSON output (`[{ key, value }]`) into a flat record.
+ *
+ * Returns `[null, record]` on success or `[Error, null]` on parse failure.
  */
-function parseInfisicalOutput(stdout: string): Record<string, string> {
-  const entries = JSON.parse(stdout) as readonly { readonly key: string; readonly value: string }[];
-  return Object.fromEntries(entries.map((entry) => [entry.key, entry.value]));
+function parseInfisicalOutput(
+  stdout: string,
+): readonly [Error, null] | readonly [null, Record<string, string>] {
+  const [parseError, entries] = attempt<
+    readonly { readonly key: string; readonly value: string }[],
+    Error
+  >(() => JSON.parse(stdout) as readonly { readonly key: string; readonly value: string }[]);
+  if (parseError) {
+    return [new Error(`Failed to parse Infisical output: ${parseError.message}`), null];
+  }
+  if (entries === null) {
+    return [new Error('Failed to parse Infisical output: unexpected null'), null];
+  }
+  return [null, Object.fromEntries(entries.map((entry) => [entry.key, entry.value]))];
 }
 
 /**
@@ -50,8 +58,13 @@ function parseInfisicalOutput(stdout: string): Record<string, string> {
  */
 async function fetchSecrets(config: InfisicalConfig): Promise<Record<string, string>> {
   const args = buildArgs(config);
-  const { stdout } = await execFileAsync('infisical', args as string[]);
-  return parseInfisicalOutput(stdout);
+  const { stdout } = await execFileAsync('infisical', args as string[], EXEC_OPTS);
+  const [parseError, result] = parseInfisicalOutput(stdout);
+  if (parseError) {
+    // oxlint-disable-next-line no-useless-promise-resolve-reject -- no-throw rule
+    return Promise.reject(parseError);
+  }
+  return result;
 }
 
 /**
@@ -66,9 +79,11 @@ async function fetchSecrets(config: InfisicalConfig): Promise<Record<string, str
  */
 export function infisical(...configs: readonly InfisicalConfig[]): EnvFn {
   return async (_ctx: EnvContext): Promise<Record<string, string>> => {
-    const [versionError] = await attemptAsync(() => execFileAsync('infisical', ['--version']));
+    const [versionError] = await attemptAsync(() =>
+      execFileAsync('infisical', ['--version'], EXEC_OPTS),
+    );
     if (versionError) {
-      // oxlint-disable-next-line no-useless-promise-resolve-reject -- no-throw rule: return rejected promise instead
+      // oxlint-disable-next-line no-useless-promise-resolve-reject -- no-throw rule
       return Promise.reject(
         new Error(
           'Infisical CLI not found. Install it from https://infisical.com/docs/cli/overview',
@@ -124,13 +139,21 @@ if (import.meta.vitest) {
         { key: 'DB_HOST', value: 'localhost' },
         { key: 'DB_PORT', value: '5432' },
       ]);
-      const result = parseInfisicalOutput(output);
+      const [error, result] = parseInfisicalOutput(output);
+      expect(error).toBeNull();
       expect(result).toEqual({ DB_HOST: 'localhost', DB_PORT: '5432' });
     });
 
     it('returns empty record for empty array', () => {
-      const result = parseInfisicalOutput('[]');
+      const [error, result] = parseInfisicalOutput('[]');
+      expect(error).toBeNull();
       expect(result).toEqual({});
+    });
+
+    it('returns error for malformed JSON', () => {
+      const [error, result] = parseInfisicalOutput('not json');
+      expect(error).toBeInstanceOf(Error);
+      expect(result).toBeNull();
     });
   });
 
