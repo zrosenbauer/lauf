@@ -55,13 +55,6 @@ export function resolveWorkspacePackages(): readonly PackageInfo[] {
 }
 
 /**
- * Read the package name from a directory's `package.json`.
- *
- * @param dir - Absolute path to the directory
- * @returns Package info if valid, or `undefined` if missing or malformed
- * @private
- */
-/**
  * Determine which workspace package contains the given directory.
  *
  * Returns the deepest (most specific) matching package, or `undefined`

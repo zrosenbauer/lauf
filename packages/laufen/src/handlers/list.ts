@@ -31,7 +31,7 @@ const listParams = z.object({
 export default defineHandler({
   parameters: listParams,
   handler: (ctx) => {
-    if (ctx.flags.filter) {
+    if (ctx.flags.filter !== undefined) {
       return listFilteredScripts(ctx.flags.filter);
     }
     if (ctx.flags.all) {
