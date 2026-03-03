@@ -100,6 +100,7 @@
         "**/handlers/**",
         "**/runtime/**",
         "**/lib/**",
+        "**/state/**",
         "**/utils/**",
         "**/index.ts",
         "packages/engine/src/**"

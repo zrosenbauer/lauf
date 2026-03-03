@@ -71,7 +71,7 @@ export function formatHelp(
   const header = `${pc.cyan(scriptName)}\n\n  ${description}`;
 
   if (argsMeta.length === 0) {
-    return `${header}\n\n  No flags defined.`;
+    return `${header}\n\n  No flags defined.\n`;
   }
 
   const maxFlagWidth = argsMeta.reduce(
@@ -81,5 +81,5 @@ export function formatHelp(
 
   const flagLines = argsMeta.map((meta) => formatFlag(meta, maxFlagWidth));
 
-  return `${header}\n\n${pc.bold('FLAGS:')}\n\n${flagLines.join('\n')}`;
+  return `${header}\n\n${pc.bold('FLAGS:')}\n\n${flagLines.join('\n')}\n`;
 }

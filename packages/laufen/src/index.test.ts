@@ -12,6 +12,8 @@ const {
   mockHandleRun,
   mockParse,
   mockClercInstance,
+  mockRewriteHelpArgv,
+  mockMarkScriptHelpRequested,
 } = vi.hoisted(() => {
   const _mockParse = vi.fn();
 
@@ -45,6 +47,8 @@ const {
     mockHandleRun: vi.fn(),
     mockParse: _mockParse,
     mockClercInstance: _mockClercInstance,
+    mockRewriteHelpArgv: vi.fn(),
+    mockMarkScriptHelpRequested: vi.fn(),
   };
 });
 
@@ -54,10 +58,18 @@ vi.mock('./handlers/init.ts', () => ({ default: mockHandleInit }));
 vi.mock('./handlers/list.ts', () => ({ default: mockHandleList }));
 vi.mock('./handlers/run.ts', () => ({ default: mockHandleRun }));
 
+vi.mock('./state/script-help.ts', () => ({
+  markScriptHelpRequested: mockMarkScriptHelpRequested,
+}));
+
 vi.mock('./utils/cli.ts', () => ({
   readPackageJSON: mockReadPackageJSON,
   safeParseError: mockSafeParseError,
   errorHint: mockErrorHint,
+}));
+
+vi.mock('./utils/help-rewrite.ts', () => ({
+  rewriteHelpArgv: mockRewriteHelpArgv,
 }));
 
 vi.mock('@clack/prompts', () => ({
@@ -135,6 +147,7 @@ const importIndex = async (expectExit: boolean): Promise<void> => {
 beforeEach(() => {
   vi.clearAllMocks();
   resetChainableReturns();
+  mockRewriteHelpArgv.mockReturnValue({ argv: [], scriptHelpRequested: false });
 });
 
 afterEach(() => {
@@ -174,8 +187,28 @@ describe('index (CLI entrypoint)', () => {
     expect(mockClercInstance.on).toHaveBeenCalledWith('info', mockHandleHelp);
     expect(mockClercInstance.on).toHaveBeenCalledWith('run', mockHandleRun);
     expect(mockClercInstance.on).toHaveBeenCalledWith('create', mockHandleCreate);
-    expect(mockParse).toHaveBeenCalled();
+    expect(mockParse).toHaveBeenCalledWith([]);
     expect(process.exit).not.toHaveBeenCalled();
+  });
+
+  it('passes rewritten argv to .parse() and calls markScriptHelpRequested when help detected', async () => {
+    mockReadPackageJSON.mockReturnValue([null, { name: 'lauf', version: '1.0.0' }]);
+    mockRewriteHelpArgv.mockReturnValue({ argv: ['run', 'clean'], scriptHelpRequested: true });
+
+    await importIndex(false);
+
+    expect(mockMarkScriptHelpRequested).toHaveBeenCalled();
+    expect(mockParse).toHaveBeenCalledWith(['run', 'clean']);
+  });
+
+  it('does not call markScriptHelpRequested when no help detected', async () => {
+    mockReadPackageJSON.mockReturnValue([null, { name: 'lauf', version: '1.0.0' }]);
+    mockRewriteHelpArgv.mockReturnValue({ argv: ['run', 'clean'], scriptHelpRequested: false });
+
+    await importIndex(false);
+
+    expect(mockMarkScriptHelpRequested).not.toHaveBeenCalled();
+    expect(mockParse).toHaveBeenCalledWith(['run', 'clean']);
   });
 
   it('exits with error when readPackageJSON fails', async () => {

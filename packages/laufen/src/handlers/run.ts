@@ -11,6 +11,7 @@ import { defineHandler } from '../lib/handler.ts';
 import { LAUF_ROOT, getWorkspaceRoot } from '../lib/paths.ts';
 import type { HandlerResult, Result } from '../lib/result.ts';
 import { fail, ok } from '../lib/result.ts';
+import { consumeScriptHelpRequested } from '../state/script-help.ts';
 import { extractEnvFlags, parseRawArgs, sliceArgvAfter } from '../utils/argv.ts';
 import { safeParseError } from '../utils/cli.ts';
 import { resolveScript } from '../utils/resolve-script.ts';
@@ -34,7 +35,8 @@ export default defineHandler({
 
     const rawArgv = resolveRawArgv(ctx.parameters.script);
     const { env: cliEnv, remaining: cleanArgv } = extractEnvFlags(rawArgv);
-    const isHelp = cleanArgv.includes('--help') || cleanArgv.includes('-h');
+    const isHelp =
+      consumeScriptHelpRequested() || cleanArgv.includes('--help') || cleanArgv.includes('-h');
     const workspaceRoot = getWorkspaceRoot();
 
     const [envError, configEnv] = await resolveConfigEnv(loaded.config.env, script, workspaceRoot);

@@ -686,7 +686,7 @@ describe('tree display format', () => {
     expect(output).toContain('│   ');
   });
 
-  it('uses └── for the last package in the tree', async () => {
+  it('renders single package as header with scripts directly beneath', async () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([
       null,
       {
@@ -715,8 +715,13 @@ describe('tree display format', () => {
     const noteCall = vi.mocked(p.note).mock.calls[0];
     const output = noteCall[0] as string;
     const lines = output.split('\n');
-    // Single package should use └── (last item connector)
-    expect(lines[0]).toContain('└── ');
+    // Single package should render as header (like <root>), not nested with └──
+    expect(lines[0]).toContain('pkg');
+    expect(lines[0]).not.toContain('└── ');
+    expect(lines[0]).not.toContain('├── ');
+    // Script should be a direct child with └── (last item)
+    expect(lines[1]).toContain('└── ');
+    expect(lines[1]).toContain('build');
   });
 
   it('renders <root> as top-level heading with scripts and packages nested beneath', async () => {
