@@ -26,11 +26,12 @@ export default lauf({
 
 ### Parameters
 
-| Property      | Type                                    | Description                                                     |
-| ------------- | --------------------------------------- | --------------------------------------------------------------- |
-| `description` | `string`                                | Human-readable description shown in `lauf list` and `lauf info` |
-| `args`        | `Record<string, z.ZodType>`             | Zod schemas for each argument                                   |
-| `run`         | `(ctx: ScriptContext) => Promise<void>` | The script's entry point                                        |
+| Property      | Type                                                                | Description                                                      |
+| ------------- | ------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `description` | `string`                                                            | Human-readable description shown in `lauf list` and `lauf info`  |
+| `args`        | `Record<string, z.ZodType>`                                         | Zod schemas for each argument                                    |
+| `env`         | `Record<string, string> \| EnvFn`                                   | Script-level environment variables (static or dynamic, optional) |
+| `run`         | `(ctx: ScriptContext) => void \| number \| Promise<void \| number>` | The script's entry point                                         |
 
 ## Defining Arguments with Zod
 
@@ -63,6 +64,7 @@ Every script's `run` function receives a context object:
 | Property     | Description                                                      |
 | ------------ | ---------------------------------------------------------------- |
 | `args`       | Parsed and validated arguments, fully typed from your Zod schema |
+| `env`        | Resolved environment variables (frozen `Record<string, string>`) |
 | `root`       | Absolute path to the workspace root                              |
 | `packageDir` | Absolute path to the containing package                          |
 | `name`       | Qualified script name (e.g., `@org/pkg/my-script`)               |

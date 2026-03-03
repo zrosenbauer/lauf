@@ -1,15 +1,17 @@
 // oxlint-disable import/max-dependencies
 import * as p from '@clack/prompts';
-import type { RunResult, ScriptTarget } from '@laufen/engine';
-import { runScript } from '@laufen/engine';
+import type { EnvContext, RunResult, ScriptConfig, ScriptTarget } from '@laufen/engine';
+import { resolveEnvValue, runScript } from '@laufen/engine';
 import pc from 'picocolors';
 import { z } from 'zod';
 
+import type { ResolvedLaufConfig } from '../lib/config.ts';
 import { safeLoadLaufConfigWithMeta } from '../lib/config.ts';
 import { defineHandler } from '../lib/handler.ts';
 import { LAUF_ROOT, getWorkspaceRoot } from '../lib/paths.ts';
+import type { HandlerResult, Result } from '../lib/result.ts';
 import { fail, ok } from '../lib/result.ts';
-import { parseRawArgs, sliceArgvAfter } from '../utils/argv.ts';
+import { extractEnvFlags, parseRawArgs, sliceArgvAfter } from '../utils/argv.ts';
 import { safeParseError } from '../utils/cli.ts';
 import { resolveScript } from '../utils/resolve-script.ts';
 
@@ -17,12 +19,6 @@ const runParams = z.object({
   parameters: z.object({ script: z.string().min(1).optional() }),
 });
 
-/**
- * Handler for the `lauf run [script]` CLI command.
- *
- * Resolves the script by qualified name (or prompts for selection),
- * parses any trailing CLI flags into arguments, and spawns the script executor.
- */
 export default defineHandler({
   parameters: runParams,
   handler: async (ctx) => {
@@ -37,39 +33,34 @@ export default defineHandler({
     }
 
     const rawArgv = resolveRawArgv(ctx.parameters.script);
-    const isHelp = rawArgv.includes('--help') || rawArgv.includes('-h');
+    const { env: cliEnv, remaining: cleanArgv } = extractEnvFlags(rawArgv);
+    const isHelp = cleanArgv.includes('--help') || cleanArgv.includes('-h');
     const workspaceRoot = getWorkspaceRoot();
 
+    const [envError, configEnv] = await resolveConfigEnv(loaded.config.env, script, workspaceRoot);
+    if (envError) {
+      return fail({ message: `Failed to resolve config env: ${safeParseError(envError)}` });
+    }
+
     if (isHelp) {
-      const helpResult = await runScript(
+      return runHelpMode(
         script,
-        {},
-        {
-          help: true,
-          workspaceRoot,
-          cliPackageRoot: LAUF_ROOT,
-          spinner: loaded.config.spinner,
-        },
+        workspaceRoot,
+        loaded.config.spinner,
+        configEnv,
+        cliEnv,
+        loaded.config.sandbox,
       );
-      /* v8 ignore start -- help via runScript delegates to executor which handles its own errors */
-      if (helpResult.exitCode === 0) {
-        return ok();
-      }
-      return fail({ message: `Help failed for ${script.name}`, exitCode: helpResult.exitCode });
-    }
-    /* v8 ignore stop */
-
-    const args = parseRawArgs(rawArgv);
-    const result = await executeScript(script, args, workspaceRoot, loaded.config.spinner);
-
-    if (result.exitCode === 0) {
-      return ok();
     }
 
-    return fail({
-      message: `${pc.cyan(script.name)} exited with code ${result.exitCode}`,
-      exitCode: result.exitCode,
-    });
+    return runNormalMode(
+      script,
+      parseRawArgs(cleanArgv),
+      workspaceRoot,
+      loaded.config,
+      configEnv,
+      cliEnv,
+    );
   },
 });
 
@@ -85,19 +76,86 @@ function resolveRawArgv(scriptName: string | undefined): readonly string[] {
 }
 
 /**
+ * Build an EnvContext and resolve config-level env (may be a function).
+ */
+function resolveConfigEnv(
+  envValue: ScriptConfig['env'],
+  script: ScriptTarget,
+  workspaceRoot: string,
+): Promise<Result<Record<string, string>>> {
+  const envCtx: EnvContext = {
+    script: { name: script.name, path: script.path, packageDir: script.packageDir },
+    workspace: workspaceRoot,
+  };
+  return resolveEnvValue(envValue, envCtx);
+}
+
+/**
+ * Run the script in help mode, displaying its argument schema.
+ */
+/* v8 ignore start -- help via runScript delegates to executor which handles its own errors */
+async function runHelpMode(
+  script: ScriptTarget,
+  workspaceRoot: string,
+  spinner: boolean,
+  env: Record<string, string>,
+  cliEnv: Record<string, string>,
+  sandbox: boolean,
+): Promise<HandlerResult> {
+  const helpResult = await runScript(
+    script,
+    {},
+    { help: true, workspaceRoot, cliPackageRoot: LAUF_ROOT, spinner, env, cliEnv, sandbox },
+  );
+  if (helpResult.exitCode === 0) {
+    return ok();
+  }
+  return fail({ message: `Help failed for ${script.name}`, exitCode: helpResult.exitCode });
+}
+/* v8 ignore stop */
+
+/**
+ * Run a script in normal (non-help) mode, logging start and result.
+ */
+async function runNormalMode(
+  script: ScriptTarget,
+  args: Record<string, unknown>,
+  workspaceRoot: string,
+  config: ResolvedLaufConfig,
+  configEnv: Record<string, string>,
+  cliEnv: Record<string, string>,
+): Promise<HandlerResult> {
+  const result = await executeScript(
+    script,
+    args,
+    workspaceRoot,
+    config.spinner,
+    configEnv,
+    cliEnv,
+    config.sandbox,
+  );
+
+  if (result.exitCode === 0) {
+    return ok();
+  }
+
+  return fail({
+    message: `${pc.cyan(script.name)} exited with code ${result.exitCode}`,
+    exitCode: result.exitCode,
+  });
+}
+
+/**
  * Run a script, logging start and result messages.
- *
- * The handler no longer wraps execution in a spinner because
- * the child process may prompt for missing arguments, and the
- * spinner animation conflicts with interactive prompts.
- * Scripts can use `ctx.spinner` for progress indication during
- * their own execution after all prompts are resolved.
  */
 async function executeScript(
   script: ScriptTarget,
   args: Record<string, unknown>,
   workspaceRoot: string,
   spinner: boolean,
+  env: Record<string, string>,
+  cliEnv: Record<string, string>,
+  sandbox: boolean,
 ): Promise<RunResult> {
   const label = pc.cyan(script.name);
 
@@ -106,6 +164,9 @@ async function executeScript(
     workspaceRoot,
     cliPackageRoot: LAUF_ROOT,
     spinner,
+    env,
+    cliEnv,
+    sandbox,
   });
   if (result.exitCode === 0) {
     p.log.success(`${label} completed successfully`);

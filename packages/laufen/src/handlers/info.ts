@@ -1,4 +1,5 @@
-import { runScript } from '@laufen/engine';
+import type { EnvContext } from '@laufen/engine';
+import { resolveEnvValue, runScript } from '@laufen/engine';
 
 import { safeLoadLaufConfigWithMeta } from '../lib/config.ts';
 import { defineHandler } from '../lib/handler.ts';
@@ -24,14 +25,33 @@ export default defineHandler(async (ctx: { parameters: { script?: string } }) =>
     return fail(scriptError);
   }
 
+  const workspaceRoot = getWorkspaceRoot();
+
+  // Build EnvContext for config-level env resolution
+  const envCtx: EnvContext = {
+    script: {
+      name: script.name,
+      path: script.path,
+      packageDir: script.packageDir,
+    },
+    workspace: workspaceRoot,
+  };
+
+  const [envError, configEnv] = await resolveEnvValue(loaded.config.env, envCtx);
+  if (envError) {
+    return fail({ message: `Failed to resolve config env: ${safeParseError(envError)}` });
+  }
+
   const result = await runScript(
     script,
     {},
     {
       help: true,
-      workspaceRoot: getWorkspaceRoot(),
+      workspaceRoot,
       cliPackageRoot: LAUF_ROOT,
       spinner: loaded.config.spinner,
+      env: configEnv,
+      sandbox: loaded.config.sandbox,
     },
   );
 

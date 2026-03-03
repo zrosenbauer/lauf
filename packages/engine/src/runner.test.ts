@@ -177,6 +177,7 @@ describe('runScript', () => {
       expect(spawnEnv.LAUF_WORKSPACE_ROOT).toBe('/workspace');
       expect(spawnEnv.LAUF_PACKAGE_DIR).toBe('/workspace');
       expect(spawnEnv.LAUF_SCRIPT_NAME).toBe('test-script');
+      expect(spawnEnv.LAUF_ENV).toBe('{}');
     });
 
     it('includes NODE_PATH with engine, cli, and workspace node_modules', async () => {
@@ -249,6 +250,89 @@ describe('runScript', () => {
     });
   });
 
+  describe('env and sandbox', () => {
+    it('uses sandbox mode by default (does not spread full process.env)', async () => {
+      const mockChild = createMockChild();
+      mockSpawn.mockReturnValue(mockChild);
+
+      const savedSecret = process.env.MY_SECRET_VAR;
+      // oxlint-disable-next-line immutable-data
+      process.env.MY_SECRET_VAR = 'should-not-leak';
+
+      const resultPromise = runScript(testScript, {}, testOptions);
+      await flushMicrotasks();
+      mockChild.emit('close', 0);
+      await resultPromise;
+
+      const spawnEnv = mockSpawn.mock.calls[0][2].env;
+      expect(spawnEnv.MY_SECRET_VAR).toBeUndefined();
+      expect(spawnEnv.PATH).toBeDefined();
+
+      if (savedSecret === undefined) {
+        // oxlint-disable-next-line immutable-data
+        delete process.env.MY_SECRET_VAR;
+      } else {
+        // oxlint-disable-next-line immutable-data
+        process.env.MY_SECRET_VAR = savedSecret;
+      }
+    });
+
+    it('spreads full process.env when sandbox is false', async () => {
+      const mockChild = createMockChild();
+      mockSpawn.mockReturnValue(mockChild);
+
+      const savedSecret = process.env.MY_INHERIT_VAR;
+      // oxlint-disable-next-line immutable-data
+      process.env.MY_INHERIT_VAR = 'should-be-inherited';
+
+      const resultPromise = runScript(testScript, {}, { ...testOptions, sandbox: false });
+      await flushMicrotasks();
+      mockChild.emit('close', 0);
+      await resultPromise;
+
+      const spawnEnv = mockSpawn.mock.calls[0][2].env;
+      expect(spawnEnv.MY_INHERIT_VAR).toBe('should-be-inherited');
+
+      if (savedSecret === undefined) {
+        // oxlint-disable-next-line immutable-data
+        delete process.env.MY_INHERIT_VAR;
+      } else {
+        // oxlint-disable-next-line immutable-data
+        process.env.MY_INHERIT_VAR = savedSecret;
+      }
+    });
+
+    it('passes user env to spawn and serializes as LAUF_ENV', async () => {
+      const mockChild = createMockChild();
+      mockSpawn.mockReturnValue(mockChild);
+
+      const userEnv = { DATABASE_URL: 'postgres://localhost/db', NODE_ENV: 'production' };
+      const resultPromise = runScript(testScript, {}, { ...testOptions, env: userEnv });
+      await flushMicrotasks();
+      mockChild.emit('close', 0);
+      await resultPromise;
+
+      const spawnEnv = mockSpawn.mock.calls[0][2].env;
+      expect(spawnEnv.DATABASE_URL).toBe('postgres://localhost/db');
+      expect(spawnEnv.NODE_ENV).toBe('production');
+      expect(spawnEnv.LAUF_ENV).toBe(JSON.stringify(userEnv));
+    });
+
+    it('does not allow user env to override LAUF_ control vars', async () => {
+      const mockChild = createMockChild();
+      mockSpawn.mockReturnValue(mockChild);
+
+      const userEnv = { LAUF_SCRIPT_NAME: 'hacked' };
+      const resultPromise = runScript(testScript, {}, { ...testOptions, env: userEnv });
+      await flushMicrotasks();
+      mockChild.emit('close', 0);
+      await resultPromise;
+
+      const spawnEnv = mockSpawn.mock.calls[0][2].env;
+      expect(spawnEnv.LAUF_SCRIPT_NAME).toBe('test-script');
+    });
+  });
+
   describe('spinner', () => {
     it('sets LAUF_SPINNER to 1 when spinner is true', async () => {
       const mockChild = createMockChild();
@@ -304,7 +388,7 @@ describe('runScript', () => {
       expect(spawnEnv.LAUF_HELP).toBe('1');
     });
 
-    it('does not set LAUF_HELP when help is falsy', async () => {
+    it('sets LAUF_HELP to 0 when help is falsy', async () => {
       const mockChild = createMockChild();
       mockSpawn.mockReturnValue(mockChild);
 
@@ -314,7 +398,21 @@ describe('runScript', () => {
       await resultPromise;
 
       const spawnEnv = mockSpawn.mock.calls[0][2].env;
-      expect(spawnEnv.LAUF_HELP).toBeUndefined();
+      expect(spawnEnv.LAUF_HELP).toBe('0');
+    });
+
+    it('does not allow user env to override LAUF_HELP', async () => {
+      const mockChild = createMockChild();
+      mockSpawn.mockReturnValue(mockChild);
+
+      const userEnv = { LAUF_HELP: '1' };
+      const resultPromise = runScript(testScript, {}, { ...testOptions, env: userEnv });
+      await flushMicrotasks();
+      mockChild.emit('close', 0);
+      await resultPromise;
+
+      const spawnEnv = mockSpawn.mock.calls[0][2].env;
+      expect(spawnEnv.LAUF_HELP).toBe('0');
     });
   });
 
