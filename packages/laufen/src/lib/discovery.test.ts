@@ -271,6 +271,100 @@ describe('discoverScripts', () => {
     expect(result[0]).toMatchObject({ name: 'nested-pkg/test' });
     expect(result[1]).toMatchObject({ name: 'root-pkg/build' });
   });
+
+  it('filters to exact package when packageDir is provided', () => {
+    vi.mocked(resolveWorkspacePackages).mockReturnValue([
+      { name: 'pkg-a', dir: '/workspace/packages/pkg-a' },
+      { name: 'pkg-b', dir: '/workspace/packages/pkg-b' },
+    ]);
+    vi.mocked(fg.sync).mockReturnValue(['/workspace/packages/pkg-a/scripts/build.ts']);
+
+    const result = discoverScripts(['scripts/*.lauf.ts'], {
+      packageDir: '/workspace/packages/pkg-a',
+    });
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      name: 'pkg-a/build',
+      packageDir: '/workspace/packages/pkg-a',
+    });
+    expect(fg.sync).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns empty when packageDir matches no packages', () => {
+    vi.mocked(resolveWorkspacePackages).mockReturnValue([
+      { name: 'pkg-a', dir: '/workspace/packages/pkg-a' },
+    ]);
+
+    const result = discoverScripts(['scripts/*.lauf.ts'], {
+      packageDir: '/workspace/packages/nonexistent',
+    });
+
+    expect(result).toEqual([]);
+    expect(fg.sync).not.toHaveBeenCalled();
+  });
+
+  it('filters packages by name glob when filterGlobs is provided', () => {
+    vi.mocked(resolveWorkspacePackages).mockReturnValue([
+      { name: '@apps/api', dir: '/workspace/packages/api' },
+      { name: '@apps/web', dir: '/workspace/packages/web' },
+      { name: '@libs/utils', dir: '/workspace/packages/utils' },
+    ]);
+    vi.mocked(fg.sync)
+      .mockReturnValueOnce(['/workspace/packages/api/scripts/build.ts'])
+      .mockReturnValueOnce(['/workspace/packages/web/scripts/deploy.ts']);
+
+    const result = discoverScripts(['scripts/*.lauf.ts'], { filterGlobs: ['@apps/*'] });
+
+    expect(result).toHaveLength(2);
+    expect(result[0]).toMatchObject({ name: '@apps/api/build' });
+    expect(result[1]).toMatchObject({ name: '@apps/web/deploy' });
+    // Should not call fg.sync for @libs/utils
+    expect(fg.sync).toHaveBeenCalledTimes(2);
+  });
+
+  it('filterGlobs with * wildcard matches all packages', () => {
+    vi.mocked(resolveWorkspacePackages).mockReturnValue([
+      { name: 'pkg-a', dir: '/workspace/packages/pkg-a' },
+      { name: 'pkg-b', dir: '/workspace/packages/pkg-b' },
+    ]);
+    vi.mocked(fg.sync)
+      .mockReturnValueOnce(['/workspace/packages/pkg-a/scripts/build.ts'])
+      .mockReturnValueOnce(['/workspace/packages/pkg-b/scripts/test.ts']);
+
+    const result = discoverScripts(['scripts/*.lauf.ts'], { filterGlobs: ['*'] });
+
+    expect(result).toHaveLength(2);
+    expect(fg.sync).toHaveBeenCalledTimes(2);
+  });
+
+  it('returns empty when filterGlobs matches no packages', () => {
+    vi.mocked(resolveWorkspacePackages).mockReturnValue([
+      { name: 'pkg-a', dir: '/workspace/packages/pkg-a' },
+    ]);
+
+    const result = discoverScripts(['scripts/*.lauf.ts'], { filterGlobs: ['@nonexistent/*'] });
+
+    expect(result).toEqual([]);
+    expect(fg.sync).not.toHaveBeenCalled();
+  });
+
+  it('packageDir takes priority over filterGlobs', () => {
+    vi.mocked(resolveWorkspacePackages).mockReturnValue([
+      { name: 'pkg-a', dir: '/workspace/packages/pkg-a' },
+      { name: 'pkg-b', dir: '/workspace/packages/pkg-b' },
+    ]);
+    vi.mocked(fg.sync).mockReturnValue(['/workspace/packages/pkg-a/scripts/build.ts']);
+
+    const result = discoverScripts(['scripts/*.lauf.ts'], {
+      packageDir: '/workspace/packages/pkg-a',
+      filterGlobs: ['*'],
+    });
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({ name: 'pkg-a/build' });
+    expect(fg.sync).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('findScript', () => {
