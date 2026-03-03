@@ -28,19 +28,31 @@ export function rewriteHelpArgv(argv: readonly string[]): HelpRewriteResult {
     return { argv, scriptHelpRequested: false };
   }
 
-  const hasHelpFlag = argv.some((arg) => arg === '--help' || arg === '-h');
+  const passthroughIndex = argv.indexOf('--');
+
+  let cliArgv: readonly string[];
+  let passthroughArgv: readonly string[];
+  if (passthroughIndex === -1) {
+    cliArgv = argv;
+    passthroughArgv = [];
+  } else {
+    cliArgv = argv.slice(0, passthroughIndex);
+    passthroughArgv = argv.slice(passthroughIndex);
+  }
+
+  const hasHelpFlag = cliArgv.some((arg) => arg === '--help' || arg === '-h');
   if (!hasHelpFlag) {
     return { argv, scriptHelpRequested: false };
   }
 
-  const filtered = argv.filter((arg) => arg !== '--help' && arg !== '-h');
-  return { argv: filtered, scriptHelpRequested: true };
+  const filteredCliArgv = cliArgv.filter((arg) => arg !== '--help' && arg !== '-h');
+  return { argv: [...filteredCliArgv, ...passthroughArgv], scriptHelpRequested: true };
 }
 
 if (import.meta.vitest) {
   const { describe, it, expect } = import.meta.vitest;
 
-  describe('rewriteHelpArgv', () => {
+  describe('rewriteHelpArgv — passthrough', () => {
     it('passes through non-run commands unchanged', () => {
       const result = rewriteHelpArgv(['list', '--help']);
       expect(result).toEqual({ argv: ['list', '--help'], scriptHelpRequested: false });
@@ -56,6 +68,18 @@ if (import.meta.vitest) {
       expect(result).toEqual({ argv: ['run', 'clean', '--verbose'], scriptHelpRequested: false });
     });
 
+    it('handles empty argv', () => {
+      const result = rewriteHelpArgv([]);
+      expect(result).toEqual({ argv: [], scriptHelpRequested: false });
+    });
+
+    it('treats flag-like second arg as not a script', () => {
+      const result = rewriteHelpArgv(['run', '-h']);
+      expect(result).toEqual({ argv: ['run', '-h'], scriptHelpRequested: false });
+    });
+  });
+
+  describe('rewriteHelpArgv — rewriting', () => {
     it('strips --help when run <script> --help is detected', () => {
       const result = rewriteHelpArgv(['run', 'clean', '--help']);
       expect(result).toEqual({ argv: ['run', 'clean'], scriptHelpRequested: true });
@@ -74,14 +98,20 @@ if (import.meta.vitest) {
       });
     });
 
-    it('handles empty argv', () => {
-      const result = rewriteHelpArgv([]);
-      expect(result).toEqual({ argv: [], scriptHelpRequested: false });
+    it('does not rewrite help flags after -- passthrough delimiter', () => {
+      const result = rewriteHelpArgv(['run', 'clean', '--', '--help']);
+      expect(result).toEqual({
+        argv: ['run', 'clean', '--', '--help'],
+        scriptHelpRequested: false,
+      });
     });
 
-    it('treats flag-like second arg as not a script', () => {
-      const result = rewriteHelpArgv(['run', '-h']);
-      expect(result).toEqual({ argv: ['run', '-h'], scriptHelpRequested: false });
+    it('strips help flag before -- but preserves args after --', () => {
+      const result = rewriteHelpArgv(['run', 'clean', '--help', '--', '--verbose']);
+      expect(result).toEqual({
+        argv: ['run', 'clean', '--', '--verbose'],
+        scriptHelpRequested: true,
+      });
     });
   });
 }

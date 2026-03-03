@@ -12,6 +12,8 @@ export function markScriptHelpRequested(): void {
   requested = true;
 }
 
-export function isScriptHelpRequested(): boolean {
-  return requested;
+export function consumeScriptHelpRequested(): boolean {
+  const wasRequested = requested;
+  requested = false;
+  return wasRequested;
 }
