@@ -2,6 +2,7 @@ import * as p from '@clack/prompts';
 import type { EnvFn } from '@laufen/engine';
 import { loadConfig } from 'c12';
 import { attemptAsync } from 'es-toolkit';
+import { createJiti } from 'jiti';
 import { z } from 'zod';
 
 import type { DefaultLogger } from '../types.ts';
@@ -91,6 +92,20 @@ function validateConfig(raw: unknown): Result<ResolvedLaufConfig> {
 }
 
 /**
+ * Build a jiti-backed import function anchored to the given file path.
+ *
+ * Bypasses c12's native `import()` attempt which triggers Node's
+ * MODULE_TYPELESS_PACKAGE_JSON warning on `.ts` config files.
+ */
+function createConfigImport(configFile: string): (id: string) => Promise<unknown> {
+  const jiti = createJiti(configFile, {
+    interopDefault: true,
+    moduleCache: false,
+  });
+  return (id: string) => jiti.import(id);
+}
+
+/**
  * Load a config from a discovered config file via c12.
  */
 async function loadConfigFromDiscovered(discovered: DiscoveredConfig): Promise<ResolvedLaufConfig> {
@@ -98,6 +113,7 @@ async function loadConfigFromDiscovered(discovered: DiscoveredConfig): Promise<R
     name: discovered.configName,
     cwd: discovered.configDir,
     defaults: DEFAULTS,
+    import: createConfigImport(discovered.configFile),
   });
 
   if (!loaded.configFile) {
