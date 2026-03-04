@@ -55,7 +55,7 @@ const { attemptAsyncCallIndex, mockScriptConfig } = vi.hoisted(() => ({
       | undefined
       | {
           description: string;
-          args: Record<string, unknown>;
+          args?: Record<string, unknown>;
           run: ReturnType<typeof vi.fn>;
         },
   },
@@ -332,9 +332,24 @@ describe('executor', () => {
       await runExecutor();
 
       expect(process.exit).toHaveBeenCalledWith(1);
-      expect(mockLogError).toHaveBeenCalledWith(
-        expect.stringContaining('does not export a valid lauf() config'),
-      );
+      expect(mockLogError).toHaveBeenCalledWith(expect.stringContaining('has invalid args'));
+    });
+  });
+
+  describe('no-args script', () => {
+    it('runs successfully when args is omitted', async () => {
+      const mockRunFn = vi.fn();
+      // oxlint-disable-next-line immutable-data
+      mockScriptConfig.value = {
+        description: 'no args script',
+        run: mockRunFn,
+      };
+      mockPromptForMissingArgs.mockResolvedValue([null, {}]);
+
+      await runExecutor();
+
+      expect(mockRunFn).toHaveBeenCalled();
+      expect(process.exit).not.toHaveBeenCalledWith(1);
     });
   });
 
