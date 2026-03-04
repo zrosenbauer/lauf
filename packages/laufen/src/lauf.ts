@@ -48,7 +48,9 @@ import type { LaufConfig } from './lib/config.ts';
  * })
  * ```
  */
-export function lauf<T extends ArgDefs>(config: ScriptConfig<T>): ScriptConfig<T> {
+export function lauf<T extends ArgDefs = Record<string, never>>(
+  config: ScriptConfig<T>,
+): ScriptConfig<T> {
   return config;
 }
 
