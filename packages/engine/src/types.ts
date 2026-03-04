@@ -235,16 +235,14 @@ export interface ScriptContext<T extends ArgDefs> {
  *
  * @typeParam T - The argument definitions record
  */
-export interface ScriptConfig<T extends ArgDefs = ArgDefs> {
+export interface ScriptConfig<T extends ArgDefs = Record<string, never>> {
   /**
    * Human-readable description of what the script does.
    */
   description: string;
 
-  /**
-   * Argument definitions using Zod schemas. Keys become CLI flag names.
-   */
-  args: T;
+  /** Argument definitions using Zod schemas. Keys become CLI flag names. Omit for no-arg scripts. */
+  args?: T;
 
   /**
    * Script-level environment variables.

@@ -102,16 +102,19 @@ async function execute(): Promise<void> {
 
   const config = mod.default;
 
+  if (!config || typeof config.description !== 'string' || typeof config.run !== 'function') {
+    log.error(
+      `Script "${env.LAUF_SCRIPT_NAME}" does not export a valid lauf() config (requires description, run)`,
+    );
+    process.exit(1);
+  }
+
   if (
-    !config ||
-    typeof config.description !== 'string' ||
-    typeof config.args !== 'object' ||
-    config.args === null ||
-    Array.isArray(config.args) ||
-    typeof config.run !== 'function'
+    config.args !== undefined &&
+    (typeof config.args !== 'object' || config.args === null || Array.isArray(config.args))
   ) {
     log.error(
-      `Script "${env.LAUF_SCRIPT_NAME}" does not export a valid lauf() config (requires description, args, run)`,
+      `Script "${env.LAUF_SCRIPT_NAME}" has invalid args: expected a plain object or undefined`,
     );
     process.exit(1);
   }
@@ -161,21 +164,21 @@ async function execute(): Promise<void> {
   applyEnvToProcess(safeResolvedEnv);
 
   if (env.LAUF_HELP === '1') {
-    const argsMeta = extractArgMeta(config.args);
+    const argsMeta = extractArgMeta(config.args ?? {});
     log.message(formatHelp(env.LAUF_SCRIPT_NAME, config.description, argsMeta));
     process.exit(0);
   }
 
   // Prompt for any missing required args before validation
   const prompts = createPrompts();
-  const [promptError, mergedArgs] = await promptForMissingArgs(config.args, rawArgs, prompts);
+  const [promptError, mergedArgs] = await promptForMissingArgs(config.args ?? {}, rawArgs, prompts);
   if (promptError) {
     cancel('Cancelled');
     process.exit(0);
   }
 
   // Build a Zod object schema from the arg definitions and validate
-  const argSchema = z.object(config.args);
+  const argSchema = z.object(config.args ?? {});
 
   const parseResult = argSchema.safeParse(mergedArgs);
 

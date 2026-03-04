@@ -39,6 +39,16 @@ describe('lauf', () => {
     const result = lauf(config);
     expect(result).toBe(config);
   });
+
+  it('accepts a config without args', () => {
+    const config = {
+      description: 'no args needed',
+      run: () => {},
+    };
+    const result = lauf(config);
+    expect(result).toBe(config);
+    expect(result.args).toBeUndefined();
+  });
 });
 
 describe('defineConfig', () => {
