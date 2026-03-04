@@ -1,5 +1,11 @@
 # @laufen/engine
 
+## 1.1.0
+
+### Minor Changes
+
+- 059c490: Make `args` optional on `ScriptConfig` so scripts without arguments can omit it
+
 ## 1.0.0
 
 ### Major Changes
