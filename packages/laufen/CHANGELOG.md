@@ -1,5 +1,17 @@
 # laufen
 
+## 1.1.0
+
+### Minor Changes
+
+- 059c490: Make `args` optional on `ScriptConfig` so scripts without arguments can omit it
+
+### Patch Changes
+
+- 622dde7: Fix MODULE_TYPELESS_PACKAGE_JSON warning when loading `.ts` config files by providing a jiti-backed import function to c12, bypassing its native `import()` attempt
+- Updated dependencies [059c490]
+  - @laufen/engine@1.1.0
+
 ## 1.0.0
 
 ### Major Changes
