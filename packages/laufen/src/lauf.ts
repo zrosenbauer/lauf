@@ -4,6 +4,7 @@ export type {
   DefaultLogger,
   EnvContext,
   EnvFn,
+  FsHelpers,
   InferArgs,
   Logger,
   PromptCancelled,

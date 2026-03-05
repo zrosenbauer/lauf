@@ -9,7 +9,7 @@ pre-commit:
       run: pnpm lauf run sync-pkg-meta && git add packages/laufen/README.md packages/laufen/LICENSE
     format:
       glob: '*.{ts,tsx,js,jsx,json,md,yaml,yml}'
-      run: pnpm fmt {staged_files} && git add {staged_files}
+      run: pnpm oxfmt --no-error-on-unmatched-pattern {staged_files} && git add {staged_files}
 
 pre-push:
   commands:

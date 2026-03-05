@@ -1,6 +1,14 @@
 import type { z } from 'zod';
 
-import type { Result } from './result.ts';
+import type { FsHelpers } from './context/fs-types.ts';
+import type {
+  PromptCancelled,
+  PromptOption,
+  PromptResult,
+  Prompts,
+} from './context/prompt-types.ts';
+
+export type { FsHelpers, PromptCancelled, PromptOption, PromptResult, Prompts };
 
 /** Context passed to env resolver functions for dynamic env generation. */
 export interface EnvContext {
@@ -88,102 +96,6 @@ export interface Spinner {
 }
 
 /**
- * A selectable option for {@link Prompts.select}, {@link Prompts.multiselect},
- * and other list-based prompts.
- */
-export interface PromptOption<Value> {
-  readonly value: Value;
-  readonly label: string;
-  readonly hint?: string;
-  readonly disabled?: boolean;
-}
-
-/**
- * Sentinel indicating the user cancelled a prompt.
- */
-export interface PromptCancelled {
-  readonly cancelled: true;
-}
-
-/**
- * Result of an interactive prompt: either the resolved value or a
- * cancellation sentinel.  Follows the same `[error, value]` convention
- * as {@link Result}.
- */
-export type PromptResult<T> = Result<T, PromptCancelled>;
-
-/**
- * Interactive prompt utilities backed by `@clack/prompts`.
- *
- * Each method wraps the corresponding clack prompt and handles
- * cancellation, returning a {@link PromptResult} tuple instead of
- * throwing or returning a cancel symbol.
- */
-export interface Prompts {
-  /**
-   * Prompt the user for text input.
-   */
-  text(opts: {
-    readonly message: string;
-    readonly placeholder?: string;
-    readonly defaultValue?: string;
-    readonly initialValue?: string;
-    readonly validate?: (value: string | undefined) => string | Error | undefined;
-  }): Promise<PromptResult<string>>;
-
-  /**
-   * Prompt the user for a yes/no confirmation.
-   */
-  confirm(opts: {
-    readonly message: string;
-    readonly active?: string;
-    readonly inactive?: string;
-    readonly initialValue?: boolean;
-  }): Promise<PromptResult<boolean>>;
-
-  /**
-   * Prompt the user to select a single value from a list.
-   */
-  select<Value>(opts: {
-    readonly message: string;
-    readonly options: ReadonlyArray<PromptOption<Value>>;
-    readonly initialValue?: Value;
-    readonly maxItems?: number;
-  }): Promise<PromptResult<Value>>;
-
-  /**
-   * Prompt the user to select multiple values from a list.
-   */
-  multiselect<Value>(opts: {
-    readonly message: string;
-    readonly options: ReadonlyArray<PromptOption<Value>>;
-    readonly initialValues?: ReadonlyArray<Value>;
-    readonly maxItems?: number;
-    readonly required?: boolean;
-  }): Promise<PromptResult<ReadonlyArray<Value>>>;
-
-  /**
-   * Prompt the user for a password (masked input).
-   */
-  password(opts: {
-    readonly message: string;
-    readonly mask?: string;
-    readonly validate?: (value: string | undefined) => string | Error | undefined;
-  }): Promise<PromptResult<string>>;
-
-  /**
-   * Prompt the user for a file-system path.
-   */
-  path(opts: {
-    readonly message: string;
-    readonly root?: string;
-    readonly directory?: boolean;
-    readonly initialValue?: string;
-    readonly validate?: (value: string | undefined) => string | Error | undefined;
-  }): Promise<PromptResult<string>>;
-}
-
-/**
  * Context passed to the script's `run` function.
  */
 export interface ScriptContext<T extends ArgDefs> {
@@ -200,12 +112,26 @@ export interface ScriptContext<T extends ArgDefs> {
   readonly env: Readonly<Record<string, string>>;
 
   /**
+   * Directory paths organized by namespace.
+   */
+  readonly dir: {
+    /** Absolute path to the workspace root (git repository root) */
+    readonly root: string;
+    /** Absolute path to the package containing this script */
+    readonly package: string;
+    /** Alias for dir.package */
+    readonly workspace: string;
+  };
+
+  /**
    * Absolute path to the monorepo root.
+   * @deprecated Use `ctx.dir.root` instead
    */
   readonly root: string;
 
   /**
    * Absolute path to the package containing this script.
+   * @deprecated Use `ctx.dir.package` instead
    */
   readonly packageDir: string;
 
@@ -228,6 +154,11 @@ export interface ScriptContext<T extends ArgDefs> {
    * Interactive prompt utilities.
    */
   readonly prompts: Prompts;
+
+  /**
+   * Filesystem helper utilities scoped to the package directory.
+   */
+  readonly fs: FsHelpers;
 }
 
 /**
