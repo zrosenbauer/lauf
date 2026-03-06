@@ -35,7 +35,6 @@
     "**/*.d.ts",
     "**/bundle/**",
     ".claude",
-    "examples",
     "scripts",
     "**/CHANGELOG.md"
   ]

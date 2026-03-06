@@ -13,6 +13,7 @@ export type {
   ArgDefs,
   EnvContext,
   EnvFn,
+  FsHelpers,
   InferArgs,
   ScriptConfig,
   ScriptContext,
