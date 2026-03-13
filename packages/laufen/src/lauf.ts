@@ -14,6 +14,8 @@ export type {
   ScriptConfig,
   ScriptContext,
   Spinner,
+  WatchConfig,
+  WatchContext,
 } from '@laufen/engine';
 export type { LaufConfig } from './lib/config.ts';
 export { dotenv } from './lib/env.ts';

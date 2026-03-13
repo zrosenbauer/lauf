@@ -25,6 +25,11 @@ export interface RunScriptOptions {
   readonly env?: Record<string, string>;
   readonly cliEnv?: Record<string, string>;
   readonly sandbox?: boolean;
+  readonly watch?: {
+    readonly enabled: boolean;
+    readonly changedFiles: readonly string[];
+    readonly patterns: readonly string[];
+  };
 }
 
 /**
@@ -83,6 +88,35 @@ function resolveSpinnerEnv(enabled: boolean): string {
     return '1';
   }
   return '0';
+}
+
+/**
+ * Resolve watch-mode environment variables from options.
+ */
+function resolveWatchEnabledEnv(enabled: boolean): string {
+  if (enabled) {
+    return '1';
+  }
+  return '0';
+}
+
+/**
+ * Resolve watch-mode environment variables from options.
+ */
+function resolveWatchEnv(options: RunScriptOptions): Record<string, string> {
+  const watch = options.watch;
+  if (watch === undefined) {
+    return {
+      LAUF_WATCH_ENABLED: '0',
+      LAUF_WATCH_CHANGED: '[]',
+      LAUF_WATCH_PATTERNS: '[]',
+    };
+  }
+  return {
+    LAUF_WATCH_ENABLED: resolveWatchEnabledEnv(watch.enabled),
+    LAUF_WATCH_CHANGED: JSON.stringify(watch.changedFiles),
+    LAUF_WATCH_PATTERNS: JSON.stringify(watch.patterns),
+  };
 }
 
 /**
@@ -344,6 +378,7 @@ export async function runScript(
 
   const spinnerEnabled = resolveSpinner(options);
   const helpEnv = resolveHelpEnv(options);
+  const watchEnv = resolveWatchEnv(options);
   const spinnerValue = resolveSpinnerEnv(spinnerEnabled);
   const baseEnv = buildBaseEnv(options.sandbox ?? true);
   const userEnv = options.env ?? {};
@@ -370,6 +405,7 @@ export async function runScript(
         LAUF_ENV: JSON.stringify(userEnv),
         LAUF_CLI_ENV: JSON.stringify(cliEnv),
         ...helpEnv,
+        ...watchEnv,
       },
     });
 

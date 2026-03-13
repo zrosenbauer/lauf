@@ -56,6 +56,7 @@ describe('createContext', () => {
     name: '@app/script',
     spinner: false,
     logger: undefined,
+    watch: { enabled: false, changedFiles: [] as string[], patterns: [] as string[] },
   };
 
   it('returns context with correct args', () => {

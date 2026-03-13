@@ -1,5 +1,5 @@
 import * as p from '@clack/prompts';
-import type { EnvFn } from '@laufen/engine';
+import type { EnvFn, WatchConfig } from '@laufen/engine';
 import { loadConfig } from 'c12';
 import { attemptAsync } from 'es-toolkit';
 import { createJiti } from 'jiti';
@@ -21,6 +21,7 @@ export interface LaufConfig {
   spinner?: boolean;
   sandbox?: boolean;
   env?: EnvValue;
+  watch?: WatchConfig;
 }
 
 export interface ResolvedLaufConfig {
@@ -29,6 +30,7 @@ export interface ResolvedLaufConfig {
   spinner: boolean;
   sandbox: boolean;
   env: EnvValue;
+  watch: WatchConfig | undefined;
 }
 
 /**
@@ -55,6 +57,14 @@ const loggerSchema = z
   })
   .optional();
 
+const watchConfigSchema: z.ZodType<WatchConfig | undefined> = z
+  .object({
+    patterns: z.array(z.string()),
+    debounce: z.number().optional(),
+    ignored: z.array(z.string()).optional(),
+  })
+  .optional();
+
 /**
  * Zod schema that validates the shape of a resolved lauf config.
  *
@@ -67,6 +77,7 @@ const resolvedLaufConfigSchema: z.ZodType<ResolvedLaufConfig> = z.object({
   spinner: z.boolean(),
   sandbox: z.boolean(),
   env: z.union([z.record(z.string(), z.string()), z.function()]),
+  watch: watchConfigSchema,
 }) as z.ZodType<ResolvedLaufConfig>;
 
 const DEFAULTS: ResolvedLaufConfig = {
@@ -75,6 +86,7 @@ const DEFAULTS: ResolvedLaufConfig = {
   spinner: true,
   sandbox: true,
   env: {},
+  watch: undefined,
 };
 
 /**
