@@ -102,6 +102,7 @@
         "**/lib/**",
         "**/state/**",
         "**/utils/**",
+        "**/templates/**",
         "**/index.ts",
         "packages/engine/src/**"
       ],
@@ -128,6 +129,7 @@
     "**/bundle/**",
     ".claude",
     "examples",
-    "scripts"
+    "scripts",
+    "**/blueprints/**"
   ]
 }

@@ -26,25 +26,20 @@
 
 ## Quick Start
 
+Install the `laufen` package.
+
 ```bash
 pnpm add -D laufen
 ```
 
-> **Requires Node.js >= 22.0.0**
-
-```bash
-lauf init        # scaffold lauf.config.ts
-lauf create      # generate a new script from a template
-lauf list        # discover all scripts across the workspace
-lauf run         # execute a script by name
-lauf info        # view a script's args and description
-```
+Setup a `lauf` script, including defining args and passing in env variables.
 
 ```ts
-import { lauf, z } from 'laufen';
+import { lauf, z, infisical } from 'laufen';
 
 export default lauf({
   description: 'Say hello',
+  env: infisical({ path: '/ops/ci', env: 'dev' )),
   args: {
     name: z.string().default('world'),
     loud: z.boolean().default(false),
@@ -56,8 +51,23 @@ export default lauf({
 });
 ```
 
+Run the script using the args you defined.
+
 ```bash
 lauf run @my-org/my-package/hello --name=Zac --loud=true
+```
+
+> [!TIP]
+> Requires Node.js >= 22.0.0
+
+## Quick Reference
+
+```bash
+lauf init        # scaffold lauf.config.ts
+lauf create      # generate a new script from a template
+lauf list        # discover all scripts across the workspace
+lauf run         # execute a script by name
+lauf info        # view a script's args and description
 ```
 
 ---
