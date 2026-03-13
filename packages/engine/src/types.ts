@@ -185,6 +185,25 @@ export interface ScriptConfig<T extends ArgDefs = Record<string, never>> {
   env?: Record<string, string> | EnvFn;
 
   /**
+   * npm package dependencies to install for this script.
+   *
+   * Packages are installed to a cache directory (`~/.lauf/packages/<hash>/`)
+   * and made available via dynamic imports.
+   *
+   * @example
+   * ```ts
+   * packages: {
+   *   'rimraf': '^6.0.0',
+   *   'execa': '^9.0.0',
+   * }
+   *
+   * // In run():
+   * const { rimraf } = await import('rimraf');
+   * ```
+   */
+  packages?: Record<string, string>;
+
+  /**
    * The script's entry point, called with the validated context.
    *
    * Returning `void` or `0` signals success.

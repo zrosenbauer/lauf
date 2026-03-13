@@ -21,6 +21,11 @@ export interface LaufConfig {
   spinner?: boolean;
   sandbox?: boolean;
   env?: EnvValue;
+  /**
+   * Workspace-level package dependencies available to all scripts.
+   * Script-level packages take precedence for version conflicts.
+   */
+  packages?: Record<string, string>;
 }
 
 export interface ResolvedLaufConfig {
@@ -29,6 +34,7 @@ export interface ResolvedLaufConfig {
   spinner: boolean;
   sandbox: boolean;
   env: EnvValue;
+  packages: Record<string, string>;
 }
 
 /**
@@ -67,6 +73,7 @@ const resolvedLaufConfigSchema: z.ZodType<ResolvedLaufConfig> = z.object({
   spinner: z.boolean(),
   sandbox: z.boolean(),
   env: z.union([z.record(z.string(), z.string()), z.function()]),
+  packages: z.record(z.string(), z.string()),
 }) as z.ZodType<ResolvedLaufConfig>;
 
 const DEFAULTS: ResolvedLaufConfig = {
@@ -75,6 +82,7 @@ const DEFAULTS: ResolvedLaufConfig = {
   spinner: true,
   sandbox: true,
   env: {},
+  packages: {},
 };
 
 /**

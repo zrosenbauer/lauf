@@ -8,6 +8,8 @@ export { createLogger } from './context/logger.ts';
 export { createPrompts } from './context/prompts.ts';
 export { createSpinner, createNoopSpinner } from './context/spinner.ts';
 export { extractSchemaFields, resolveType } from './utils/schema.ts';
+export { preparePackages } from './package-manager.ts';
+export { extractPackages } from './package-metadata.ts';
 export type { JsonSchemaProperty } from './utils/schema.ts';
 export type {
   ArgDefs,
@@ -30,3 +32,4 @@ export type {
 export type { Result } from './result.ts';
 export type { RunScriptOptions } from './runner.ts';
 export type { BundleResult } from './bundler.ts';
+export type { PreparePackagesResult } from './package-manager.ts';

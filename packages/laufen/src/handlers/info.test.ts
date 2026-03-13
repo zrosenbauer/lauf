@@ -55,6 +55,7 @@ const mockLoadedConfig = {
     spinner: true,
     sandbox: true,
     env: {},
+    packages: {},
   },
   configFile: '/workspace/lauf.config.ts',
   configDir: '/workspace',
@@ -88,6 +89,7 @@ describe('info handler', () => {
         cliPackageRoot: '/lauf-root',
         spinner: true,
         env: {},
+        packages: {},
         sandbox: true,
       },
     );
@@ -111,6 +113,7 @@ describe('info handler', () => {
         cliPackageRoot: '/lauf-root',
         spinner: true,
         env: {},
+        packages: {},
         sandbox: true,
       },
     );

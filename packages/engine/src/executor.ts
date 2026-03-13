@@ -119,6 +119,30 @@ async function execute(): Promise<void> {
     process.exit(1);
   }
 
+  if (
+    config.packages !== undefined &&
+    (typeof config.packages !== 'object' ||
+      config.packages === null ||
+      Array.isArray(config.packages))
+  ) {
+    log.error(
+      `Script "${env.LAUF_SCRIPT_NAME}" has invalid packages: expected a plain object or undefined`,
+    );
+    process.exit(1);
+  }
+
+  if (config.packages) {
+    const invalidPackages = Object.entries(config.packages).filter(
+      ([key, value]) => typeof key !== 'string' || typeof value !== 'string',
+    );
+    if (invalidPackages.length > 0) {
+      log.error(
+        `Script "${env.LAUF_SCRIPT_NAME}" has invalid package definitions: all keys and values must be strings`,
+      );
+      process.exit(1);
+    }
+  }
+
   // Parse pre-merged env (config.env) from runner
   const parsedEnv = parseLaufEnv(env.LAUF_ENV);
   if (parsedEnv[0]) {

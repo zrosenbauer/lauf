@@ -52,6 +52,7 @@ export default defineHandler({
         configEnv,
         cliEnv,
         loaded.config.sandbox,
+        loaded.config.packages,
       );
     }
 
@@ -103,11 +104,21 @@ async function runHelpMode(
   env: Record<string, string>,
   cliEnv: Record<string, string>,
   sandbox: boolean,
+  workspacePackages: Record<string, string>,
 ): Promise<HandlerResult> {
   const helpResult = await runScript(
     script,
     {},
-    { help: true, workspaceRoot, cliPackageRoot: LAUF_ROOT, spinner, env, cliEnv, sandbox },
+    {
+      help: true,
+      workspaceRoot,
+      cliPackageRoot: LAUF_ROOT,
+      spinner,
+      env,
+      cliEnv,
+      sandbox,
+      workspacePackages,
+    },
   );
   if (helpResult.exitCode === 0) {
     return ok();
@@ -135,6 +146,7 @@ async function runNormalMode(
     configEnv,
     cliEnv,
     config.sandbox,
+    config.packages,
   );
 
   if (result.exitCode === 0) {
@@ -158,6 +170,7 @@ async function executeScript(
   env: Record<string, string>,
   cliEnv: Record<string, string>,
   sandbox: boolean,
+  workspacePackages: Record<string, string>,
 ): Promise<RunResult> {
   const label = pc.cyan(script.name);
 
@@ -169,6 +182,7 @@ async function executeScript(
     env,
     cliEnv,
     sandbox,
+    workspacePackages,
   });
   if (result.exitCode === 0) {
     p.log.success(`${label} completed successfully`);

@@ -10,8 +10,8 @@ import { attempt } from 'es-toolkit';
 import { bundleScript } from './bundler.ts';
 import { createLogger } from './context/logger.ts';
 import { buildBaseEnv } from './env.ts';
+import { extractAndPreparePackages } from './package-orchestrator.ts';
 import type { Logger, RunResult, ScriptTarget } from './types.ts';
-import { safeParseError } from './utils/cli.ts';
 
 const ENGINE_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const EXECUTOR_DIST_PATH = path.join(ENGINE_ROOT, 'dist', 'executor.mjs');
@@ -25,6 +25,7 @@ export interface RunScriptOptions {
   readonly env?: Record<string, string>;
   readonly cliEnv?: Record<string, string>;
   readonly sandbox?: boolean;
+  readonly workspacePackages?: Record<string, string>;
 }
 
 /**
@@ -47,17 +48,32 @@ function resolveExecutorPath(): string | undefined {
  * Build `NODE_PATH` so scripts can resolve laufen's dependencies (zod, etc.)
  * without requiring each package to declare them explicitly.
  *
- * Includes engine's node_modules, CLI package's node_modules,
- * workspace root's node_modules, and existing NODE_PATH.
+ * Includes package cache node_modules (if provided), engine's node_modules,
+ * CLI package's node_modules, workspace root's node_modules, and existing NODE_PATH.
  *
+ * @param workspaceRoot - Absolute path to workspace root
+ * @param cliPackageRoot - Absolute path to CLI package root
+ * @param packageCacheDir - Optional absolute path to package cache directory
  * @returns Colon-delimited `NODE_PATH` string
  */
-function buildNodePath(workspaceRoot: string, cliPackageRoot: string): string {
-  const paths = [
+function buildNodePath(
+  workspaceRoot: string,
+  cliPackageRoot: string,
+  packageCacheDir: string | null,
+): string {
+  const basePaths = [
     path.join(ENGINE_ROOT, 'node_modules'),
     path.join(cliPackageRoot, 'node_modules'),
     path.join(workspaceRoot, 'node_modules'),
   ];
+
+  const paths = (() => {
+    if (packageCacheDir === null) {
+      return basePaths;
+    }
+    return [path.join(packageCacheDir, 'node_modules'), ...basePaths];
+  })();
+
   const existing = process.env.NODE_PATH;
   if (existing) {
     return [...paths, existing].join(path.delimiter);
@@ -153,16 +169,26 @@ if (import.meta.vitest) {
 
   describe('buildNodePath', () => {
     it('includes engine, cli, and workspace node_modules', () => {
-      const result = buildNodePath('/workspace', '/cli-root');
+      const result = buildNodePath('/workspace', '/cli-root', null);
       expect(result).toContain(path.join(ENGINE_ROOT, 'node_modules'));
       expect(result).toContain('/cli-root/node_modules');
       expect(result).toContain('/workspace/node_modules');
     });
 
+    it('prepends package cache node_modules when provided', () => {
+      const result = buildNodePath('/workspace', '/cli-root', '/cache');
+      expect(result.split(path.delimiter)[0]).toBe('/cache/node_modules');
+    });
+
+    it('excludes package cache when null', () => {
+      const result = buildNodePath('/workspace', '/cli-root', null);
+      expect(result).not.toContain('null');
+    });
+
     it('appends existing NODE_PATH when set', () => {
       const saved = process.env.NODE_PATH;
       process.env.NODE_PATH = '/custom/modules';
-      const result = buildNodePath('/workspace', '/cli-root');
+      const result = buildNodePath('/workspace', '/cli-root', null);
       expect(result).toContain('/custom/modules');
       /* v8 ignore next 5 -- env-var restore; which branch runs depends on whether NODE_PATH was pre-set */
       if (saved === undefined) {
@@ -175,7 +201,7 @@ if (import.meta.vitest) {
     it('returns only base paths when NODE_PATH is empty', () => {
       const saved = process.env.NODE_PATH;
       process.env.NODE_PATH = '';
-      const result = buildNodePath('/workspace', '/cli-root');
+      const result = buildNodePath('/workspace', '/cli-root', null);
       const parts = result.split(path.delimiter);
       expect(parts).toHaveLength(3);
       /* v8 ignore next 5 -- env-var restore; which branch runs depends on whether NODE_PATH was pre-set */
@@ -332,9 +358,36 @@ export async function runScript(
     return { exitCode: 1, script };
   }
 
-  const [bundleError, bundle] = await bundleScript(script.path);
+  const workspacePackages = options.workspacePackages ?? {};
+  const [packageError, packagePrep] = await extractAndPreparePackages(
+    script.path,
+    workspacePackages,
+    options.workspaceRoot,
+  );
+  if (packageError) {
+    log.error(`Failed to prepare packages: ${String(packageError)}`);
+    return { exitCode: 1, script };
+  }
+
+  if (packagePrep === null) {
+    const [bundleError, bundle] = await bundleScript(script.path);
+    if (bundleError) {
+      log.error(`Failed to bundle script: ${String(bundleError)}`);
+      return { exitCode: 1, script };
+    }
+
+    bundle.warnings.forEach((w) => {
+      log.warn(`Bundle warning: ${w}`);
+    });
+
+    return spawnScriptProcess(script, args, options, bundle, executorPath, null);
+  }
+
+  const [bundleError, bundle] = await bundleScript(script.path, {
+    externals: packagePrep.packageNames,
+  });
   if (bundleError) {
-    log.error(`Failed to bundle script: ${safeParseError(bundleError)}`);
+    log.error(`Failed to bundle script: ${String(bundleError)}`);
     return { exitCode: 1, script };
   }
 
@@ -342,6 +395,19 @@ export async function runScript(
     log.warn(`Bundle warning: ${w}`);
   });
 
+  return spawnScriptProcess(script, args, options, bundle, executorPath, packagePrep.cacheDir);
+}
+
+/**
+ * Build environment variables for script execution.
+ */
+function buildScriptEnv(
+  script: ScriptTarget,
+  args: Record<string, unknown>,
+  options: RunScriptOptions,
+  bundle: { readonly outputPath: string },
+  packageCacheDir: string | null,
+): Record<string, string> {
   const spinnerEnabled = resolveSpinner(options);
   const helpEnv = resolveHelpEnv(options);
   const spinnerValue = resolveSpinnerEnv(spinnerEnabled);
@@ -349,34 +415,47 @@ export async function runScript(
   const userEnv = options.env ?? {};
   const cliEnv = options.cliEnv ?? {};
 
-  // oxlint-disable-next-line max-lines-per-function
+  return {
+    ...baseEnv,
+    ...userEnv,
+    ...cliEnv,
+    NODE_OPTIONS: sanitizeNodeOptions(process.env.NODE_OPTIONS),
+    NODE_PATH: buildNodePath(options.workspaceRoot, options.cliPackageRoot, packageCacheDir),
+    LAUF_SCRIPT_PATH: bundle.outputPath,
+    LAUF_ORIGINAL_PATH: script.path,
+    LAUF_ARGS: JSON.stringify(args),
+    LAUF_WORKSPACE_ROOT: options.workspaceRoot,
+    LAUF_PACKAGE_DIR: script.packageDir,
+    LAUF_SCRIPT_NAME: script.name,
+    LAUF_SPINNER: spinnerValue,
+    LAUF_ENV: JSON.stringify(userEnv),
+    LAUF_CLI_ENV: JSON.stringify(cliEnv),
+    ...helpEnv,
+  };
+}
+
+/**
+ * Spawn the script executor process with the bundled script.
+ */
+function spawnScriptProcess(
+  script: ScriptTarget,
+  args: Record<string, unknown>,
+  options: RunScriptOptions,
+  bundle: { readonly outputPath: string; readonly cleanup: () => void },
+  executorPath: string,
+  packageCacheDir: string | null,
+): Promise<RunResult> {
+  const log = options.logger ?? createLogger();
+  const env = buildScriptEnv(script, args, options, bundle, packageCacheDir);
+
   return new Promise((resolve) => {
     const child = spawn('node', [executorPath], {
       cwd: script.packageDir,
       stdio: 'inherit',
-      env: {
-        ...baseEnv,
-        ...userEnv,
-        ...cliEnv,
-        NODE_OPTIONS: sanitizeNodeOptions(process.env.NODE_OPTIONS),
-        NODE_PATH: buildNodePath(options.workspaceRoot, options.cliPackageRoot),
-        LAUF_SCRIPT_PATH: bundle.outputPath,
-        LAUF_ORIGINAL_PATH: script.path,
-        LAUF_ARGS: JSON.stringify(args),
-        LAUF_WORKSPACE_ROOT: options.workspaceRoot,
-        LAUF_PACKAGE_DIR: script.packageDir,
-        LAUF_SCRIPT_NAME: script.name,
-        LAUF_SPINNER: spinnerValue,
-        LAUF_ENV: JSON.stringify(userEnv),
-        LAUF_CLI_ENV: JSON.stringify(cliEnv),
-        ...helpEnv,
-      },
+      env,
     });
 
     const signalCleanup = registerSignalForwarding(child);
-
-    // AbortController signals settlement so only the first event
-    // (close or error) resolves the promise. The second event is a no-op.
     const ac = new AbortController();
 
     child.once('close', (code) => {
@@ -386,10 +465,7 @@ export async function runScript(
       ac.abort();
       signalCleanup();
       bundle.cleanup();
-      resolve({
-        exitCode: code ?? 1,
-        script,
-      });
+      resolve({ exitCode: code ?? 1, script });
     });
 
     child.once('error', (err) => {
@@ -399,11 +475,8 @@ export async function runScript(
       ac.abort();
       signalCleanup();
       bundle.cleanup();
-      log.error(`Failed to spawn script executor: ${safeParseError(err)}`);
-      resolve({
-        exitCode: 1,
-        script,
-      });
+      log.error(`Failed to spawn script executor: ${String(err)}`);
+      resolve({ exitCode: 1, script });
     });
   });
 }
