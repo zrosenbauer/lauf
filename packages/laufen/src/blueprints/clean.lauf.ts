@@ -1,23 +1,66 @@
 import { lauf, z } from 'laufen';
 
+// Edit each group to match your project — remove entries for tools you don't use.
+
+const BUILD_TARGETS = [
+  // Generic: dist, build, out | Library: lib | TypeScript: .tsbuildinfo
+  'dist',
+  'build',
+  'out',
+  'lib',
+  '.tsbuildinfo',
+];
+
+const CACHE_TARGETS = [
+  // Monorepo: .turbo (Turborepo), .nx (NX)
+  '.turbo',
+  '.nx',
+
+  // Frameworks: .next (Next.js), .nuxt + .output (Nuxt), .svelte-kit (SvelteKit)
+  // .astro (Astro), .vercel (Vercel), .remix (Remix)
+  '.next',
+  '.nuxt',
+  '.output',
+  '.svelte-kit',
+  '.astro',
+  '.vercel',
+  '.remix',
+
+  // Bundlers: .parcel-cache (Parcel), .cache (Babel / webpack / generic)
+  '.parcel-cache',
+  '.cache',
+];
+
+const TEMP_TARGETS = ['coverage', 'tmp', 'temp'];
+
 export default lauf({
   description: 'Remove build artifacts, caches, and temporary files',
   args: {
-    nodeModules: z.boolean().default(false).describe('Also remove node_modules'),
+    build: z
+      .boolean()
+      .default(false)
+      .describe('Only remove build outputs (dist, build, .tsbuildinfo, etc.)'),
+    cache: z
+      .boolean()
+      .default(false)
+      .describe('Only remove tool and framework caches (.turbo, .next, etc.)'),
+    npm: z.boolean().default(false).describe('Also remove node_modules'),
+    nuke: z
+      .boolean()
+      .default(false)
+      .describe('Remove everything — build, cache, temp, and node_modules'),
     dryRun: z.boolean().default(false).describe('Show what would be deleted without deleting'),
   },
   async run(ctx) {
+    const { build, cache, npm, nuke, dryRun } = ctx.args;
+
+    const selective = build || cache || npm;
+
     const targets = [
-      'dist',
-      'build',
-      '.next',
-      '.turbo',
-      'coverage',
-      '.cache',
-      'tmp',
-      'temp',
-      '.tsbuildinfo',
-      ...(ctx.args.nodeModules ? ['node_modules'] : []),
+      ...(nuke || build || !selective ? BUILD_TARGETS : []),
+      ...(nuke || cache || !selective ? CACHE_TARGETS : []),
+      ...(nuke || !selective ? TEMP_TARGETS : []),
+      ...(nuke || npm ? ['node_modules'] : []),
     ];
 
     const existingTargets = await Promise.all(
@@ -32,7 +75,7 @@ export default lauf({
       return;
     }
 
-    if (ctx.args.dryRun) {
+    if (dryRun) {
       ctx.logger.info('Would delete:');
       existingTargets.forEach((target) => {
         ctx.logger.message(`  - ${target}`);
