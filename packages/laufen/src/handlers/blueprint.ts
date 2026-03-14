@@ -77,7 +77,15 @@ export default defineHandler({
       return fail({ message: `Failed to create directory ${targetDir}: ${mkdirError}` });
     }
 
-    const template = getBlueprintTemplate(blueprintName);
+    const [templateError, template] = getBlueprintTemplate(blueprintName);
+    if (templateError) {
+      return fail({
+        message: `Failed to load blueprint template "${blueprintName}": ${safeParseError(templateError)}`,
+      });
+    }
+    if (!template) {
+      return fail({ message: `Failed to load blueprint template "${blueprintName}"` });
+    }
 
     const [writeError] = safeWriteFileExclusive(filePath, template);
     if (writeError) {
@@ -127,10 +135,30 @@ function resolveTargetDir(dir: string | undefined, patterns: string[], configDir
     return path.resolve(configDir, dir);
   }
   const firstPattern = patterns[0];
-  if (firstPattern) {
-    return path.resolve(configDir, path.dirname(firstPattern));
+  if (!firstPattern) {
+    return path.resolve(configDir, 'scripts');
   }
-  return path.resolve(configDir, 'scripts');
+  const baseDir = resolveGlobBase(firstPattern);
+  if (baseDir === '.') {
+    return path.resolve(configDir, 'scripts');
+  }
+  return path.resolve(configDir, baseDir);
+}
+
+/**
+ * Extract the static base directory from a glob pattern.
+ * e.g. "scripts/*.lauf.ts" → "scripts", "**\/*.ts" → "."
+ */
+function resolveGlobBase(pattern: string): string {
+  const wildcardIndex = pattern.search(/[*?[\]{}]/);
+  if (wildcardIndex === -1) {
+    return path.dirname(pattern);
+  }
+  const staticPrefix = pattern.slice(0, wildcardIndex);
+  if (staticPrefix.endsWith(path.sep)) {
+    return staticPrefix.slice(0, -1);
+  }
+  return path.dirname(staticPrefix);
 }
 
 /**

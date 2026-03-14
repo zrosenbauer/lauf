@@ -28,11 +28,15 @@ export default lauf({
       ctx.spinner.start(`Copying ${from} → ${to}`);
       try {
         await ctx.fs.copyFile(from, to);
+        ctx.logger.success(`Copied ${from} → ${to}`);
+        return;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        ctx.logger.error(`Failed to copy ${from} → ${to}: ${message}`);
+        return 1;
       } finally {
         ctx.spinner.stop();
       }
-      ctx.logger.success(`Copied ${from} → ${to}`);
-      return;
     }
 
     if (sourceStat.isDirectory()) {

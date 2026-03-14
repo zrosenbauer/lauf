@@ -2,6 +2,8 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { attempt } from 'es-toolkit';
+
 /**
  * Available blueprint names.
  */
@@ -12,10 +14,11 @@ export type BlueprintName = (typeof BLUEPRINTS)[number];
 const blueprintsDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'blueprints');
 
 /**
- * Get the content of a blueprint template.
+ * Get the content of a blueprint template as a Result tuple.
+ * Returns [error, null] on failure, [null, content] on success.
  */
-export function getBlueprintTemplate(name: BlueprintName): string {
-  return readFileSync(join(blueprintsDir, `${name}.lauf.ts`), 'utf-8');
+export function getBlueprintTemplate(name: BlueprintName) {
+  return attempt(() => readFileSync(join(blueprintsDir, `${name}.lauf.ts`), 'utf-8'));
 }
 
 /**
