@@ -1,8 +1,6 @@
 import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { rimraf } from 'rimraf';
-
 import { lauf, z } from 'laufen';
 
 const DEFAULT_TARGETS = ['dist', 'node_modules', '.turbo', 'coverage'];
@@ -13,6 +11,7 @@ function matchesTarget(name: string, targets: ReadonlyArray<string>): boolean {
 
 export default lauf({
   description: 'Clean build artifacts from a workspace package',
+  // Uses rimraf from workspace packages - no project dependency needed!
   args: {
     targets: z
       .string()
@@ -21,11 +20,14 @@ export default lauf({
     force: z.boolean().default(false).describe('Skip confirmation prompt'),
   },
   async run(ctx) {
+    // Dynamic import - rimraf comes from workspace packages in lauf.config.ts
+    const { rimraf } = await import('rimraf');
+
     const targets = ctx.args.targets.split(',').map((t) => t.trim());
 
     ctx.spinner.start('Scanning for artifacts...');
 
-    const entries = await readdir(ctx.packageDir, { withFileTypes: true });
+    const entries = await readdir(ctx.dir.package, { withFileTypes: true });
     const matched = entries
       .filter((entry) => matchesTarget(entry.name, targets))
       .map((entry) => entry.name);
@@ -60,7 +62,7 @@ export default lauf({
 
     ctx.spinner.start('Removing artifacts...');
 
-    const paths = matched.map((name) => join(ctx.packageDir, name));
+    const paths = matched.map((name) => join(ctx.dir.package, name));
     await rimraf(paths);
 
     ctx.spinner.stop('Cleanup complete');
