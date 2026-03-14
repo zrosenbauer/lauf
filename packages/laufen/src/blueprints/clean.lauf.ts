@@ -17,11 +17,8 @@ export default lauf({
       'tmp',
       'temp',
       '.tsbuildinfo',
+      ...(ctx.args.nodeModules ? ['node_modules'] : []),
     ];
-
-    if (ctx.args.nodeModules) {
-      targets.push('node_modules');
-    }
 
     const existingTargets = await Promise.all(
       targets.map(async (target) => {
@@ -45,9 +42,12 @@ export default lauf({
 
     ctx.spinner.start('Cleaning...');
 
-    await Promise.all(existingTargets.map((target) => ctx.fs.rm(target)));
+    try {
+      await Promise.all(existingTargets.map((target) => ctx.fs.rm(target)));
+    } finally {
+      ctx.spinner.stop();
+    }
 
-    ctx.spinner.stop();
     ctx.logger.success(`Cleaned ${existingTargets.length} target(s)`);
   },
 });

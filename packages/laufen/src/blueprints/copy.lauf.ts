@@ -1,10 +1,10 @@
 import { lauf, z } from 'laufen';
 
 export default lauf({
-  description: 'Copy files or directories',
+  description: 'Copy a file to a destination path',
   args: {
-    from: z.string().describe('Source file or directory'),
-    to: z.string().describe('Destination file or directory'),
+    from: z.string().describe('Source file path'),
+    to: z.string().describe('Destination file path'),
     overwrite: z.boolean().default(true).describe('Overwrite existing files'),
   },
   async run(ctx) {
@@ -26,8 +26,11 @@ export default lauf({
 
     if (sourceStat.isFile()) {
       ctx.spinner.start(`Copying ${from} → ${to}`);
-      await ctx.fs.copyFile(from, to);
-      ctx.spinner.stop();
+      try {
+        await ctx.fs.copyFile(from, to);
+      } finally {
+        ctx.spinner.stop();
+      }
       ctx.logger.success(`Copied ${from} → ${to}`);
       return;
     }

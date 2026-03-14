@@ -128,9 +128,9 @@ function resolveTargetDir(dir: string | undefined, patterns: string[], configDir
   }
   const firstPattern = patterns[0];
   if (firstPattern) {
-    return path.resolve(process.cwd(), path.dirname(firstPattern));
+    return path.resolve(configDir, path.dirname(firstPattern));
   }
-  return path.resolve(process.cwd(), 'scripts');
+  return path.resolve(configDir, 'scripts');
 }
 
 /**
