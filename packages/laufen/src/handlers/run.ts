@@ -1,4 +1,4 @@
-// oxlint-disable import/max-dependencies
+// oxlint-disable import/max-dependencies, max-lines
 import * as p from '@clack/prompts';
 import type {
   EnvContext,
@@ -255,11 +255,19 @@ async function runWatchMode(
     );
   }
 
+  let isRunning = false;
+
   const [watcherError, watcher] = await attemptAsync(() =>
     createWatcher(watchConfig, script.packageDir, (changedFiles) => {
+      if (isRunning) {
+        p.log.warn('Script still running, skipping rerun...');
+        return;
+      }
+
       const label = pc.cyan(script.name);
       p.log.step(`Re-running ${label} (changed: ${changedFiles.join(', ')})`);
 
+      isRunning = true;
       const watchCtx: WatchContext = { enabled: true, changedFiles, patterns };
       executeScript(
         script,
@@ -271,6 +279,7 @@ async function runWatchMode(
         config.sandbox,
         watchCtx,
       ).then((result) => {
+        isRunning = false;
         if (result.exitCode === 0) {
           return p.log.info(`Watching: ${patterns.join(', ')}`);
         }
@@ -287,10 +296,16 @@ async function runWatchMode(
 
   return new Promise<HandlerResult>((resolve) => {
     const cleanup = (): void => {
-      watcher.cleanup().then(() => {
-        p.log.info('Watch mode stopped.');
-        return resolve(ok());
-      });
+      watcher
+        .cleanup()
+        .then(() => {
+          p.log.info('Watch mode stopped.');
+          return resolve(ok());
+        })
+        .catch((err: unknown) => {
+          p.log.warn(`Watcher cleanup failed: ${safeParseError(err)}`);
+          return resolve(ok());
+        });
     };
 
     process.once('SIGINT', cleanup);

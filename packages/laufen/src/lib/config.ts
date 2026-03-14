@@ -59,9 +59,9 @@ const loggerSchema = z
 
 const watchConfigSchema: z.ZodType<WatchConfig | undefined> = z
   .object({
-    patterns: z.array(z.string()),
-    debounce: z.number().optional(),
-    ignored: z.array(z.string()).optional(),
+    patterns: z.array(z.string().min(1)).min(1),
+    debounce: z.number().int().nonnegative().optional(),
+    ignored: z.array(z.string().min(1)).optional(),
   })
   .optional();
 

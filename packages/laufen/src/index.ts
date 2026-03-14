@@ -73,6 +73,13 @@ Clerc.create()
   .on('info', handleInfo)
   .command('run', 'Run a script', {
     parameters: ['[script]'],
+    flags: {
+      watch: {
+        type: Boolean,
+        description: 'Watch files and rerun on changes',
+        alias: 'w',
+      },
+    },
   })
   .on('run', handleRun)
   .command('create', 'Create a new script', {

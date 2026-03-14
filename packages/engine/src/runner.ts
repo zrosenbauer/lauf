@@ -10,7 +10,7 @@ import { attempt } from 'es-toolkit';
 import { bundleScript } from './bundler.ts';
 import { createLogger } from './context/logger.ts';
 import { buildBaseEnv } from './env.ts';
-import type { Logger, RunResult, ScriptTarget } from './types.ts';
+import type { Logger, RunResult, ScriptTarget, WatchContext } from './types.ts';
 import { safeParseError } from './utils/cli.ts';
 
 const ENGINE_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
@@ -25,11 +25,7 @@ export interface RunScriptOptions {
   readonly env?: Record<string, string>;
   readonly cliEnv?: Record<string, string>;
   readonly sandbox?: boolean;
-  readonly watch?: {
-    readonly enabled: boolean;
-    readonly changedFiles: readonly string[];
-    readonly patterns: readonly string[];
-  };
+  readonly watch?: WatchContext;
 }
 
 /**

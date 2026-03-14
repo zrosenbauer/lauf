@@ -135,4 +135,16 @@ describe('createContext', () => {
     const ctx = createContext({ ...baseParams, spinner: true });
     expect(ctx.spinner).toBe(mockCreateSpinner.mock.results[0].value);
   });
+
+  it('returns context with correct watch', () => {
+    const ctx = createContext(baseParams);
+    expect(ctx.watch).toEqual({ enabled: false, changedFiles: [], patterns: [] });
+  });
+
+  it('returns frozen watch context', () => {
+    const ctx = createContext(baseParams);
+    expect(Object.isFrozen(ctx.watch)).toBe(true);
+    expect(Object.isFrozen(ctx.watch.changedFiles)).toBe(true);
+    expect(Object.isFrozen(ctx.watch.patterns)).toBe(true);
+  });
 });

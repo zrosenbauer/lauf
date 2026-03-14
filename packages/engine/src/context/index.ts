@@ -34,6 +34,11 @@ function warnDeprecation(key: string, replacement: string): void {
 
 export function createContext<T extends ArgDefs>(params: CreateContextParams<T>): ScriptContext<T> {
   const fsHelpers = createFsHelpers(params.packageDir);
+  const watch = Object.freeze({
+    enabled: params.watch.enabled,
+    changedFiles: Object.freeze([...params.watch.changedFiles]),
+    patterns: Object.freeze([...params.watch.patterns]),
+  });
 
   return {
     args: params.args,
@@ -56,6 +61,6 @@ export function createContext<T extends ArgDefs>(params: CreateContextParams<T>)
     spinner: resolveSpinner(params.spinner),
     prompts: createPrompts(),
     fs: fsHelpers,
-    watch: params.watch,
+    watch,
   };
 }
