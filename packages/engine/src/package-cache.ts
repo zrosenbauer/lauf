@@ -37,12 +37,14 @@ export function resolveCacheDir(packages: Record<string, string>): string {
 /**
  * Check if a cache directory is valid and ready to use.
  *
- * Validates that both package.json and node_modules/ exist.
+ * Validates that package.json exists, node_modules exists, and all required
+ * packages are installed.
  *
  * @param cacheDir - Absolute path to cache directory
+ * @param packages - Expected packages that should be installed
  * @returns Result indicating validity
  */
-export function isCacheValid(cacheDir: string): Result<boolean> {
+export function isCacheValid(cacheDir: string, packages: Record<string, string>): Result<boolean> {
   const packageJsonPath = path.join(cacheDir, 'package.json');
   const nodeModulesPath = path.join(cacheDir, 'node_modules');
 
@@ -56,8 +58,17 @@ export function isCacheValid(cacheDir: string): Result<boolean> {
     return [nodeModulesError as Error, null];
   }
 
-  const isValid = Boolean(packageJsonExists) && Boolean(nodeModulesExists);
-  return [null, isValid];
+  if (!packageJsonExists || !nodeModulesExists) {
+    return [null, false];
+  }
+
+  const allPackagesExist = Object.keys(packages).every((packageName) => {
+    const packagePath = path.join(nodeModulesPath, ...packageName.split('/'));
+    const [error, exists] = attempt(() => fs.existsSync(packagePath));
+    return !error && exists;
+  });
+
+  return [null, allPackagesExist];
 }
 
 /**

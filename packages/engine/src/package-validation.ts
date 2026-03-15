@@ -1,12 +1,12 @@
 import type { Result } from './result.ts';
 
 /**
- * Check if a value is a plain object (not Map, Set, Array, etc.).
+ * Check if a value is a plain object (not a Map, Set, class instance, etc.).
  *
- * @param value - Value to check
- * @returns True if value is a plain object
+ * A plain object is one created with object literal syntax `{}` or `new Object()`,
+ * having `Object.prototype` or `null` as its prototype.
  */
-function isPlainObject(value: unknown): value is Record<string, unknown> {
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
     return false;
   }
@@ -15,19 +15,17 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 }
 
 /**
- * Validate packages field structure and content.
+ * Validate that a packages field is a plain object with string keys and values.
  *
- * Ensures packages is a plain object with string keys and values.
- *
- * @param packages - Packages field to validate
- * @returns Result containing validated packages or error
+ * Rejects non-plain objects (Map, Set, class instances) and validates
+ * that all keys and values are strings.
  */
 export function validatePackages(packages: unknown): Result<Record<string, string>> {
   if (packages === undefined) {
     return [null, {}];
   }
 
-  if (!isPlainObject(packages)) {
+  if (!isPlainRecord(packages)) {
     return [new Error('packages field must be a plain object'), null];
   }
 

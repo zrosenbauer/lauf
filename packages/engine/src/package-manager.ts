@@ -17,35 +17,55 @@ export interface PreparePackagesResult {
   readonly packageNames: readonly string[];
 }
 
+interface AcquireLockResult {
+  readonly releaseLock: () => void;
+}
+
 /**
- * Prepare packages for use in a script.
+ * Attempt to acquire a lock for cache directory.
  *
- * High-level orchestration that:
- * 1. Computes cache directory from package definitions
- * 2. Returns early if cache is valid
- * 3. Otherwise: creates directory, writes package.json, installs packages
- * 4. Returns cache directory path and package names for esbuild externals
- *
- * @param packages - Package name to version map
- * @param workspaceRoot - Absolute path to workspace root (for package manager detection)
- * @returns Result containing cache directory and package names
+ * If lock acquisition fails, re-checks cache validity in case another
+ * process completed the installation.
  */
-export async function preparePackages(
+function acquireLock(
+  lockDir: string,
+  cacheDir: string,
+  packages: Record<string, string>,
+  packageNames: readonly string[],
+): Result<AcquireLockResult> | readonly [null, PreparePackagesResult] {
+  const [lockError] = attempt(() => fs.mkdirSync(lockDir));
+  if (lockError) {
+    const [recheckError, recheckValid] = isCacheValid(cacheDir, packages);
+    if (recheckError) {
+      return [recheckError, null];
+    }
+    if (recheckValid) {
+      return [null, { cacheDir, packageNames }];
+    }
+    return [
+      new Error(`Package cache is currently being prepared by another process: ${cacheDir}`),
+      null,
+    ];
+  }
+
+  const releaseLock = (): void => {
+    attempt(() => fs.rmSync(lockDir, { recursive: true, force: true }));
+  };
+
+  return [null, { releaseLock }];
+}
+
+/**
+ * Perform the package installation into cache directory.
+ *
+ * Creates cache directory, writes package.json, detects package manager,
+ * and installs packages.
+ */
+async function performInstallation(
+  cacheDir: string,
   packages: Record<string, string>,
   workspaceRoot: string,
-): Promise<Result<PreparePackagesResult>> {
-  const cacheDir = resolveCacheDir(packages);
-  const packageNames = Object.keys(packages);
-
-  const [validError, isValid] = isCacheValid(cacheDir);
-  if (validError) {
-    return [validError, null];
-  }
-
-  if (isValid) {
-    return [null, { cacheDir, packageNames }];
-  }
-
+): Promise<Result<void>> {
   const [ensureError] = ensureCacheDir(cacheDir);
   if (ensureError) {
     return [ensureError, null];
@@ -67,6 +87,54 @@ export async function preparePackages(
     return [installError, null];
   }
 
+  return [null, undefined];
+}
+
+/**
+ * Prepare packages for use in a script.
+ *
+ * High-level orchestration that:
+ * 1. Computes cache directory from package definitions
+ * 2. Returns early if cache is valid
+ * 3. Otherwise: acquires lock, installs packages, releases lock
+ * 4. Returns cache directory path and package names for esbuild externals
+ *
+ * @param packages - Package name to version map
+ * @param workspaceRoot - Absolute path to workspace root (for package manager detection)
+ * @returns Result containing cache directory and package names
+ */
+export async function preparePackages(
+  packages: Record<string, string>,
+  workspaceRoot: string,
+): Promise<Result<PreparePackagesResult>> {
+  const cacheDir = resolveCacheDir(packages);
+  const packageNames = Object.keys(packages);
+
+  const [validError, isValid] = isCacheValid(cacheDir, packages);
+  if (validError) {
+    return [validError, null];
+  }
+  if (isValid) {
+    return [null, { cacheDir, packageNames }];
+  }
+
+  const lockResult = acquireLock(`${cacheDir}.lock`, cacheDir, packages, packageNames);
+  if ('cacheDir' in lockResult[1]) {
+    return lockResult as readonly [null, PreparePackagesResult];
+  }
+  if (lockResult[0]) {
+    return lockResult as Result<PreparePackagesResult>;
+  }
+
+  const { releaseLock } = lockResult[1];
+
+  const [installError] = await performInstallation(cacheDir, packages, workspaceRoot);
+  if (installError) {
+    releaseLock();
+    return [installError, null];
+  }
+
+  releaseLock();
   return [null, { cacheDir, packageNames }];
 }
 

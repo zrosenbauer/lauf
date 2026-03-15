@@ -444,6 +444,13 @@ function buildScriptEnv(
   const userEnv = options.env ?? {};
   const cliEnv = options.cliEnv ?? {};
 
+  const cacheDirEnv = (() => {
+    if (packageCacheDir !== null) {
+      return { LAUF_PACKAGE_CACHE_DIR: packageCacheDir };
+    }
+    return {};
+  })();
+
   return {
     ...baseEnv,
     ...userEnv,
@@ -459,6 +466,7 @@ function buildScriptEnv(
     LAUF_SPINNER: spinnerValue,
     LAUF_ENV: JSON.stringify(userEnv),
     LAUF_CLI_ENV: JSON.stringify(cliEnv),
+    ...cacheDirEnv,
     ...helpEnv,
     ...watchEnv,
   };

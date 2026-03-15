@@ -63,10 +63,12 @@ export default defineHandler({
     }
 
     const allPackages = { ...loaded.config.packages, ...scriptPackages };
-    // Generate types in the package directory, not workspace root
-    const [typeGenError] = generatePackageTypes(script.packageDir, allPackages);
-    if (typeGenError) {
-      return fail({ message: `Failed to generate package types: ${safeParseError(typeGenError)}` });
+    // Generate types in the package directory (best-effort, non-fatal)
+    if (Object.keys(allPackages).length > 0) {
+      const [typeGenError] = generatePackageTypes(script.packageDir, allPackages);
+      if (typeGenError) {
+        p.log.warn(`Failed to generate package types: ${safeParseError(typeGenError)}`);
+      }
     }
 
     if (isHelp) {
