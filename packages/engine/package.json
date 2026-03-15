@@ -1,6 +1,6 @@
 {
   "name": "@laufen/engine",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Execution engine for laufen — esbuild bundling, Node child process spawning, and script context",
   "homepage": "https://github.com/zrosenbauer/lauf#readme",
   "bugs": {
