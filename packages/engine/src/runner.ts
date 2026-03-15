@@ -1,4 +1,4 @@
-// oxlint-disable max-lines
+// oxlint-disable max-lines import/max-dependencies
 import type { ChildProcess } from 'node:child_process';
 import { spawn } from 'node:child_process';
 import * as fs from 'node:fs';
@@ -6,6 +6,7 @@ import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { attempt } from 'es-toolkit';
+import { match } from 'ts-pattern';
 
 import { bundleScript } from './bundler.ts';
 import { createLogger } from './context/logger.ts';
@@ -444,17 +445,15 @@ function buildScriptEnv(
   const userEnv = options.env ?? {};
   const cliEnv = options.cliEnv ?? {};
 
-  const cacheDirEnv = (() => {
-    if (packageCacheDir !== null) {
-      return { LAUF_PACKAGE_CACHE_DIR: packageCacheDir };
-    }
-    return {};
-  })();
+  const cacheDirEnv = match(packageCacheDir)
+    .with(null, () => ({}))
+    .otherwise((dir: string) => ({ LAUF_PACKAGE_CACHE_DIR: dir }));
 
   return {
     ...baseEnv,
     ...userEnv,
     ...cliEnv,
+    ...cacheDirEnv,
     NODE_OPTIONS: sanitizeNodeOptions(process.env.NODE_OPTIONS),
     NODE_PATH: buildNodePath(options.workspaceRoot, options.cliPackageRoot, packageCacheDir),
     LAUF_SCRIPT_PATH: bundle.outputPath,
@@ -466,7 +465,6 @@ function buildScriptEnv(
     LAUF_SPINNER: spinnerValue,
     LAUF_ENV: JSON.stringify(userEnv),
     LAUF_CLI_ENV: JSON.stringify(cliEnv),
-    ...cacheDirEnv,
     ...helpEnv,
     ...watchEnv,
   };

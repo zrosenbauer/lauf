@@ -119,14 +119,14 @@ export async function preparePackages(
   }
 
   const lockResult = acquireLock(`${cacheDir}.lock`, cacheDir, packages, packageNames);
-  if ('cacheDir' in lockResult[1]) {
-    return lockResult as readonly [null, PreparePackagesResult];
-  }
   if (lockResult[0]) {
     return lockResult as Result<PreparePackagesResult>;
   }
+  if (lockResult[1] && 'cacheDir' in lockResult[1]) {
+    return lockResult as readonly [null, PreparePackagesResult];
+  }
 
-  const { releaseLock } = lockResult[1];
+  const { releaseLock } = lockResult[1] as AcquireLockResult;
 
   const [installError] = await performInstallation(cacheDir, packages, workspaceRoot);
   if (installError) {
