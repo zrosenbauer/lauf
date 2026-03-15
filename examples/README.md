@@ -119,6 +119,26 @@ export default lauf({
 - Each script can use different versions of the same package
 - Zero impact on project `package.json`
 
+### TypeScript Configuration for Package Types
+
+To get full IntelliSense and type checking for packages used via `ctx.import()`, add `.lauf` to your `tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext"
+  },
+  "include": ["scripts", ".lauf/**/*.d.ts"]
+}
+```
+
+When you run a script with packages, lauf auto-generates `.lauf/packages.d.ts` with type mappings. Adding it to your `include` gives you full autocomplete:
+
+```typescript
+const chalk = await ctx.import('chalk'); // ← Full type inference!
+```
+
 ## Writing your own
 
 Create a new file in `scripts/` with the `.ts` extension:

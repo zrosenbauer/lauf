@@ -12,5 +12,5 @@
     "resolveJsonModule": true,
     "verbatimModuleSyntax": true
   },
-  "include": ["scripts"]
+  "include": ["scripts", "../.lauf/**/*.d.ts"]
 }
