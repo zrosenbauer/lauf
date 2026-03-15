@@ -56,10 +56,12 @@ export default defineHandler({
       return fail({ message: `Failed to resolve config env: ${safeParseError(envError)}` });
     }
 
-    // Extract script-level packages and generate type declarations
+    // Extract script-level packages for type generation (best-effort, non-fatal).
+    // This imports the script to read its config — failures are tolerated since
+    // the engine orchestrator will also extract packages at runtime.
     const [extractError, scriptPackages] = await extractPackages(script.path);
     if (extractError) {
-      return fail({ message: `Failed to extract packages: ${safeParseError(extractError)}` });
+      p.log.warn(`Failed to extract script packages: ${safeParseError(extractError)}`);
     }
 
     const allPackages = { ...loaded.config.packages, ...scriptPackages };

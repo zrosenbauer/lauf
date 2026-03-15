@@ -85,7 +85,7 @@ export default lauf({
     prettier: '^3.0.0',
   },
   async run(ctx) {
-    const prettier = await import('prettier');
+    const prettier = await ctx.import('prettier');
     // Use prettier...
   },
 });
@@ -103,8 +103,8 @@ export default lauf({
     chalk: '^5.0.0', // Script-specific
   },
   async run(ctx) {
-    const { rimraf } = await import('rimraf'); // From workspace
-    const chalk = (await import('chalk')).default; // From script
+    const { rimraf } = await ctx.import('rimraf'); // From workspace
+    const chalk = (await ctx.import('chalk')).default; // From script
 
     await rimraf(['dist', 'node_modules']);
     ctx.logger.success(chalk.green('✓ Cleanup complete'));

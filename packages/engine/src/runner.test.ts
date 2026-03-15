@@ -555,6 +555,86 @@ describe('runScript', () => {
     });
   });
 
+  describe('package orchestration', () => {
+    it('returns exitCode 1 when extractAndPreparePackages fails', async () => {
+      mockExtractAndPreparePackages.mockResolvedValue([new Error('extract failed'), null]);
+
+      const result = await runScript(testScript, {}, testOptions);
+
+      expect(result.exitCode).toBe(1);
+      expect(mockLogError).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to prepare packages'),
+      );
+      expect(mockSpawn).not.toHaveBeenCalled();
+    });
+
+    it('passes externals to bundleScript when packages are prepared', async () => {
+      mockExtractAndPreparePackages.mockResolvedValue([
+        null,
+        { cacheDir: '/cache/abc123', packageNames: ['chalk', 'execa'] },
+      ]);
+      const mockChild = createMockChild();
+      mockSpawn.mockReturnValue(mockChild);
+
+      const resultPromise = runScript(testScript, {}, testOptions);
+      await flushMicrotasks();
+      mockChild.emit('close', 0);
+      await resultPromise;
+
+      expect(mockBundleScript).toHaveBeenCalledWith(testScript.path, {
+        externals: ['chalk', 'execa'],
+      });
+    });
+
+    it('prepends package cache to NODE_PATH when packages are prepared', async () => {
+      mockExtractAndPreparePackages.mockResolvedValue([
+        null,
+        { cacheDir: '/cache/abc123', packageNames: ['chalk'] },
+      ]);
+      const mockChild = createMockChild();
+      mockSpawn.mockReturnValue(mockChild);
+
+      const resultPromise = runScript(testScript, {}, testOptions);
+      await flushMicrotasks();
+      mockChild.emit('close', 0);
+      await resultPromise;
+
+      const spawnEnv = mockSpawn.mock.calls[0][2].env;
+      const nodePath = spawnEnv.NODE_PATH as string;
+      expect(nodePath.split(path.delimiter)[0]).toBe(path.join('/cache/abc123', 'node_modules'));
+    });
+
+    it('sets LAUF_PACKAGE_CACHE_DIR when packages are prepared', async () => {
+      mockExtractAndPreparePackages.mockResolvedValue([
+        null,
+        { cacheDir: '/cache/abc123', packageNames: ['chalk'] },
+      ]);
+      const mockChild = createMockChild();
+      mockSpawn.mockReturnValue(mockChild);
+
+      const resultPromise = runScript(testScript, {}, testOptions);
+      await flushMicrotasks();
+      mockChild.emit('close', 0);
+      await resultPromise;
+
+      const spawnEnv = mockSpawn.mock.calls[0][2].env;
+      expect(spawnEnv.LAUF_PACKAGE_CACHE_DIR).toBe('/cache/abc123');
+    });
+
+    it('does not set LAUF_PACKAGE_CACHE_DIR when no packages', async () => {
+      const mockChild = createMockChild();
+      mockSpawn.mockReturnValue(mockChild);
+
+      const resultPromise = runScript(testScript, {}, testOptions);
+      await flushMicrotasks();
+      mockChild.emit('close', 0);
+      await resultPromise;
+
+      const spawnEnv = mockSpawn.mock.calls[0][2].env;
+      expect(spawnEnv.LAUF_PACKAGE_CACHE_DIR).toBeUndefined();
+    });
+  });
+
   describe('spawn configuration', () => {
     it('spawns node with the executor path', async () => {
       const mockChild = createMockChild();

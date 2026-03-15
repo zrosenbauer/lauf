@@ -1,10 +1,14 @@
 import { pathToFileURL } from 'node:url';
 
 import { attemptAsync } from 'es-toolkit';
+import { z } from 'zod';
 
 import type { Result } from '../result.ts';
-import type { ArgDefs, ScriptConfig } from '../types.ts';
 import { validatePackages } from './validation.ts';
+
+const scriptConfigSchema = z.object({
+  packages: z.unknown().optional(),
+});
 
 /**
  * Extract package definitions from a script's config.
@@ -19,18 +23,17 @@ export async function extractPackages(scriptPath: string): Promise<Result<Record
   const scriptUrl = pathToFileURL(scriptPath).href;
 
   const [importError, mod] = await attemptAsync(
-    () => import(scriptUrl) as Promise<{ default: ScriptConfig<ArgDefs> }>,
+    () => import(scriptUrl) as Promise<{ default: unknown }>,
   );
 
   if (importError || mod === null) {
     return [new Error(`Failed to import script: ${String(importError)}`), null];
   }
 
-  const config = mod.default;
-
-  if (!config || typeof config !== 'object') {
+  const parsedConfig = scriptConfigSchema.safeParse(mod.default);
+  if (!parsedConfig.success) {
     return [new Error('Script does not export a valid config object'), null];
   }
 
-  return validatePackages(config.packages);
+  return validatePackages(parsedConfig.data.packages);
 }

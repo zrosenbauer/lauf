@@ -3,11 +3,8 @@ import { glob } from 'node:fs/promises';
 import { lauf } from 'laufen';
 
 async function findSourceFiles(cwd: string): Promise<string[]> {
-  const files: string[] = [];
-  for await (const file of glob('src/**/*.ts', { cwd, exclude: ['**/*.test.ts', '**/*.spec.ts'] })) {
-    files.push(file);
-  }
-  return files.sort();
+  const files = await Array.fromAsync(glob('src/**/*.ts', { cwd, exclude: ['**/*.test.ts', '**/*.spec.ts'] }));
+  return files.toSorted();
 }
 
 export default lauf({
@@ -26,7 +23,7 @@ export default lauf({
 
     ctx.spinner.start('Scanning source files...');
 
-    const files = await findSourceFiles(ctx.packageDir);
+    const files = await findSourceFiles(ctx.dir.package);
 
     ctx.spinner.stop(`Found ${files.length} TypeScript file(s)`);
     ctx.logger.newlines();

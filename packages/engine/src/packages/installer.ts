@@ -65,17 +65,3 @@ export function installPackages(cacheDir: string, manager: PackageManager): Prom
     });
   });
 }
-
-/**
- * Safe wrapper around installPackages.
- *
- * @param cacheDir - Absolute path to cache directory
- * @param manager - Package manager to use
- * @returns Result indicating success
- */
-export function safeInstallPackages(
-  cacheDir: string,
-  manager: PackageManager,
-): Promise<Result<void>> {
-  return installPackages(cacheDir, manager);
-}

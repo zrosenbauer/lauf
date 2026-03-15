@@ -42,7 +42,10 @@ function generateTypeDeclaration(packageNames: readonly string[]): string {
     if (packageNames.length === 0) {
       return ['      // No packages declared'];
     }
-    return packageNames.map((name) => `      '${name}': typeof import('${name}');`);
+    return packageNames.map((name) => {
+      const escaped = name.replaceAll("'", "\\'");
+      return `      '${escaped}': typeof import('${escaped}');`;
+    });
   })();
 
   return [

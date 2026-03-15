@@ -5,16 +5,16 @@ import { attempt } from 'es-toolkit';
 
 import type { Result } from '../result.ts';
 import { ensureCacheDir, isCacheValid, resolveCacheDir, writePackageJson } from './cache.ts';
-import { detectPackageManager, safeInstallPackages } from './installer.ts';
+import { detectPackageManager, installPackages } from './installer.ts';
 
 export interface PreparePackagesResult {
   readonly cacheDir: string;
   readonly packageNames: readonly string[];
 }
 
-interface AcquireLockResult {
-  readonly releaseLock: () => void;
-}
+type LockOutcome =
+  | { readonly kind: 'acquired'; readonly releaseLock: () => void }
+  | { readonly kind: 'already-cached'; readonly result: PreparePackagesResult };
 
 /**
  * Attempt to acquire a lock for cache directory.
@@ -27,9 +27,9 @@ function acquireLock(
   cacheDir: string,
   packages: Record<string, string>,
   packageNames: readonly string[],
-): Result<AcquireLockResult> | readonly [null, PreparePackagesResult] {
+): Result<LockOutcome> {
   const lockParent = path.dirname(lockDir);
-  const [parentError] = attempt(() => fs.mkdirSync(lockParent, { recursive: true }));
+  const [parentError] = attempt(() => fs.mkdirSync(lockParent, { recursive: true, mode: 0o700 }));
   if (parentError) {
     return [parentError as Error, null];
   }
@@ -41,7 +41,7 @@ function acquireLock(
       return [recheckError, null];
     }
     if (recheckValid) {
-      return [null, { cacheDir, packageNames }];
+      return [null, { kind: 'already-cached', result: { cacheDir, packageNames } }];
     }
     return [
       new Error(`Package cache is currently being prepared by another process: ${cacheDir}`),
@@ -53,7 +53,7 @@ function acquireLock(
     attempt(() => fs.rmSync(lockDir, { recursive: true, force: true }));
   };
 
-  return [null, { releaseLock }];
+  return [null, { kind: 'acquired', releaseLock }];
 }
 
 /**
@@ -82,7 +82,7 @@ async function performInstallation(
     return [detectError, null];
   }
 
-  const [installError] = await safeInstallPackages(cacheDir, manager);
+  const [installError] = await installPackages(cacheDir, manager);
   if (installError) {
     attempt(() => fs.rmSync(cacheDir, { recursive: true, force: true }));
     return [installError, null];
@@ -119,15 +119,20 @@ export async function preparePackages(
     return [null, { cacheDir, packageNames }];
   }
 
-  const lockResult = acquireLock(`${cacheDir}.lock`, cacheDir, packages, packageNames);
-  if (lockResult[0]) {
-    return lockResult as Result<PreparePackagesResult>;
+  const [lockError, lockOutcome] = acquireLock(
+    `${cacheDir}.lock`,
+    cacheDir,
+    packages,
+    packageNames,
+  );
+  if (lockError) {
+    return [lockError, null];
   }
-  if (lockResult[1] && 'cacheDir' in lockResult[1]) {
-    return lockResult as readonly [null, PreparePackagesResult];
+  if (lockOutcome.kind === 'already-cached') {
+    return [null, lockOutcome.result];
   }
 
-  const { releaseLock } = lockResult[1] as AcquireLockResult;
+  const { releaseLock } = lockOutcome;
 
   const [installError] = await performInstallation(cacheDir, packages, workspaceRoot);
   if (installError) {

@@ -56,7 +56,7 @@ export function isCacheValid(cacheDir: string, packages: Record<string, string>)
   }
 
   const allPackagesExist = Object.keys(packages).every((packageName) => {
-    const packagePath = path.join(nodeModulesPath, ...packageName.split('/'));
+    const packagePath = path.join(nodeModulesPath, packageName);
     return fs.existsSync(packagePath);
   });
 
