@@ -87,10 +87,12 @@ export default lauf({
 
     try {
       await Promise.all(existingTargets.map((target) => ctx.fs.rm(target)));
+      ctx.logger.success(`Cleaned ${existingTargets.length} target(s)`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      ctx.logger.error(`Failed to clean: ${message}`);
     } finally {
       ctx.spinner.stop();
     }
-
-    ctx.logger.success(`Cleaned ${existingTargets.length} target(s)`);
   },
 });

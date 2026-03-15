@@ -155,7 +155,7 @@ function resolveGlobBase(pattern: string): string {
     return path.dirname(pattern);
   }
   const staticPrefix = pattern.slice(0, wildcardIndex);
-  if (staticPrefix.endsWith(path.sep)) {
+  if (staticPrefix.endsWith('/') || staticPrefix.endsWith(path.sep)) {
     return staticPrefix.slice(0, -1);
   }
   return path.dirname(staticPrefix);

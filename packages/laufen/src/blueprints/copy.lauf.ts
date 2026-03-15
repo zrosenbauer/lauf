@@ -48,11 +48,13 @@ export default lauf({
           await ctx.fs.copyFile(file, dest);
         }),
       );
+      ctx.logger.success(`Copied ${allFiles.length} file(s) to ${to}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      ctx.logger.error(`Failed to copy files: ${message}`);
     } finally {
       ctx.spinner.stop();
     }
-
-    ctx.logger.success(`Copied ${allFiles.length} file(s) to ${to}`);
   },
 });
 
