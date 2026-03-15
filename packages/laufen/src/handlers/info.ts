@@ -52,6 +52,7 @@ export default defineHandler(async (ctx: { parameters: { script?: string } }) =>
       spinner: loaded.config.spinner,
       env: configEnv,
       sandbox: loaded.config.sandbox,
+      workspacePackages: loaded.config.packages,
     },
   );
 

@@ -89,7 +89,7 @@ describe('info handler', () => {
         cliPackageRoot: '/lauf-root',
         spinner: true,
         env: {},
-        packages: {},
+        workspacePackages: {},
         sandbox: true,
       },
     );
@@ -113,7 +113,7 @@ describe('info handler', () => {
         cliPackageRoot: '/lauf-root',
         spinner: true,
         env: {},
-        packages: {},
+        workspacePackages: {},
         sandbox: true,
       },
     );

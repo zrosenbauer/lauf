@@ -70,6 +70,7 @@ const expectedRunOptions = {
   env: {},
   cliEnv: {},
   sandbox: true,
+  workspacePackages: {},
 };
 
 beforeEach(() => {
@@ -173,7 +174,7 @@ describe('run handler', () => {
         cliPackageRoot: '/lauf-root',
         spinner: true,
         env: {},
-        packages: {},
+        workspacePackages: {},
         cliEnv: {},
         sandbox: true,
       },
@@ -202,7 +203,7 @@ describe('run handler', () => {
         cliPackageRoot: '/lauf-root',
         spinner: true,
         env: {},
-        packages: {},
+        workspacePackages: {},
         cliEnv: {},
         sandbox: true,
       },

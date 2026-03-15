@@ -48,6 +48,7 @@ const DEFAULTS = {
   spinner: true,
   sandbox: true,
   env: {},
+  packages: {},
 } as const;
 
 const DISCOVERED_LAUF: DiscoveredConfig = {
@@ -68,6 +69,7 @@ const VALID_CONFIG = {
   spinner: true,
   sandbox: true,
   env: {},
+  packages: {},
 };
 
 beforeEach(() => {
@@ -205,6 +207,7 @@ describe('loadAllLaufConfigs', () => {
           spinner: true,
           sandbox: true,
           env: {},
+          packages: {},
         },
       })
       .mockResolvedValueOnce({
@@ -215,6 +218,7 @@ describe('loadAllLaufConfigs', () => {
           spinner: false,
           sandbox: true,
           env: {},
+          packages: {},
         },
       });
 
@@ -227,6 +231,7 @@ describe('loadAllLaufConfigs', () => {
         spinner: true,
         sandbox: true,
         env: {},
+        packages: {},
       },
       configFile: '/workspace/packages/a/lauf.config.ts',
       configDir: '/workspace/packages/a',
@@ -238,6 +243,7 @@ describe('loadAllLaufConfigs', () => {
         spinner: false,
         sandbox: true,
         env: {},
+        packages: {},
       },
       configFile: '/workspace/packages/b/laufen.config.ts',
       configDir: '/workspace/packages/b',

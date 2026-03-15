@@ -6,15 +6,21 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { RunScriptOptions } from './runner.ts';
 import type { ScriptTarget } from './types.ts';
 
-const { mockSpawn, mockExistsSync, mockBundleScript, mockLogError, mockLogWarn } = vi.hoisted(
-  () => ({
-    mockSpawn: vi.fn(),
-    mockExistsSync: vi.fn(),
-    mockBundleScript: vi.fn(),
-    mockLogError: vi.fn(),
-    mockLogWarn: vi.fn(),
-  }),
-);
+const {
+  mockSpawn,
+  mockExistsSync,
+  mockBundleScript,
+  mockLogError,
+  mockLogWarn,
+  mockExtractAndPreparePackages,
+} = vi.hoisted(() => ({
+  mockSpawn: vi.fn(),
+  mockExistsSync: vi.fn(),
+  mockBundleScript: vi.fn(),
+  mockLogError: vi.fn(),
+  mockLogWarn: vi.fn(),
+  mockExtractAndPreparePackages: vi.fn(),
+}));
 
 vi.mock('node:child_process', () => ({
   spawn: mockSpawn,
@@ -26,6 +32,10 @@ vi.mock('node:fs', () => ({
 
 vi.mock('./bundler.ts', () => ({
   bundleScript: mockBundleScript,
+}));
+
+vi.mock('./package-orchestrator.ts', () => ({
+  extractAndPreparePackages: mockExtractAndPreparePackages,
 }));
 
 vi.mock('@clack/prompts', () => ({
@@ -73,6 +83,7 @@ beforeEach(() => {
     null,
     { outputPath: '/tmp/laufen-abc/script.mjs', cleanup: mockCleanup, warnings: [] },
   ]);
+  mockExtractAndPreparePackages.mockResolvedValue([null, null]);
 });
 
 afterEach(() => {
