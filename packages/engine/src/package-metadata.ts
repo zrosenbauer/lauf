@@ -2,6 +2,7 @@ import { pathToFileURL } from 'node:url';
 
 import { attemptAsync } from 'es-toolkit';
 
+import { validatePackages } from './package-validation.ts';
 import type { Result } from './result.ts';
 import type { ArgDefs, ScriptConfig } from './types.ts';
 
@@ -31,25 +32,5 @@ export async function extractPackages(scriptPath: string): Promise<Result<Record
     return [new Error('Script does not export a valid config object'), null];
   }
 
-  if (config.packages === undefined) {
-    return [null, {}];
-  }
-
-  if (
-    typeof config.packages !== 'object' ||
-    config.packages === null ||
-    Array.isArray(config.packages)
-  ) {
-    return [new Error('packages field must be a plain object'), null];
-  }
-
-  const invalidEntries = Object.entries(config.packages).filter(
-    ([key, value]) => typeof key !== 'string' || typeof value !== 'string',
-  );
-
-  if (invalidEntries.length > 0) {
-    return [new Error('All package keys and values must be strings'), null];
-  }
-
-  return [null, config.packages];
+  return validatePackages(config.packages);
 }

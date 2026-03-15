@@ -51,20 +51,12 @@ export function isCacheValid(cacheDir: string): Result<boolean> {
     return [packageJsonError as Error, null];
   }
 
-  if (packageJsonExists === null) {
-    return [new Error('Unexpected null from fs.existsSync'), null];
-  }
-
   const [nodeModulesError, nodeModulesExists] = attempt(() => fs.existsSync(nodeModulesPath));
   if (nodeModulesError) {
     return [nodeModulesError as Error, null];
   }
 
-  if (nodeModulesExists === null) {
-    return [new Error('Unexpected null from fs.existsSync'), null];
-  }
-
-  const isValid = packageJsonExists && nodeModulesExists;
+  const isValid = Boolean(packageJsonExists) && Boolean(nodeModulesExists);
   return [null, isValid];
 }
 

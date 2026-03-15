@@ -369,23 +369,21 @@ export async function runScript(
     return { exitCode: 1, script };
   }
 
-  if (packagePrep === null) {
-    const [bundleError, bundle] = await bundleScript(script.path);
-    if (bundleError) {
-      log.error(`Failed to bundle script: ${String(bundleError)}`);
-      return { exitCode: 1, script };
+  const bundleOptions = (() => {
+    if (packagePrep === null) {
+      return {};
     }
+    return { externals: packagePrep.packageNames };
+  })();
 
-    bundle.warnings.forEach((w) => {
-      log.warn(`Bundle warning: ${w}`);
-    });
+  const packageCacheDir = (() => {
+    if (packagePrep === null) {
+      return null;
+    }
+    return packagePrep.cacheDir;
+  })();
 
-    return spawnScriptProcess(script, args, options, bundle, executorPath, null);
-  }
-
-  const [bundleError, bundle] = await bundleScript(script.path, {
-    externals: packagePrep.packageNames,
-  });
+  const [bundleError, bundle] = await bundleScript(script.path, bundleOptions);
   if (bundleError) {
     log.error(`Failed to bundle script: ${String(bundleError)}`);
     return { exitCode: 1, script };
@@ -395,7 +393,7 @@ export async function runScript(
     log.warn(`Bundle warning: ${w}`);
   });
 
-  return spawnScriptProcess(script, args, options, bundle, executorPath, packagePrep.cacheDir);
+  return spawnScriptProcess(script, args, options, bundle, executorPath, packageCacheDir);
 }
 
 /**

@@ -10,6 +10,7 @@ import { createContext } from './context/index.ts';
 import { createLogger } from './context/logger.ts';
 import { createPrompts } from './context/prompts.ts';
 import { applyEnvToProcess, resolveEnvValue } from './env.ts';
+import { validatePackages } from './package-validation.ts';
 import type { ArgDefs, EnvContext, ScriptConfig } from './types.ts';
 import { formatArgErrors, safeParseError } from './utils/cli.ts';
 import { extractArgMeta, formatHelp } from './utils/help.ts';
@@ -119,28 +120,12 @@ async function execute(): Promise<void> {
     process.exit(1);
   }
 
-  if (
-    config.packages !== undefined &&
-    (typeof config.packages !== 'object' ||
-      config.packages === null ||
-      Array.isArray(config.packages))
-  ) {
+  const [packageValidationError] = validatePackages(config.packages);
+  if (packageValidationError) {
     log.error(
-      `Script "${env.LAUF_SCRIPT_NAME}" has invalid packages: expected a plain object or undefined`,
+      `Script "${env.LAUF_SCRIPT_NAME}" has invalid packages: ${String(packageValidationError)}`,
     );
     process.exit(1);
-  }
-
-  if (config.packages) {
-    const invalidPackages = Object.entries(config.packages).filter(
-      ([key, value]) => typeof key !== 'string' || typeof value !== 'string',
-    );
-    if (invalidPackages.length > 0) {
-      log.error(
-        `Script "${env.LAUF_SCRIPT_NAME}" has invalid package definitions: all keys and values must be strings`,
-      );
-      process.exit(1);
-    }
   }
 
   // Parse pre-merged env (config.env) from runner

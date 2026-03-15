@@ -39,7 +39,7 @@ import { lauf, z, infisical } from 'laufen';
 
 export default lauf({
   description: 'Say hello',
-  env: infisical({ path: '/ops/ci', env: 'dev' )),
+  env: infisical({ path: '/ops/ci', env: 'dev' }),
   args: {
     name: z.string().default('world'),
     loud: z.boolean().default(false),

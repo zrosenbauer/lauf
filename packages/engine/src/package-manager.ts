@@ -1,4 +1,7 @@
+import * as fs from 'node:fs';
 import * as path from 'node:path';
+
+import { attempt } from 'es-toolkit';
 
 import {
   ensureCacheDir,
@@ -60,6 +63,7 @@ export async function preparePackages(
 
   const [installError] = await safeInstallPackages(cacheDir, manager);
   if (installError) {
+    attempt(() => fs.rmSync(cacheDir, { recursive: true, force: true }));
     return [installError, null];
   }
 
