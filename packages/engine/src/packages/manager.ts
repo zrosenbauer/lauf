@@ -28,6 +28,12 @@ function acquireLock(
   packages: Record<string, string>,
   packageNames: readonly string[],
 ): Result<AcquireLockResult> | readonly [null, PreparePackagesResult] {
+  const lockParent = path.dirname(lockDir);
+  const [parentError] = attempt(() => fs.mkdirSync(lockParent, { recursive: true }));
+  if (parentError) {
+    return [parentError as Error, null];
+  }
+
   const [lockError] = attempt(() => fs.mkdirSync(lockDir));
   if (lockError) {
     const [recheckError, recheckValid] = isCacheValid(cacheDir, packages);

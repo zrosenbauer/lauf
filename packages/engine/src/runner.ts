@@ -208,7 +208,7 @@ if (import.meta.vitest) {
 
     it('prepends package cache node_modules when provided', () => {
       const result = buildNodePath('/workspace', '/cli-root', '/cache');
-      expect(result.split(path.delimiter)[0]).toBe('/cache/node_modules');
+      expect(result.split(path.delimiter)[0]).toBe(path.join('/cache', 'node_modules'));
     });
 
     it('excludes package cache when null', () => {

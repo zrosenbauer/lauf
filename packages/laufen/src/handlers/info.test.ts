@@ -55,7 +55,7 @@ const mockLoadedConfig = {
     spinner: true,
     sandbox: true,
     env: {},
-    packages: {},
+    packages: { chalk: '^5.0.0' },
     watch: undefined,
   },
   configFile: '/workspace/lauf.config.ts',
@@ -90,7 +90,7 @@ describe('info handler', () => {
         cliPackageRoot: '/lauf-root',
         spinner: true,
         env: {},
-        workspacePackages: {},
+        workspacePackages: { chalk: '^5.0.0' },
         sandbox: true,
       },
     );
@@ -114,7 +114,7 @@ describe('info handler', () => {
         cliPackageRoot: '/lauf-root',
         spinner: true,
         env: {},
-        workspacePackages: {},
+        workspacePackages: { chalk: '^5.0.0' },
         sandbox: true,
       },
     );

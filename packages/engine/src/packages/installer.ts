@@ -2,8 +2,6 @@ import { spawn } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
-import { attempt, attemptAsync } from 'es-toolkit';
-
 import type { Result } from '../result.ts';
 
 type PackageManager = 'pnpm' | 'npm' | 'yarn' | 'bun';
@@ -27,11 +25,7 @@ export function detectPackageManager(workspaceRoot: string): Result<PackageManag
 
   const detected = lockfiles.find((entry) => {
     const lockPath = path.join(workspaceRoot, entry.file);
-    const [error, exists] = attempt(() => fs.existsSync(lockPath));
-    if (error) {
-      return false;
-    }
-    return exists;
+    return fs.existsSync(lockPath);
   });
 
   if (detected) {
@@ -73,32 +67,15 @@ export function installPackages(cacheDir: string, manager: PackageManager): Prom
 }
 
 /**
- * Safe wrapper around installPackages using attemptAsync.
+ * Safe wrapper around installPackages.
  *
  * @param cacheDir - Absolute path to cache directory
  * @param manager - Package manager to use
  * @returns Result indicating success
  */
-export async function safeInstallPackages(
+export function safeInstallPackages(
   cacheDir: string,
   manager: PackageManager,
 ): Promise<Result<void>> {
-  const [error, result] = await attemptAsync(() => installPackages(cacheDir, manager));
-
-  if (error) {
-    if (error instanceof Error) {
-      return [error, null];
-    }
-    return [new Error(String(error)), null];
-  }
-
-  if (result === null) {
-    return [new Error('Install returned null unexpectedly'), null];
-  }
-
-  if (result[0]) {
-    return result;
-  }
-
-  return [null, undefined];
+  return installPackages(cacheDir, manager);
 }

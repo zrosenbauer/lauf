@@ -31,6 +31,7 @@ export default defineConfig({
 
 // script.ts
 export default lauf({
+  description: 'Example package-managed script',
   packages: {
     chalk: '^5.0.0',
   },

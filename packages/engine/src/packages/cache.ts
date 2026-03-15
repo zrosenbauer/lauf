@@ -48,15 +48,8 @@ export function isCacheValid(cacheDir: string, packages: Record<string, string>)
   const packageJsonPath = path.join(cacheDir, 'package.json');
   const nodeModulesPath = path.join(cacheDir, 'node_modules');
 
-  const [packageJsonError, packageJsonExists] = attempt(() => fs.existsSync(packageJsonPath));
-  if (packageJsonError) {
-    return [packageJsonError as Error, null];
-  }
-
-  const [nodeModulesError, nodeModulesExists] = attempt(() => fs.existsSync(nodeModulesPath));
-  if (nodeModulesError) {
-    return [nodeModulesError as Error, null];
-  }
+  const packageJsonExists = fs.existsSync(packageJsonPath);
+  const nodeModulesExists = fs.existsSync(nodeModulesPath);
 
   if (!packageJsonExists || !nodeModulesExists) {
     return [null, false];
@@ -64,8 +57,7 @@ export function isCacheValid(cacheDir: string, packages: Record<string, string>)
 
   const allPackagesExist = Object.keys(packages).every((packageName) => {
     const packagePath = path.join(nodeModulesPath, ...packageName.split('/'));
-    const [error, exists] = attempt(() => fs.existsSync(packagePath));
-    return !error && exists;
+    return fs.existsSync(packagePath);
   });
 
   return [null, allPackagesExist];
