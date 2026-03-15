@@ -29,6 +29,8 @@ vi.mock('../lib/paths.ts', () => ({
 vi.mock('@laufen/engine', () => ({
   runScript: vi.fn(),
   resolveEnvValue: vi.fn(() => Promise.resolve([null, {}])),
+  extractPackages: vi.fn(() => Promise.resolve([null, {}])),
+  generatePackageTypes: vi.fn(() => [null, undefined]),
 }));
 
 vi.mock('../utils/prompt.ts', () => ({

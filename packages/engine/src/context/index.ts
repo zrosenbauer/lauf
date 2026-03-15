@@ -61,6 +61,10 @@ export function createContext<T extends ArgDefs>(params: CreateContextParams<T>)
     spinner: resolveSpinner(params.spinner),
     prompts: createPrompts(),
     fs: fsHelpers,
+    import: <K extends keyof LaufPackages.Registry & string>(
+      packageName: K,
+    ): Promise<LaufPackages.Registry[K]> =>
+      import(packageName as string) as Promise<LaufPackages.Registry[K]>,
     watch,
   };
 }

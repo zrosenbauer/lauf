@@ -25,9 +25,9 @@ export default lauf({
     force: z.boolean().default(false).describe('Skip confirmation prompt'),
   },
   async run(ctx) {
-    // Dynamic imports - packages auto-installed to ~/.lauf/packages/<hash>/
-    const { rimraf } = await import('rimraf'); // from workspace packages
-    const chalk = (await import('chalk')).default; // from script packages
+    // Type-safe imports - packages auto-installed to ~/.lauf/packages/<hash>/
+    const { rimraf } = await ctx.import('rimraf'); // from workspace packages
+    const chalk = await ctx.import('chalk'); // from script packages
 
     const targets = ctx.args.targets.split(',').map((t) => t.trim());
 

@@ -14,8 +14,8 @@ export default lauf({
     write: z.boolean().default(false).describe('Write formatted output back to file'),
   },
   async run(ctx) {
-    // Dynamic import - prettier installed to ~/.lauf/packages/<hash>/
-    const prettier = await import('prettier');
+    // Type-safe import - prettier installed to ~/.lauf/packages/<hash>/
+    const prettier = await ctx.import('prettier');
 
     const filePath = join(ctx.dir.package, ctx.args.file);
 

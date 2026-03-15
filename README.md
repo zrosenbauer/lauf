@@ -49,7 +49,7 @@ export default lauf({
     loud: z.boolean().default(false),
   },
   async run(ctx) {
-    const chalk = (await import('chalk')).default;
+    const chalk = await ctx.import('chalk');
     const greeting = `Hello, ${ctx.args.name}!`;
     const message = ctx.args.loud ? greeting.toUpperCase() : greeting;
     ctx.logger.info(chalk.blue(message));

@@ -10,6 +10,7 @@ export { createSpinner, createNoopSpinner } from './context/spinner.ts';
 export { extractSchemaFields, resolveType } from './utils/schema.ts';
 export { preparePackages } from './package-manager.ts';
 export { extractPackages } from './package-metadata.ts';
+export { generatePackageTypes } from './package-types-generator.ts';
 export type { JsonSchemaProperty } from './utils/schema.ts';
 export type {
   ArgDefs,

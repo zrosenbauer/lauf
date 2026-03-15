@@ -172,6 +172,22 @@ export interface ScriptContext<T extends ArgDefs> {
   readonly fs: FsHelpers;
 
   /**
+   * Import a package declared in the `packages` field with full type safety.
+   *
+   * TypeScript automatically infers the correct type from the package name:
+   * @example
+   * ```ts
+   * const { rimraf } = await ctx.import('rimraf'); // typed as typeof import('rimraf')
+   * const chalk = await ctx.import('chalk');       // typed as typeof import('chalk')
+   * ```
+   *
+   * Types are auto-generated in `.lauf/packages.d.ts` based on declared packages.
+   */
+  import<K extends keyof LaufPackages.Registry & string>(
+    packageName: K,
+  ): Promise<LaufPackages.Registry[K]>;
+
+  /**
    * Watch-mode context describing what triggered this run.
    */
   readonly watch: WatchContext;
@@ -204,7 +220,7 @@ export interface ScriptConfig<T extends ArgDefs = Record<string, never>> {
    * npm package dependencies to install for this script.
    *
    * Packages are installed to a cache directory (`~/.lauf/packages/<hash>/`)
-   * and made available via dynamic imports.
+   * and made available via `ctx.import()` with full type safety.
    *
    * @example
    * ```ts
@@ -214,7 +230,8 @@ export interface ScriptConfig<T extends ArgDefs = Record<string, never>> {
    * }
    *
    * // In run():
-   * const { rimraf } = await import('rimraf');
+   * const { rimraf } = await ctx.import('rimraf');
+   * const { execa } = await ctx.import('execa');
    * ```
    */
   packages?: Record<string, string>;

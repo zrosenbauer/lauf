@@ -8,7 +8,7 @@ import type {
   WatchConfig,
   WatchContext,
 } from '@laufen/engine';
-import { resolveEnvValue, runScript } from '@laufen/engine';
+import { extractPackages, generatePackageTypes, resolveEnvValue, runScript } from '@laufen/engine';
 import { attemptAsync } from 'es-toolkit';
 import pc from 'picocolors';
 import { z } from 'zod';
@@ -54,6 +54,18 @@ export default defineHandler({
     const [envError, configEnv] = await resolveConfigEnv(loaded.config.env, script, workspaceRoot);
     if (envError) {
       return fail({ message: `Failed to resolve config env: ${safeParseError(envError)}` });
+    }
+
+    // Extract script-level packages and generate type declarations
+    const [extractError, scriptPackages] = await extractPackages(script.path);
+    if (extractError) {
+      return fail({ message: `Failed to extract packages: ${safeParseError(extractError)}` });
+    }
+
+    const allPackages = { ...loaded.config.packages, ...scriptPackages };
+    const [typeGenError] = generatePackageTypes(workspaceRoot, allPackages);
+    if (typeGenError) {
+      return fail({ message: `Failed to generate package types: ${safeParseError(typeGenError)}` });
     }
 
     if (isHelp) {
