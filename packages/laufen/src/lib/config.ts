@@ -1,5 +1,5 @@
 import * as p from '@clack/prompts';
-import type { EnvFn } from '@laufen/engine';
+import type { EnvFn, WatchConfig } from '@laufen/engine';
 import { loadConfig } from 'c12';
 import { attemptAsync } from 'es-toolkit';
 import { createJiti } from 'jiti';
@@ -26,6 +26,7 @@ export interface LaufConfig {
    * Script-level packages take precedence for version conflicts.
    */
   packages?: Record<string, string>;
+  watch?: WatchConfig;
 }
 
 export interface ResolvedLaufConfig {
@@ -35,6 +36,7 @@ export interface ResolvedLaufConfig {
   sandbox: boolean;
   env: EnvValue;
   packages: Record<string, string>;
+  watch: WatchConfig | undefined;
 }
 
 /**
@@ -61,6 +63,14 @@ const loggerSchema = z
   })
   .optional();
 
+const watchConfigSchema: z.ZodType<WatchConfig | undefined> = z
+  .object({
+    patterns: z.array(z.string().min(1)).min(1),
+    debounce: z.number().int().nonnegative().optional(),
+    ignored: z.array(z.string().min(1)).optional(),
+  })
+  .optional();
+
 /**
  * Zod schema that validates the shape of a resolved lauf config.
  *
@@ -74,6 +84,7 @@ const resolvedLaufConfigSchema: z.ZodType<ResolvedLaufConfig> = z.object({
   sandbox: z.boolean(),
   env: z.union([z.record(z.string(), z.string()), z.function()]),
   packages: z.record(z.string(), z.string()),
+  watch: watchConfigSchema,
 }) as z.ZodType<ResolvedLaufConfig>;
 
 const DEFAULTS: ResolvedLaufConfig = {
@@ -83,6 +94,7 @@ const DEFAULTS: ResolvedLaufConfig = {
   sandbox: true,
   env: {},
   packages: {},
+  watch: undefined,
 };
 
 /**

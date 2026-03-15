@@ -1,4 +1,4 @@
-import type { ArgDefs, DefaultLogger, InferArgs, ScriptContext } from '../types.ts';
+import type { ArgDefs, DefaultLogger, InferArgs, ScriptContext, WatchContext } from '../types.ts';
 import { createFsHelpers } from './fs.ts';
 import { createLogger } from './logger.ts';
 import { createPrompts } from './prompts.ts';
@@ -12,6 +12,7 @@ interface CreateContextParams<T extends ArgDefs> {
   readonly name: string;
   readonly spinner: boolean;
   readonly logger: DefaultLogger | undefined;
+  readonly watch: WatchContext;
 }
 
 function resolveSpinner(enabled: boolean) {
@@ -33,6 +34,11 @@ function warnDeprecation(key: string, replacement: string): void {
 
 export function createContext<T extends ArgDefs>(params: CreateContextParams<T>): ScriptContext<T> {
   const fsHelpers = createFsHelpers(params.packageDir);
+  const watch = Object.freeze({
+    enabled: params.watch.enabled,
+    changedFiles: Object.freeze([...params.watch.changedFiles]),
+    patterns: Object.freeze([...params.watch.patterns]),
+  });
 
   return {
     args: params.args,
@@ -55,5 +61,6 @@ export function createContext<T extends ArgDefs>(params: CreateContextParams<T>)
     spinner: resolveSpinner(params.spinner),
     prompts: createPrompts(),
     fs: fsHelpers,
+    watch,
   };
 }

@@ -56,6 +56,7 @@ describe('createContext', () => {
     name: '@app/script',
     spinner: false,
     logger: undefined,
+    watch: { enabled: false, changedFiles: [] as string[], patterns: [] as string[] },
   };
 
   it('returns context with correct args', () => {
@@ -133,5 +134,17 @@ describe('createContext', () => {
   it('assigns the result of createSpinner to context spinner when enabled', () => {
     const ctx = createContext({ ...baseParams, spinner: true });
     expect(ctx.spinner).toBe(mockCreateSpinner.mock.results[0].value);
+  });
+
+  it('returns context with correct watch', () => {
+    const ctx = createContext(baseParams);
+    expect(ctx.watch).toEqual({ enabled: false, changedFiles: [], patterns: [] });
+  });
+
+  it('returns frozen watch context', () => {
+    const ctx = createContext(baseParams);
+    expect(Object.isFrozen(ctx.watch)).toBe(true);
+    expect(Object.isFrozen(ctx.watch.changedFiles)).toBe(true);
+    expect(Object.isFrozen(ctx.watch.patterns)).toBe(true);
   });
 });

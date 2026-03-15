@@ -20,6 +20,50 @@ export interface EnvContext {
 export type EnvFn = (ctx: EnvContext) => Record<string, string> | Promise<Record<string, string>>;
 
 /**
+ * Configuration for file watching in watch mode.
+ */
+export interface WatchConfig {
+  /**
+   * Glob patterns to watch, relative to the package directory.
+   * Example: `['src/**\/*.ts', 'config/*.json']`
+   */
+  readonly patterns: readonly string[];
+
+  /**
+   * Milliseconds to debounce before rerunning after a change.
+   * @default 100
+   */
+  readonly debounce?: number;
+
+  /**
+   * Additional glob patterns to ignore.
+   */
+  readonly ignored?: readonly string[];
+}
+
+/**
+ * Watch-mode context passed to scripts on each run.
+ */
+export interface WatchContext {
+  /**
+   * Whether watch mode is active for this execution.
+   */
+  readonly enabled: boolean;
+
+  /**
+   * Files (relative to package directory) that triggered this rerun.
+   * Empty on the initial run or when watch mode is disabled.
+   */
+  readonly changedFiles: readonly string[];
+
+  /**
+   * Glob patterns currently being watched.
+   * Empty when watch mode is disabled.
+   */
+  readonly patterns: readonly string[];
+}
+
+/**
  * A record of named argument definitions using Zod schemas.
  */
 export type ArgDefs = Record<string, z.ZodType>;
@@ -159,6 +203,11 @@ export interface ScriptContext<T extends ArgDefs> {
    * Filesystem helper utilities scoped to the package directory.
    */
   readonly fs: FsHelpers;
+
+  /**
+   * Watch-mode context describing what triggered this run.
+   */
+  readonly watch: WatchContext;
 }
 
 /**
@@ -202,6 +251,15 @@ export interface ScriptConfig<T extends ArgDefs = Record<string, never>> {
    * ```
    */
   packages?: Record<string, string>;
+
+  /**
+   * File watch configuration for this script.
+   *
+   * When specified and `--watch` is passed to `lauf run`, files matching
+   * these patterns (relative to the package directory) will trigger a rerun.
+   * Merged with any global watch config from `lauf.config.ts`.
+   */
+  watch?: WatchConfig;
 
   /**
    * The script's entry point, called with the validated context.

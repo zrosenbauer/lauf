@@ -56,6 +56,7 @@ const mockLoadedConfig = {
     sandbox: true,
     env: {},
     packages: {},
+    watch: undefined,
   },
   configFile: '/workspace/lauf.config.ts',
   configDir: '/workspace',

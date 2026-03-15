@@ -1,7 +1,15 @@
-// oxlint-disable import/max-dependencies
+// oxlint-disable import/max-dependencies, max-lines
 import * as p from '@clack/prompts';
-import type { EnvContext, RunResult, ScriptConfig, ScriptTarget } from '@laufen/engine';
+import type {
+  EnvContext,
+  RunResult,
+  ScriptConfig,
+  ScriptTarget,
+  WatchConfig,
+  WatchContext,
+} from '@laufen/engine';
 import { resolveEnvValue, runScript } from '@laufen/engine';
+import { attemptAsync } from 'es-toolkit';
 import pc from 'picocolors';
 import { z } from 'zod';
 
@@ -11,6 +19,7 @@ import { defineHandler } from '../lib/handler.ts';
 import { LAUF_ROOT, getWorkspaceRoot } from '../lib/paths.ts';
 import type { HandlerResult, Result } from '../lib/result.ts';
 import { fail, ok } from '../lib/result.ts';
+import { createWatcher, loadScriptWatchConfig, mergeWatchConfig } from '../lib/watcher.ts';
 import { consumeScriptHelpRequested } from '../state/script-help.ts';
 import { extractEnvFlags, parseRawArgs, sliceArgvAfter } from '../utils/argv.ts';
 import { safeParseError } from '../utils/cli.ts';
@@ -22,6 +31,7 @@ const runParams = z.object({
 
 export default defineHandler({
   parameters: runParams,
+  // oxlint-disable-next-line max-lines-per-function
   handler: async (ctx) => {
     const [configError, loaded] = await safeLoadLaufConfigWithMeta(process.cwd());
     if (configError) {
@@ -37,6 +47,8 @@ export default defineHandler({
     const { env: cliEnv, remaining: cleanArgv } = extractEnvFlags(rawArgv);
     const isHelp =
       consumeScriptHelpRequested() || cleanArgv.includes('--help') || cleanArgv.includes('-h');
+    const isWatch = cleanArgv.includes('--watch') || cleanArgv.includes('-w');
+    const scriptArgv = cleanArgv.filter((arg) => arg !== '--watch' && arg !== '-w');
     const workspaceRoot = getWorkspaceRoot();
 
     const [envError, configEnv] = await resolveConfigEnv(loaded.config.env, script, workspaceRoot);
@@ -56,9 +68,32 @@ export default defineHandler({
       );
     }
 
+    if (isWatch) {
+      const scriptWatchConfig = await loadScriptWatchConfig(script.path);
+      const watchConfig = mergeWatchConfig(loaded.config.watch, scriptWatchConfig);
+
+      if (watchConfig === undefined) {
+        return fail({
+          message:
+            `No watch config found for ${pc.cyan(script.name)}. ` +
+            `Add a "watch" field to your script or to lauf.config.ts.`,
+        });
+      }
+
+      return runWatchMode(
+        script,
+        parseRawArgs(scriptArgv),
+        workspaceRoot,
+        loaded.config,
+        configEnv,
+        cliEnv,
+        watchConfig,
+      );
+    }
+
     return runNormalMode(
       script,
-      parseRawArgs(cleanArgv),
+      parseRawArgs(scriptArgv),
       workspaceRoot,
       loaded.config,
       configEnv,
@@ -147,6 +182,7 @@ async function runNormalMode(
     cliEnv,
     config.sandbox,
     config.packages,
+    DISABLED_WATCH,
   );
 
   if (result.exitCode === 0) {
@@ -171,6 +207,7 @@ async function executeScript(
   cliEnv: Record<string, string>,
   sandbox: boolean,
   workspacePackages: Record<string, string>,
+  watch: WatchContext,
 ): Promise<RunResult> {
   const label = pc.cyan(script.name);
 
@@ -183,9 +220,114 @@ async function executeScript(
     cliEnv,
     sandbox,
     workspacePackages,
+    watch,
   });
   if (result.exitCode === 0) {
     p.log.success(`${label} completed successfully`);
   }
   return result;
+}
+
+const DISABLED_WATCH: WatchContext = {
+  enabled: false,
+  changedFiles: [],
+  patterns: [],
+};
+
+/**
+ * Run a script in watch mode: execute once immediately, then rerun on file changes.
+ *
+ * Exits cleanly on SIGINT/SIGTERM, closing the watcher before resolving.
+ */
+// oxlint-disable-next-line max-lines-per-function
+async function runWatchMode(
+  script: ScriptTarget,
+  args: Record<string, unknown>,
+  workspaceRoot: string,
+  config: ResolvedLaufConfig,
+  configEnv: Record<string, string>,
+  cliEnv: Record<string, string>,
+  watchConfig: WatchConfig,
+): Promise<HandlerResult> {
+  const patterns = [...watchConfig.patterns];
+  const initialWatch: WatchContext = { enabled: true, changedFiles: [], patterns };
+
+  const initialResult = await executeScript(
+    script,
+    args,
+    workspaceRoot,
+    config.spinner,
+    configEnv,
+    cliEnv,
+    config.sandbox,
+    initialWatch,
+  );
+
+  if (initialResult.exitCode !== 0) {
+    p.log.warn(
+      `Initial run failed (exit ${initialResult.exitCode}). Watching for changes to retry...`,
+    );
+  }
+
+  let isRunning = false;
+
+  const [watcherError, watcher] = await attemptAsync(() =>
+    createWatcher(watchConfig, script.packageDir, (changedFiles) => {
+      if (isRunning) {
+        p.log.warn('Script still running, skipping rerun...');
+        return;
+      }
+
+      const label = pc.cyan(script.name);
+      p.log.step(`Re-running ${label} (changed: ${changedFiles.join(', ')})`);
+
+      isRunning = true;
+      const watchCtx: WatchContext = { enabled: true, changedFiles, patterns };
+      executeScript(
+        script,
+        args,
+        workspaceRoot,
+        config.spinner,
+        configEnv,
+        cliEnv,
+        config.sandbox,
+        watchCtx,
+      )
+        .then((result) => {
+          isRunning = false;
+          if (result.exitCode === 0) {
+            return p.log.info(`Watching: ${patterns.join(', ')}`);
+          }
+          return p.log.warn(`Exited with code ${result.exitCode}. Watching for changes...`);
+        })
+        .catch((err: unknown) => {
+          isRunning = false;
+          return p.log.error(`Script execution failed: ${safeParseError(err)}`);
+        });
+    }),
+  );
+
+  if (watcherError !== null || watcher === null) {
+    return fail({ message: `Failed to start file watcher: ${safeParseError(watcherError)}` });
+  }
+
+  p.log.info(`Watching: ${patterns.join(', ')}`);
+
+  return new Promise<HandlerResult>((resolve) => {
+    const cleanup = (): void => {
+      watcher
+        .cleanup()
+        .then(() => {
+          p.log.info('Watch mode stopped.');
+          return resolve(ok());
+        })
+        .catch((err: unknown) => {
+          p.log.warn(`Watcher cleanup failed: ${safeParseError(err)}`);
+          return resolve(ok());
+        });
+    };
+
+    process.once('SIGINT', cleanup);
+    process.once('SIGTERM', cleanup);
+  });
 }

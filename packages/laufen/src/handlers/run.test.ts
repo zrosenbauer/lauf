@@ -58,6 +58,7 @@ const mockLoadedConfig = {
     sandbox: true,
     env: {},
     packages: {},
+    watch: undefined,
   },
   configFile: '/workspace/lauf.config.ts',
   configDir: '/workspace',
@@ -71,6 +72,7 @@ const expectedRunOptions = {
   cliEnv: {},
   sandbox: true,
   workspacePackages: {},
+  watch: { enabled: false, changedFiles: [], patterns: [] },
 };
 
 beforeEach(() => {

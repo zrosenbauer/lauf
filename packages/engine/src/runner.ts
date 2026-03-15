@@ -11,7 +11,8 @@ import { bundleScript } from './bundler.ts';
 import { createLogger } from './context/logger.ts';
 import { buildBaseEnv } from './env.ts';
 import { extractAndPreparePackages } from './package-orchestrator.ts';
-import type { Logger, RunResult, ScriptTarget } from './types.ts';
+import type { Logger, RunResult, ScriptTarget, WatchContext } from './types.ts';
+import { safeParseError } from './utils/cli.ts';
 
 const ENGINE_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const EXECUTOR_DIST_PATH = path.join(ENGINE_ROOT, 'dist', 'executor.mjs');
@@ -26,6 +27,7 @@ export interface RunScriptOptions {
   readonly cliEnv?: Record<string, string>;
   readonly sandbox?: boolean;
   readonly workspacePackages?: Record<string, string>;
+  readonly watch?: WatchContext;
 }
 
 /**
@@ -99,6 +101,35 @@ function resolveSpinnerEnv(enabled: boolean): string {
     return '1';
   }
   return '0';
+}
+
+/**
+ * Resolve watch-mode environment variables from options.
+ */
+function resolveWatchEnabledEnv(enabled: boolean): string {
+  if (enabled) {
+    return '1';
+  }
+  return '0';
+}
+
+/**
+ * Resolve watch-mode environment variables from options.
+ */
+function resolveWatchEnv(options: RunScriptOptions): Record<string, string> {
+  const watch = options.watch;
+  if (watch === undefined) {
+    return {
+      LAUF_WATCH_ENABLED: '0',
+      LAUF_WATCH_CHANGED: '[]',
+      LAUF_WATCH_PATTERNS: '[]',
+    };
+  }
+  return {
+    LAUF_WATCH_ENABLED: resolveWatchEnabledEnv(watch.enabled),
+    LAUF_WATCH_CHANGED: JSON.stringify(watch.changedFiles),
+    LAUF_WATCH_PATTERNS: JSON.stringify(watch.patterns),
+  };
 }
 
 /**
@@ -408,6 +439,7 @@ function buildScriptEnv(
 ): Record<string, string> {
   const spinnerEnabled = resolveSpinner(options);
   const helpEnv = resolveHelpEnv(options);
+  const watchEnv = resolveWatchEnv(options);
   const spinnerValue = resolveSpinnerEnv(spinnerEnabled);
   const baseEnv = buildBaseEnv(options.sandbox ?? true);
   const userEnv = options.env ?? {};
@@ -429,6 +461,7 @@ function buildScriptEnv(
     LAUF_ENV: JSON.stringify(userEnv),
     LAUF_CLI_ENV: JSON.stringify(cliEnv),
     ...helpEnv,
+    ...watchEnv,
   };
 }
 
