@@ -12,7 +12,6 @@ import { createLogger } from './context/logger.ts';
 import { buildBaseEnv } from './env.ts';
 import { extractAndPreparePackages } from './package-orchestrator.ts';
 import type { Logger, RunResult, ScriptTarget, WatchContext } from './types.ts';
-import { safeParseError } from './utils/cli.ts';
 
 const ENGINE_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const EXECUTOR_DIST_PATH = path.join(ENGINE_ROOT, 'dist', 'executor.mjs');

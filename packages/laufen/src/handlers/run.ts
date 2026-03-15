@@ -260,6 +260,7 @@ async function runWatchMode(
     configEnv,
     cliEnv,
     config.sandbox,
+    config.packages,
     initialWatch,
   );
 
@@ -291,6 +292,7 @@ async function runWatchMode(
         configEnv,
         cliEnv,
         config.sandbox,
+        config.packages,
         watchCtx,
       )
         .then((result) => {

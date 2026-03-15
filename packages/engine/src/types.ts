@@ -77,33 +77,13 @@ export type InferArgs<T extends ArgDefs> = {
 
 /**
  * Base logger interface for structured terminal output.
- *
  * Each method maps to the corresponding `@clack/prompts` `log.*` function.
  */
 export interface Logger {
-  /**
-   * Log an informational message.
-   */
   info(message: string): void;
-
-  /**
-   * Log a warning message.
-   */
   warn(message: string): void;
-
-  /**
-   * Log an error message.
-   */
   error(message: string): void;
-
-  /**
-   * Log a success message.
-   */
   success(message: string): void;
-
-  /**
-   * Log a plain message.
-   */
   message(message: string): void;
 }
 
@@ -119,23 +99,10 @@ export interface DefaultLogger extends Logger {
   newlines(n?: number): void;
 }
 
-/**
- * Wrapper around `@clack/prompts` spinner for progress indication.
- */
+/** Wrapper around `@clack/prompts` spinner for progress indication. */
 export interface Spinner {
-  /**
-   * Start the spinner with an optional message.
-   */
   start(message?: string): void;
-
-  /**
-   * Stop the spinner with an optional final message.
-   */
   stop(message?: string): void;
-
-  /**
-   * Update the spinner's message while it is running.
-   */
   message(message?: string): void;
 }
 
