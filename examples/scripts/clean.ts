@@ -11,7 +11,12 @@ function matchesTarget(name: string, targets: ReadonlyArray<string>): boolean {
 
 export default lauf({
   description: 'Clean build artifacts from a workspace package',
-  // Uses rimraf from workspace packages - no project dependency needed!
+  // Demonstrates both workspace and script-level packages:
+  // - rimraf comes from workspace packages (lauf.config.ts)
+  // - chalk is script-specific (defined below)
+  packages: {
+    chalk: '^5.0.0',
+  },
   args: {
     targets: z
       .string()
@@ -20,8 +25,9 @@ export default lauf({
     force: z.boolean().default(false).describe('Skip confirmation prompt'),
   },
   async run(ctx) {
-    // Dynamic import - rimraf comes from workspace packages in lauf.config.ts
-    const { rimraf } = await import('rimraf');
+    // Dynamic imports - packages auto-installed to ~/.lauf/packages/<hash>/
+    const { rimraf } = await import('rimraf'); // from workspace packages
+    const chalk = (await import('chalk')).default; // from script packages
 
     const targets = ctx.args.targets.split(',').map((t) => t.trim());
 
@@ -40,7 +46,7 @@ export default lauf({
     }
 
     ctx.logger.newlines();
-    matched.map((name) => ctx.logger.warn(`Will remove: ${name}`));
+    matched.map((name) => ctx.logger.warn(chalk.red(`Will remove: ${name}`)));
     ctx.logger.newlines();
 
     if (!ctx.args.force) {
@@ -67,6 +73,6 @@ export default lauf({
 
     ctx.spinner.stop('Cleanup complete');
     ctx.logger.newlines();
-    matched.map((name) => ctx.logger.success(`Removed: ${name}`));
+    matched.map((name) => ctx.logger.success(chalk.green(`✓ Removed: ${name}`)));
   },
 });
