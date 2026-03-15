@@ -8,6 +8,7 @@ import * as p from '@clack/prompts';
 import { Clerc, completionsPlugin, helpPlugin, versionPlugin } from 'clerc';
 import pc from 'picocolors';
 
+import handleBlueprint from './handlers/blueprint.ts';
 import handleCreate from './handlers/create.ts';
 import handleInfo from './handlers/info.ts';
 import handleInit from './handlers/init.ts';
@@ -92,4 +93,14 @@ Clerc.create()
     },
   })
   .on('create', handleCreate)
+  .command('blueprint', 'Scaffold a pre-built script blueprint', {
+    parameters: ['[name]'],
+    flags: {
+      dir: {
+        type: String,
+        description: 'Target directory (relative to monorepo root)',
+      },
+    },
+  })
+  .on('blueprint', handleBlueprint)
   .parse([...rewrittenArgv]);
