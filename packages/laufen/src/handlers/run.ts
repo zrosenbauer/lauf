@@ -278,13 +278,18 @@ async function runWatchMode(
         cliEnv,
         config.sandbox,
         watchCtx,
-      ).then((result) => {
-        isRunning = false;
-        if (result.exitCode === 0) {
-          return p.log.info(`Watching: ${patterns.join(', ')}`);
-        }
-        return p.log.warn(`Exited with code ${result.exitCode}. Watching for changes...`);
-      });
+      )
+        .then((result) => {
+          isRunning = false;
+          if (result.exitCode === 0) {
+            return p.log.info(`Watching: ${patterns.join(', ')}`);
+          }
+          return p.log.warn(`Exited with code ${result.exitCode}. Watching for changes...`);
+        })
+        .catch((err: unknown) => {
+          isRunning = false;
+          return p.log.error(`Script execution failed: ${safeParseError(err)}`);
+        });
     }),
   );
 
