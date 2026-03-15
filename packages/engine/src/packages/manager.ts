@@ -3,14 +3,9 @@ import * as path from 'node:path';
 
 import { attempt } from 'es-toolkit';
 
-import {
-  ensureCacheDir,
-  isCacheValid,
-  resolveCacheDir,
-  writePackageJson,
-} from './package-cache.ts';
-import { detectPackageManager, safeInstallPackages } from './package-installer.ts';
-import type { Result } from './result.ts';
+import type { Result } from '../result.ts';
+import { ensureCacheDir, isCacheValid, resolveCacheDir, writePackageJson } from './cache.ts';
+import { detectPackageManager, safeInstallPackages } from './installer.ts';
 
 export interface PreparePackagesResult {
   readonly cacheDir: string;

@@ -34,7 +34,7 @@ vi.mock('./bundler.ts', () => ({
   bundleScript: mockBundleScript,
 }));
 
-vi.mock('./package-orchestrator.ts', () => ({
+vi.mock('./packages/orchestrator.ts', () => ({
   extractAndPreparePackages: mockExtractAndPreparePackages,
 }));
 

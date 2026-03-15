@@ -1,4 +1,4 @@
-import type { Result } from './result.ts';
+import type { Result } from '../result.ts';
 
 /**
  * Check if a value is a plain object (not a Map, Set, class instance, etc.).

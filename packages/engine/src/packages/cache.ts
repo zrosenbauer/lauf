@@ -5,7 +5,7 @@ import * as path from 'node:path';
 
 import { attempt } from 'es-toolkit';
 
-import type { Result } from './result.ts';
+import type { Result } from '../result.ts';
 
 /**
  * Compute a stable hash from package definitions.

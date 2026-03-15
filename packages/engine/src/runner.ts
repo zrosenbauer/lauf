@@ -11,7 +11,7 @@ import { match } from 'ts-pattern';
 import { bundleScript } from './bundler.ts';
 import { createLogger } from './context/logger.ts';
 import { buildBaseEnv } from './env.ts';
-import { extractAndPreparePackages } from './package-orchestrator.ts';
+import { extractAndPreparePackages } from './packages/orchestrator.ts';
 import type { Logger, RunResult, ScriptTarget, WatchContext } from './types.ts';
 
 const ENGINE_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));

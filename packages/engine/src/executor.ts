@@ -10,7 +10,7 @@ import { createContext } from './context/index.ts';
 import { createLogger } from './context/logger.ts';
 import { createPrompts } from './context/prompts.ts';
 import { applyEnvToProcess, resolveEnvValue } from './env.ts';
-import { validatePackages } from './package-validation.ts';
+import { validatePackages } from './packages/validation.ts';
 import type { ArgDefs, EnvContext, ScriptConfig } from './types.ts';
 import { formatArgErrors, safeParseError } from './utils/cli.ts';
 import { extractArgMeta, formatHelp } from './utils/help.ts';

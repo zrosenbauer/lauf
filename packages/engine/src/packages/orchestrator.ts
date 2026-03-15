@@ -1,6 +1,6 @@
-import { preparePackages } from './package-manager.ts';
-import { extractPackages } from './package-metadata.ts';
-import type { Result } from './result.ts';
+import type { Result } from '../result.ts';
+import { preparePackages } from './manager.ts';
+import { extractPackages } from './metadata.ts';
 
 export interface PackagePreparationResult {
   readonly cacheDir: string;

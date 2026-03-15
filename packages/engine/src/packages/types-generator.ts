@@ -3,7 +3,7 @@ import { join } from 'node:path';
 
 import { attempt } from 'es-toolkit';
 
-import type { Result } from './result.ts';
+import type { Result } from '../result.ts';
 
 /**
  * Generate a TypeScript declaration file that maps package names to their types.

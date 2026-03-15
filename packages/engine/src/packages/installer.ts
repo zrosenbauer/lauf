@@ -4,7 +4,7 @@ import * as path from 'node:path';
 
 import { attempt, attemptAsync } from 'es-toolkit';
 
-import type { Result } from './result.ts';
+import type { Result } from '../result.ts';
 
 type PackageManager = 'pnpm' | 'npm' | 'yarn' | 'bun';
 

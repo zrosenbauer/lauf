@@ -2,9 +2,9 @@ import { pathToFileURL } from 'node:url';
 
 import { attemptAsync } from 'es-toolkit';
 
-import { validatePackages } from './package-validation.ts';
-import type { Result } from './result.ts';
-import type { ArgDefs, ScriptConfig } from './types.ts';
+import type { Result } from '../result.ts';
+import type { ArgDefs, ScriptConfig } from '../types.ts';
+import { validatePackages } from './validation.ts';
 
 /**
  * Extract package definitions from a script's config.
