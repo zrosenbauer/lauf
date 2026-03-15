@@ -31,6 +31,9 @@ const envSchema = z.object({
   LAUF_HELP: z.enum(['0', '1']).optional(),
   LAUF_ENV: z.string().optional(),
   LAUF_CLI_ENV: z.string().optional(),
+  LAUF_WATCH_ENABLED: z.enum(['0', '1']).default('0'),
+  LAUF_WATCH_CHANGED: z.string().default('[]'),
+  LAUF_WATCH_PATTERNS: z.string().default('[]'),
 });
 
 const laufEnvSchema = z.record(z.string(), z.string());
@@ -189,6 +192,10 @@ async function execute(): Promise<void> {
     process.exit(1);
   }
 
+  const watchEnabled = env.LAUF_WATCH_ENABLED === '1';
+  const [, watchChanged] = safeParseJSON(env.LAUF_WATCH_CHANGED, z.array(z.string()));
+  const [, watchPatterns] = safeParseJSON(env.LAUF_WATCH_PATTERNS, z.array(z.string()));
+
   const ctx = createContext({
     args: parseResult.data,
     env: resolvedEnv,
@@ -197,6 +204,11 @@ async function execute(): Promise<void> {
     name: env.LAUF_SCRIPT_NAME,
     spinner: env.LAUF_SPINNER === '1',
     logger: undefined,
+    watch: {
+      enabled: watchEnabled,
+      changedFiles: watchChanged ?? [],
+      patterns: watchPatterns ?? [],
+    },
   });
 
   const [runError, runResult] = await attemptAsync(() => Promise.resolve(config.run(ctx)));

@@ -26,6 +26,8 @@ export type {
   PromptOption,
   PromptCancelled,
   PromptResult,
+  WatchConfig,
+  WatchContext,
 } from './types.ts';
 export type { Result } from './result.ts';
 export type { RunScriptOptions } from './runner.ts';

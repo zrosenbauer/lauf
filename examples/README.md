@@ -33,17 +33,21 @@ pnpm lauf run @examples/lauf/clean -- --force
 
 # Fetch GitHub releases and save locally
 pnpm lauf run @examples/lauf/fetch-releases -- --repo "vercel/next.js"
+
+# Watch TypeScript source files and report changes on save
+pnpm lauf run @examples/lauf/dev --watch
 ```
 
 ## Scripts
 
-| Script           | Description                                        |
-| ---------------- | -------------------------------------------------- |
-| `docs`           | Generate API docs from a source file using AI      |
-| `clean`          | Clean build artifacts with confirmation for safety |
-| `fetch-releases` | Fetch GitHub releases for a repo and save to JSON  |
-| `with-utils`     | Example using ctx.dir and ctx.fs helpers           |
-| `using-lib`      | Example using shared utility libraries             |
+| Script           | Description                                              |
+| ---------------- | -------------------------------------------------------- |
+| `docs`           | Generate API docs from a source file using AI            |
+| `clean`          | Clean build artifacts with confirmation for safety       |
+| `fetch-releases` | Fetch GitHub releases for a repo and save to JSON        |
+| `with-utils`     | Example using ctx.dir and ctx.fs helpers                 |
+| `using-lib`      | Example using shared utility libraries                   |
+| `dev`            | Watch TypeScript source files and report changes on save |
 
 ## Writing your own
 
@@ -132,6 +136,14 @@ The script context (`ctx`) provides:
 - `ctx.dir.root` - Workspace root (git repository root)
 - `ctx.dir.package` - Package directory where the script lives
 - `ctx.dir.workspace` - Alias for `ctx.dir.package`
+
+### Watch
+
+Available when running with `--watch`:
+
+- `ctx.watch.enabled` - `true` when running under `--watch`, `false` otherwise
+- `ctx.watch.changedFiles` - paths that triggered this rerun (empty on initial run)
+- `ctx.watch.patterns` - glob patterns currently being watched
 
 ### Filesystem Helpers
 
