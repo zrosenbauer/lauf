@@ -1,12 +1,52 @@
-import type { EnvContext } from '@laufen/engine';
+import type { EnvContext, RunScriptOptions } from '@laufen/engine';
 import { resolveEnvValue, runScript } from '@laufen/engine';
 
 import { safeLoadLaufConfigWithMeta } from '../lib/config.ts';
 import { defineHandler } from '../lib/handler.ts';
 import { LAUF_ROOT, getWorkspaceRoot } from '../lib/paths.ts';
+import type { HandlerResult } from '../lib/result.ts';
 import { fail, ok } from '../lib/result.ts';
+import type { DiscoveredScript } from '../lib/types.ts';
 import { safeParseError } from '../utils/cli.ts';
 import { resolveScript } from '../utils/resolve-script.ts';
+
+/**
+ * Build run options for help mode.
+ */
+function buildHelpOptions(
+  workspaceRoot: string,
+  spinner: boolean,
+  sandbox: boolean,
+  configEnv: Record<string, string>,
+  workspacePackages: Record<string, string>,
+): RunScriptOptions {
+  return {
+    help: true,
+    workspaceRoot,
+    cliPackageRoot: LAUF_ROOT,
+    spinner,
+    env: configEnv,
+    sandbox,
+    workspacePackages,
+  };
+}
+
+/**
+ * Run a script in help mode.
+ */
+async function runHelpMode(
+  script: DiscoveredScript,
+  options: RunScriptOptions,
+): Promise<HandlerResult> {
+  const result = await runScript(script, {}, options);
+  if (result.exitCode === 0) {
+    return ok();
+  }
+  return fail({
+    message: `Help failed for ${script.name}`,
+    exitCode: result.exitCode,
+  });
+}
 
 /**
  * Handler for the `lauf help [script]` CLI command.
@@ -26,14 +66,8 @@ export default defineHandler(async (ctx: { parameters: { script?: string } }) =>
   }
 
   const workspaceRoot = getWorkspaceRoot();
-
-  // Build EnvContext for config-level env resolution
   const envCtx: EnvContext = {
-    script: {
-      name: script.name,
-      path: script.path,
-      packageDir: script.packageDir,
-    },
+    script: { name: script.name, path: script.path, packageDir: script.packageDir },
     workspace: workspaceRoot,
   };
 
@@ -42,26 +76,12 @@ export default defineHandler(async (ctx: { parameters: { script?: string } }) =>
     return fail({ message: `Failed to resolve config env: ${safeParseError(envError)}` });
   }
 
-  const result = await runScript(
-    script,
-    {},
-    {
-      help: true,
-      workspaceRoot,
-      cliPackageRoot: LAUF_ROOT,
-      spinner: loaded.config.spinner,
-      env: configEnv,
-      sandbox: loaded.config.sandbox,
-      workspacePackages: loaded.config.packages,
-    },
+  const options = buildHelpOptions(
+    workspaceRoot,
+    loaded.config.spinner,
+    loaded.config.sandbox,
+    configEnv,
+    loaded.config.packages,
   );
-
-  if (result.exitCode === 0) {
-    return ok();
-  }
-
-  return fail({
-    message: `Help failed for ${script.name}`,
-    exitCode: result.exitCode,
-  });
+  return runHelpMode(script, options);
 });
