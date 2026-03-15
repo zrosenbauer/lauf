@@ -8,13 +8,15 @@ import type { Result } from './result.ts';
 /**
  * Generate a TypeScript declaration file that maps package names to their types.
  *
- * Creates `.lauf/packages.d.ts` with a global namespace that ScriptContext.import() uses.
+ * Creates `.lauf/packages.d.ts` in the package directory with a global namespace
+ * that ScriptContext.import() uses. Each package gets its own types file to avoid
+ * conflicts in monorepos.
  */
 export function generatePackageTypes(
-  workspaceRoot: string,
+  packageDir: string,
   packages: Record<string, string>,
 ): Result<void> {
-  const laufDir = join(workspaceRoot, '.lauf');
+  const laufDir = join(packageDir, '.lauf');
   const typesPath = join(laufDir, 'packages.d.ts');
 
   const [mkdirError] = attempt(() => fs.mkdirSync(laufDir, { recursive: true }));
