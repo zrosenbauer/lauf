@@ -1,5 +1,79 @@
 # laufen
 
+## 1.2.0
+
+### Minor Changes
+
+- b381c06: Add `lauf blueprint` command for scaffolding pre-built script templates
+
+  - `lauf blueprint` lists available blueprints
+  - `lauf blueprint <name>` scaffolds a blueprint into the project's scripts directory
+  - Available blueprints: `clean` (remove build artifacts and caches) and `copy` (copy files matching glob patterns)
+  - `clean` supports `--build`, `--cache`, `--npm`, `--nuke`, and `--dryRun` flags for granular control
+  - `copy` uses a configurable `COPY_PATTERNS` constant and supports `--to` and `--dryRun` flags
+
+- 278f67c: Add namespaced context API and filesystem helpers
+
+  - Add `ctx.dir.*` namespace for paths (root, package, workspace)
+  - Add `ctx.fs.*` filesystem helpers (readFile, writeFile, copyFile, mkdir, rm, exists, stat)
+  - Deprecate `ctx.root` and `ctx.packageDir` (use `ctx.dir.root` and `ctx.dir.package` instead)
+  - Add documentation and examples for creating reusable utility libraries
+
+- b8990a3: Add package management for script dependencies
+
+  Scripts can now declare npm packages that are automatically installed to a cache directory (`~/.lauf/packages/<hash>/`) without polluting project dependencies. Packages are available via type-safe `ctx.import()` method.
+
+  **Key features:**
+
+  - Workspace-level packages in `lauf.config.ts` available to all scripts
+  - Script-level packages in script config (overrides workspace packages)
+  - Auto-detection of package manager (pnpm, npm, yarn, bun)
+  - Cache reuse based on package set hash
+  - Type-safe imports with automatic `.lauf/packages.d.ts` generation
+  - Cross-process locking to prevent concurrent installations
+  - Externals integration with esbuild
+  - Runtime validation of packages field
+
+  **Usage:**
+
+  ```typescript
+  // lauf.config.ts
+  export default defineConfig({
+    packages: {
+      rimraf: "^6.0.0",
+      execa: "^9.0.0",
+    },
+  });
+
+  // script.ts
+  export default lauf({
+    description: "Example package-managed script",
+    packages: {
+      chalk: "^5.0.0",
+    },
+    async run(ctx) {
+      const { default: chalk } = await ctx.import("chalk");
+      const { rimraf } = await ctx.import("rimraf");
+      ctx.logger.info(chalk.blue("Styled text!"));
+    },
+  });
+  ```
+
+- 8566488: Add `--watch` mode to `lauf run`
+
+  - Add `--watch` / `-w` flag to `lauf run` to rerun scripts automatically on file changes
+  - Add `ctx.watch` to `ScriptContext` with `enabled`, `changedFiles`, and `patterns`
+  - Add `watch` field to `ScriptConfig` for per-script watch configuration
+  - Add `watch` field to `LaufConfig` for global watch configuration
+  - New `WatchConfig` and `WatchContext` types exported from `@laufen/engine` and `laufen`
+
+### Patch Changes
+
+- Updated dependencies [278f67c]
+- Updated dependencies [b8990a3]
+- Updated dependencies [8566488]
+  - @laufen/engine@1.2.0
+
 ## 1.1.0
 
 ### Minor Changes
