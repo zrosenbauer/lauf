@@ -8,7 +8,7 @@ import type {
   WatchConfig,
   WatchContext,
 } from '@laufen/engine';
-import { resolveEnvValue, runScript } from '@laufen/engine';
+import { extractPackages, generatePackageTypes, resolveEnvValue, runScript } from '@laufen/engine';
 import { attemptAsync } from 'es-toolkit';
 import pc from 'picocolors';
 import { z } from 'zod';
@@ -56,6 +56,21 @@ export default defineHandler({
       return fail({ message: `Failed to resolve config env: ${safeParseError(envError)}` });
     }
 
+    // Extract script-level packages and generate type declarations
+    const [extractError, scriptPackages] = await extractPackages(script.path);
+    if (extractError) {
+      return fail({ message: `Failed to extract packages: ${safeParseError(extractError)}` });
+    }
+
+    const allPackages = { ...loaded.config.packages, ...scriptPackages };
+    // Generate types in the package directory (best-effort, non-fatal)
+    if (Object.keys(allPackages).length > 0) {
+      const [typeGenError] = generatePackageTypes(script.packageDir, allPackages);
+      if (typeGenError) {
+        p.log.warn(`Failed to generate package types: ${safeParseError(typeGenError)}`);
+      }
+    }
+
     if (isHelp) {
       return runHelpMode(
         script,
@@ -64,6 +79,7 @@ export default defineHandler({
         configEnv,
         cliEnv,
         loaded.config.sandbox,
+        loaded.config.packages,
       );
     }
 
@@ -138,11 +154,21 @@ async function runHelpMode(
   env: Record<string, string>,
   cliEnv: Record<string, string>,
   sandbox: boolean,
+  workspacePackages: Record<string, string>,
 ): Promise<HandlerResult> {
   const helpResult = await runScript(
     script,
     {},
-    { help: true, workspaceRoot, cliPackageRoot: LAUF_ROOT, spinner, env, cliEnv, sandbox },
+    {
+      help: true,
+      workspaceRoot,
+      cliPackageRoot: LAUF_ROOT,
+      spinner,
+      env,
+      cliEnv,
+      sandbox,
+      workspacePackages,
+    },
   );
   if (helpResult.exitCode === 0) {
     return ok();
@@ -170,6 +196,7 @@ async function runNormalMode(
     configEnv,
     cliEnv,
     config.sandbox,
+    config.packages,
     DISABLED_WATCH,
   );
 
@@ -194,6 +221,7 @@ async function executeScript(
   env: Record<string, string>,
   cliEnv: Record<string, string>,
   sandbox: boolean,
+  workspacePackages: Record<string, string>,
   watch: WatchContext,
 ): Promise<RunResult> {
   const label = pc.cyan(script.name);
@@ -206,6 +234,7 @@ async function executeScript(
     env,
     cliEnv,
     sandbox,
+    workspacePackages,
     watch,
   });
   if (result.exitCode === 0) {
@@ -246,6 +275,7 @@ async function runWatchMode(
     configEnv,
     cliEnv,
     config.sandbox,
+    config.packages,
     initialWatch,
   );
 
@@ -277,6 +307,7 @@ async function runWatchMode(
         configEnv,
         cliEnv,
         config.sandbox,
+        config.packages,
         watchCtx,
       )
         .then((result) => {

@@ -53,6 +53,7 @@ describe('createContext', () => {
     env: { NODE_ENV: 'test' },
     root: '/project',
     packageDir: '/project/packages/app',
+    packageCacheDir: null,
     name: '@app/script',
     spinner: false,
     logger: undefined,

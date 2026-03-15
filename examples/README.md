@@ -40,14 +40,104 @@ pnpm lauf run @examples/lauf/dev --watch
 
 ## Scripts
 
-| Script           | Description                                              |
-| ---------------- | -------------------------------------------------------- |
-| `docs`           | Generate API docs from a source file using AI            |
-| `clean`          | Clean build artifacts with confirmation for safety       |
-| `fetch-releases` | Fetch GitHub releases for a repo and save to JSON        |
-| `with-utils`     | Example using ctx.dir and ctx.fs helpers                 |
-| `using-lib`      | Example using shared utility libraries                   |
-| `dev`            | Watch TypeScript source files and report changes on save |
+| Script           | Description                                              | Packages Used |
+| ---------------- | -------------------------------------------------------- | ------------- |
+| `docs`           | Generate API docs from a source file using AI            | -             |
+| `clean`          | Clean build artifacts with confirmation for safety       | rimraf, chalk |
+| `fetch-releases` | Fetch GitHub releases for a repo and save to JSON        | -             |
+| `format-json`    | Format JSON files with prettier                          | prettier      |
+| `with-utils`     | Example using ctx.dir and ctx.fs helpers                 | -             |
+| `using-lib`      | Example using shared utility libraries                   | -             |
+| `dev`            | Watch TypeScript source files and report changes on save | -             |
+
+## Package Management
+
+Lauf automatically manages package dependencies for your scripts without polluting your project's `node_modules`. Packages are installed to a cache directory (`~/.lauf/packages/<hash>/`) and made available via dynamic imports.
+
+### Workspace-level Packages
+
+Define packages in `lauf.config.ts` to make them available to all scripts:
+
+```typescript
+// lauf.config.ts
+import { defineConfig } from 'laufen';
+
+export default defineConfig({
+  scripts: ['scripts/*.ts'],
+  packages: {
+    rimraf: '^6.0.0',
+    execa: '^9.0.0',
+  },
+});
+```
+
+### Script-level Packages
+
+Define packages in individual scripts for script-specific dependencies:
+
+```typescript
+// scripts/format-json.ts
+import { lauf } from 'laufen';
+
+export default lauf({
+  description: 'Format JSON files',
+  packages: {
+    prettier: '^3.0.0',
+  },
+  async run(ctx) {
+    const prettier = await import('prettier');
+    // Use prettier...
+  },
+});
+```
+
+### Combining Both
+
+Scripts can use both workspace and script-level packages. Script packages take precedence for version conflicts:
+
+```typescript
+// scripts/clean.ts
+export default lauf({
+  description: 'Clean build artifacts',
+  packages: {
+    chalk: '^5.0.0', // Script-specific
+  },
+  async run(ctx) {
+    const { rimraf } = await import('rimraf'); // From workspace
+    const chalk = (await import('chalk')).default; // From script
+
+    await rimraf(['dist', 'node_modules']);
+    ctx.logger.success(chalk.green('✓ Cleanup complete'));
+  },
+});
+```
+
+**Key benefits:**
+
+- No need to install script dependencies in your project
+- Packages are cached and reused across scripts with identical dependencies
+- Each script can use different versions of the same package
+- Zero impact on project `package.json`
+
+### TypeScript Configuration for Package Types
+
+To get full IntelliSense and type checking for packages used via `ctx.import()`, add `.lauf` to your `tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext"
+  },
+  "include": ["scripts", ".lauf/**/*.d.ts"]
+}
+```
+
+When you run a script with packages, lauf auto-generates `.lauf/packages.d.ts` with type mappings. Adding it to your `include` gives you full autocomplete:
+
+```typescript
+const chalk = await ctx.import('chalk'); // ← Full type inference!
+```
 
 ## Writing your own
 

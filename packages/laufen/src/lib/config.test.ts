@@ -48,6 +48,7 @@ const DEFAULTS = {
   spinner: true,
   sandbox: true,
   env: {},
+  packages: {},
   watch: undefined,
 } as const;
 
@@ -69,6 +70,7 @@ const VALID_CONFIG = {
   spinner: true,
   sandbox: true,
   env: {},
+  packages: {},
   watch: undefined,
 };
 
@@ -207,6 +209,7 @@ describe('loadAllLaufConfigs', () => {
           spinner: true,
           sandbox: true,
           env: {},
+          packages: {},
           watch: undefined,
         },
       })
@@ -218,6 +221,7 @@ describe('loadAllLaufConfigs', () => {
           spinner: false,
           sandbox: true,
           env: {},
+          packages: {},
           watch: undefined,
         },
       });
@@ -231,6 +235,7 @@ describe('loadAllLaufConfigs', () => {
         spinner: true,
         sandbox: true,
         env: {},
+        packages: {},
         watch: undefined,
       },
       configFile: '/workspace/packages/a/lauf.config.ts',
@@ -243,6 +248,7 @@ describe('loadAllLaufConfigs', () => {
         spinner: false,
         sandbox: true,
         env: {},
+        packages: {},
         watch: undefined,
       },
       configFile: '/workspace/packages/b/laufen.config.ts',

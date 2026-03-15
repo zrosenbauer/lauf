@@ -1,3 +1,6 @@
+import { createRequire } from 'node:module';
+import { pathToFileURL } from 'node:url';
+
 import type { ArgDefs, DefaultLogger, InferArgs, ScriptContext, WatchContext } from '../types.ts';
 import { createFsHelpers } from './fs.ts';
 import { createLogger } from './logger.ts';
@@ -9,6 +12,7 @@ interface CreateContextParams<T extends ArgDefs> {
   readonly env: Record<string, string>;
   readonly root: string;
   readonly packageDir: string;
+  readonly packageCacheDir: string | null;
   readonly name: string;
   readonly spinner: boolean;
   readonly logger: DefaultLogger | undefined;
@@ -40,6 +44,21 @@ export function createContext<T extends ArgDefs>(params: CreateContextParams<T>)
     patterns: Object.freeze([...params.watch.patterns]),
   });
 
+  const importPackage = <K extends keyof LaufPackages.Registry & string>(
+    packageName: K,
+  ): Promise<LaufPackages.Registry[K]> => {
+    if (params.packageCacheDir === null) {
+      return import(packageName as string) as Promise<LaufPackages.Registry[K]>;
+    }
+
+    const requireFn = createRequire(import.meta.url);
+    const resolved = requireFn.resolve(packageName as string, {
+      paths: [params.packageCacheDir],
+    });
+    const fileUrl = pathToFileURL(resolved).href;
+    return import(fileUrl) as Promise<LaufPackages.Registry[K]>;
+  };
+
   return {
     args: params.args,
     env: Object.freeze(params.env),
@@ -61,6 +80,7 @@ export function createContext<T extends ArgDefs>(params: CreateContextParams<T>)
     spinner: resolveSpinner(params.spinner),
     prompts: createPrompts(),
     fs: fsHelpers,
+    import: importPackage,
     watch,
   };
 }

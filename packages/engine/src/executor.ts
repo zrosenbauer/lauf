@@ -10,6 +10,7 @@ import { createContext } from './context/index.ts';
 import { createLogger } from './context/logger.ts';
 import { createPrompts } from './context/prompts.ts';
 import { applyEnvToProcess, resolveEnvValue } from './env.ts';
+import { validatePackages } from './packages/validation.ts';
 import type { ArgDefs, EnvContext, ScriptConfig } from './types.ts';
 import { formatArgErrors, safeParseError } from './utils/cli.ts';
 import { extractArgMeta, formatHelp } from './utils/help.ts';
@@ -31,6 +32,7 @@ const envSchema = z.object({
   LAUF_HELP: z.enum(['0', '1']).optional(),
   LAUF_ENV: z.string().optional(),
   LAUF_CLI_ENV: z.string().optional(),
+  LAUF_PACKAGE_CACHE_DIR: absolutePathString.optional(),
   LAUF_WATCH_ENABLED: z.enum(['0', '1']).default('0'),
   LAUF_WATCH_CHANGED: z.string().default('[]'),
   LAUF_WATCH_PATTERNS: z.string().default('[]'),
@@ -122,6 +124,14 @@ async function execute(): Promise<void> {
     process.exit(1);
   }
 
+  const [packageValidationError] = validatePackages(config.packages);
+  if (packageValidationError) {
+    log.error(
+      `Script "${env.LAUF_SCRIPT_NAME}" has invalid packages: ${String(packageValidationError)}`,
+    );
+    process.exit(1);
+  }
+
   // Parse pre-merged env (config.env) from runner
   const parsedEnv = parseLaufEnv(env.LAUF_ENV);
   if (parsedEnv[0]) {
@@ -201,6 +211,7 @@ async function execute(): Promise<void> {
     env: resolvedEnv,
     root: env.LAUF_WORKSPACE_ROOT,
     packageDir: env.LAUF_PACKAGE_DIR,
+    packageCacheDir: env.LAUF_PACKAGE_CACHE_DIR ?? null,
     name: env.LAUF_SCRIPT_NAME,
     spinner: env.LAUF_SPINNER === '1',
     logger: undefined,

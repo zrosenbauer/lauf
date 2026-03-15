@@ -18,6 +18,7 @@
 
 - 🔍 **Auto-discovery** — Scans every workspace package for scripts matching your configured glob patterns.
 - ✅ **Zod-powered validation** — Define args with Zod schemas and get runtime validation + full TypeScript inference.
+- 📦 **Package management** — Declare npm packages in scripts or workspace config, auto-installed to cache without polluting project dependencies.
 - 🧩 **Workspace-agnostic** — Auto-detects pnpm, npm, yarn, bun, lerna, and single-package projects.
 - 💬 **Auto-prompting** — Missing required args are interactively prompted, so scripts work both in CI and locally.
 - 🪶 **Tiny API surface** — One function (`lauf()`), one schema library (`z`), one convention (`scripts/` directory).
@@ -32,7 +33,7 @@ Install the `laufen` package.
 pnpm add -D laufen
 ```
 
-Setup a `lauf` script, including defining args and passing in env variables.
+Setup a `lauf` script, including defining args, env variables, and packages.
 
 ```ts
 import { lauf, z, infisical } from 'laufen';
@@ -40,13 +41,18 @@ import { lauf, z, infisical } from 'laufen';
 export default lauf({
   description: 'Say hello',
   env: infisical({ path: '/ops/ci', env: 'dev' }),
+  packages: {
+    chalk: '^5.0.0', // Auto-installed to cache, no project dependency needed
+  },
   args: {
     name: z.string().default('world'),
     loud: z.boolean().default(false),
   },
   async run(ctx) {
+    const { default: chalk } = await ctx.import('chalk');
     const greeting = `Hello, ${ctx.args.name}!`;
-    ctx.logger.info(ctx.args.loud ? greeting.toUpperCase() : greeting);
+    const message = ctx.args.loud ? greeting.toUpperCase() : greeting;
+    ctx.logger.info(chalk.blue(message));
   },
 });
 ```

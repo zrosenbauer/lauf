@@ -77,33 +77,13 @@ export type InferArgs<T extends ArgDefs> = {
 
 /**
  * Base logger interface for structured terminal output.
- *
  * Each method maps to the corresponding `@clack/prompts` `log.*` function.
  */
 export interface Logger {
-  /**
-   * Log an informational message.
-   */
   info(message: string): void;
-
-  /**
-   * Log a warning message.
-   */
   warn(message: string): void;
-
-  /**
-   * Log an error message.
-   */
   error(message: string): void;
-
-  /**
-   * Log a success message.
-   */
   success(message: string): void;
-
-  /**
-   * Log a plain message.
-   */
   message(message: string): void;
 }
 
@@ -119,23 +99,10 @@ export interface DefaultLogger extends Logger {
   newlines(n?: number): void;
 }
 
-/**
- * Wrapper around `@clack/prompts` spinner for progress indication.
- */
+/** Wrapper around `@clack/prompts` spinner for progress indication. */
 export interface Spinner {
-  /**
-   * Start the spinner with an optional message.
-   */
   start(message?: string): void;
-
-  /**
-   * Stop the spinner with an optional final message.
-   */
   stop(message?: string): void;
-
-  /**
-   * Update the spinner's message while it is running.
-   */
   message(message?: string): void;
 }
 
@@ -205,6 +172,22 @@ export interface ScriptContext<T extends ArgDefs> {
   readonly fs: FsHelpers;
 
   /**
+   * Import a package declared in the `packages` field with full type safety.
+   *
+   * TypeScript automatically infers the correct type from the package name:
+   * @example
+   * ```ts
+   * const { rimraf } = await ctx.import('rimraf'); // typed as typeof import('rimraf')
+   * const chalk = await ctx.import('chalk');       // typed as typeof import('chalk')
+   * ```
+   *
+   * Types are auto-generated in `.lauf/packages.d.ts` based on declared packages.
+   */
+  import<K extends keyof LaufPackages.Registry & string>(
+    packageName: K,
+  ): Promise<LaufPackages.Registry[K]>;
+
+  /**
    * Watch-mode context describing what triggered this run.
    */
   readonly watch: WatchContext;
@@ -232,6 +215,26 @@ export interface ScriptConfig<T extends ArgDefs = Record<string, never>> {
    * but before CLI --env flags.
    */
   env?: Record<string, string> | EnvFn;
+
+  /**
+   * npm package dependencies to install for this script.
+   *
+   * Packages are installed to a cache directory (`~/.lauf/packages/<hash>/`)
+   * and made available via `ctx.import()` with full type safety.
+   *
+   * @example
+   * ```ts
+   * packages: {
+   *   'rimraf': '^6.0.0',
+   *   'execa': '^9.0.0',
+   * }
+   *
+   * // In run():
+   * const { rimraf } = await ctx.import('rimraf');
+   * const { execa } = await ctx.import('execa');
+   * ```
+   */
+  packages?: Record<string, string>;
 
   /**
    * File watch configuration for this script.

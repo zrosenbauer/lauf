@@ -29,6 +29,8 @@ vi.mock('../lib/paths.ts', () => ({
 vi.mock('@laufen/engine', () => ({
   runScript: vi.fn(),
   resolveEnvValue: vi.fn(() => Promise.resolve([null, {}])),
+  extractPackages: vi.fn(() => Promise.resolve([null, {}])),
+  generatePackageTypes: vi.fn(() => [null, undefined]),
 }));
 
 vi.mock('../utils/prompt.ts', () => ({
@@ -57,6 +59,7 @@ const mockLoadedConfig = {
     spinner: true,
     sandbox: true,
     env: {},
+    packages: { chalk: '^5.0.0' },
     watch: undefined,
   },
   configFile: '/workspace/lauf.config.ts',
@@ -70,6 +73,7 @@ const expectedRunOptions = {
   env: {},
   cliEnv: {},
   sandbox: true,
+  workspacePackages: { chalk: '^5.0.0' },
   watch: { enabled: false, changedFiles: [], patterns: [] },
 };
 
@@ -174,6 +178,7 @@ describe('run handler', () => {
         cliPackageRoot: '/lauf-root',
         spinner: true,
         env: {},
+        workspacePackages: { chalk: '^5.0.0' },
         cliEnv: {},
         sandbox: true,
       },
@@ -202,6 +207,7 @@ describe('run handler', () => {
         cliPackageRoot: '/lauf-root',
         spinner: true,
         env: {},
+        workspacePackages: { chalk: '^5.0.0' },
         cliEnv: {},
         sandbox: true,
       },
