@@ -1,5 +1,11 @@
 # @laufen/engine
 
+## 1.2.1
+
+### Patch Changes
+
+- 9b1540f: Update all dependencies to latest versions and remove unused `chalk` package
+
 ## 1.2.0
 
 ### Minor Changes
