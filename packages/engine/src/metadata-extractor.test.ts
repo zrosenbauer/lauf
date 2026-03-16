@@ -8,7 +8,7 @@ const { mockSafeParseJSON, mockTmpdir } = vi.hoisted(() => ({
 }));
 
 // Track attemptAsync calls for controlling top-level vs inner behavior
-const { attemptAsyncCallIndex, mockModuleResults } = vi.hoisted(() => ({
+const { attemptAsyncCallIndex, mockModuleResults, mockAttemptAsync } = vi.hoisted(() => ({
   attemptAsyncCallIndex: { value: 0 },
   // Map from call index (2+) to the result for that import call
   mockModuleResults: {
@@ -21,6 +21,7 @@ const { attemptAsyncCallIndex, mockModuleResults } = vi.hoisted(() => ({
       | { module: { default: { description: number } } }
     >(),
   },
+  mockAttemptAsync: vi.fn(),
 }));
 
 // --- Module mocks ---
@@ -45,29 +46,33 @@ const safeAttemptAsync = async <T>(fn: () => Promise<T>): Promise<[Error, null] 
   }
 };
 
+const defaultAttemptAsyncImpl = async <T>(
+  fn: () => Promise<T>,
+): Promise<[Error, null] | [null, T]> => {
+  // oxlint-disable-next-line immutable-data
+  attemptAsyncCallIndex.value += 1;
+  const callNum = attemptAsyncCallIndex.value;
+
+  // Call 1 = top-level extractMetadata() wrapper — always run the function
+  if (callNum === 1) {
+    return safeAttemptAsync(fn);
+  }
+
+  // Call 2+ = dynamic imports of individual scripts
+  const mockResult = mockModuleResults.value.get(callNum);
+  if (mockResult) {
+    if ('error' in mockResult) {
+      return [mockResult.error, null];
+    }
+    return [null, mockResult.module as unknown as T];
+  }
+
+  // Default: import failure for unmapped calls
+  return [new Error('Import failed'), null];
+};
+
 vi.mock('es-toolkit', () => ({
-  attemptAsync: vi.fn(async <T>(fn: () => Promise<T>): Promise<[Error, null] | [null, T]> => {
-    // oxlint-disable-next-line immutable-data
-    attemptAsyncCallIndex.value += 1;
-    const callNum = attemptAsyncCallIndex.value;
-
-    // Call 1 = top-level extractMetadata() wrapper — always run the function
-    if (callNum === 1) {
-      return safeAttemptAsync(fn);
-    }
-
-    // Call 2+ = dynamic imports of individual scripts
-    const mockResult = mockModuleResults.value.get(callNum);
-    if (mockResult) {
-      if ('error' in mockResult) {
-        return [mockResult.error, null];
-      }
-      return [null, mockResult.module as unknown as T];
-    }
-
-    // Default: import failure for unmapped calls
-    return [new Error('Import failed'), null];
-  }),
+  attemptAsync: mockAttemptAsync,
 }));
 
 // --- Environment and stdout management ---
@@ -87,6 +92,8 @@ const runExtractor = async (
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // Restore the default attemptAsync implementation (tests may override it)
+  mockAttemptAsync.mockImplementation(defaultAttemptAsyncImpl);
   vi.spyOn(process.stdout, 'write').mockReturnValue(true);
   // Reset shared mutable state
   // oxlint-disable-next-line immutable-data
@@ -272,8 +279,7 @@ describe('metadata-extractor', () => {
 
   it('writes empty object when top-level error occurs', async () => {
     // Force top-level error by making attemptAsync call #1 throw
-    const { attemptAsync } = await import('es-toolkit');
-    vi.mocked(attemptAsync).mockImplementation(
+    mockAttemptAsync.mockImplementation(
       async <T>(_fn: () => Promise<T>): Promise<[Error, null] | [null, T]> => {
         // oxlint-disable-next-line immutable-data
         attemptAsyncCallIndex.value += 1;
