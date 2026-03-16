@@ -1,4 +1,5 @@
 import type { Stats } from 'node:fs';
+import { isAbsolute, relative } from 'node:path';
 
 import type { ArgDefs, ScriptConfig, WatchConfig } from '@laufen/engine';
 import { watch as chokidarWatch } from 'chokidar';
@@ -100,15 +101,26 @@ export function createWatcher(
   // Chokidar v5 no longer expands globs in watch paths.
   // Watch the cwd directory and use an ignored function to filter
   // files to only those matching the configured patterns.
+  const toRelative = (filePath: string): string => {
+    if (isAbsolute(filePath)) {
+      return relative(cwd, filePath);
+    }
+    return filePath;
+  };
+
   const ignored = (filePath: string, stats: Stats | undefined): boolean => {
-    if (isUserIgnored(filePath)) {
+    // Chokidar v5 passes absolute paths to ignored — convert to relative
+    // for picomatch pattern matching against user-supplied globs.
+    const relPath = toRelative(filePath);
+
+    if (isUserIgnored(relPath)) {
       return true;
     }
     // Don't ignore directories — chokidar needs to traverse into them
     if (stats !== undefined && stats.isDirectory()) {
       return false;
     }
-    return !isIncluded(filePath);
+    return !isIncluded(relPath);
   };
 
   return new Promise((resolve, reject) => {
