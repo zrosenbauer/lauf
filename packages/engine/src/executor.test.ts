@@ -48,7 +48,7 @@ const { mockCreatePrompts } = vi.hoisted(() => ({
 }));
 
 // Track attemptAsync calls to control dynamic import and config.run behavior
-const { attemptAsyncCallIndex, mockScriptConfig } = vi.hoisted(() => ({
+const { attemptAsyncCallIndex, mockScriptConfig, mockAttemptAsync } = vi.hoisted(() => ({
   attemptAsyncCallIndex: { value: 0 },
   mockScriptConfig: {
     value: undefined as
@@ -59,6 +59,7 @@ const { attemptAsyncCallIndex, mockScriptConfig } = vi.hoisted(() => ({
           run: ReturnType<typeof vi.fn>;
         },
   },
+  mockAttemptAsync: vi.fn(),
 }));
 
 // --- Module mocks ---
@@ -83,32 +84,36 @@ const safeAttemptAsync = async <T>(fn: () => Promise<T>): Promise<[Error, null] 
   }
 };
 
+const defaultAttemptAsyncImpl = async <T>(
+  fn: () => Promise<T>,
+): Promise<[Error, null] | [null, T]> => {
+  // oxlint-disable-next-line immutable-data
+  attemptAsyncCallIndex.value += 1;
+  const callNum = attemptAsyncCallIndex.value;
+
+  // Call 1 = top-level execute() wrapper — always run the function
+  if (callNum === 1) {
+    return safeAttemptAsync(fn);
+  }
+
+  // Call 2 = dynamic import — return mock script module if set
+  if (callNum === 2) {
+    if (mockScriptConfig.value !== undefined) {
+      return [null, { default: mockScriptConfig.value } as unknown as T];
+    }
+    return [new Error('Import failed'), null];
+  }
+
+  // Call 3 = config.run — actually run the function
+  if (callNum === 3) {
+    return safeAttemptAsync(fn);
+  }
+
+  return [new Error('unexpected attemptAsync call'), null];
+};
+
 vi.mock('es-toolkit', () => ({
-  attemptAsync: vi.fn(async <T>(fn: () => Promise<T>): Promise<[Error, null] | [null, T]> => {
-    // oxlint-disable-next-line immutable-data
-    attemptAsyncCallIndex.value += 1;
-    const callNum = attemptAsyncCallIndex.value;
-
-    // Call 1 = top-level execute() wrapper — always run the function
-    if (callNum === 1) {
-      return safeAttemptAsync(fn);
-    }
-
-    // Call 2 = dynamic import — return mock script module if set
-    if (callNum === 2) {
-      if (mockScriptConfig.value !== undefined) {
-        return [null, { default: mockScriptConfig.value } as unknown as T];
-      }
-      return [new Error('Import failed'), null];
-    }
-
-    // Call 3 = config.run — actually run the function
-    if (callNum === 3) {
-      return safeAttemptAsync(fn);
-    }
-
-    return [new Error('unexpected attemptAsync call'), null];
-  }),
+  attemptAsync: mockAttemptAsync,
 }));
 
 vi.mock('./utils/json.ts', () => ({
@@ -174,6 +179,8 @@ const runExecutor = async (
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // Restore the default attemptAsync implementation (tests may override it)
+  mockAttemptAsync.mockImplementation(defaultAttemptAsyncImpl);
   // Re-create the process.exit spy before each test
   vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
   // Restore process.env to a clean state
@@ -273,8 +280,7 @@ describe('executor', () => {
 
     it('exits with 1 when module has no default export', async () => {
       // Override attemptAsync to return a module without default for call #2
-      const { attemptAsync } = await import('es-toolkit');
-      vi.mocked(attemptAsync).mockImplementation(
+      mockAttemptAsync.mockImplementation(
         async <T>(fn: () => Promise<T>): Promise<[Error, null] | [null, T]> => {
           // oxlint-disable-next-line immutable-data
           attemptAsyncCallIndex.value += 1;
@@ -311,8 +317,7 @@ describe('executor', () => {
     });
 
     it('exits with 1 when args is an array instead of an object', async () => {
-      const { attemptAsync } = await import('es-toolkit');
-      vi.mocked(attemptAsync).mockImplementation(
+      mockAttemptAsync.mockImplementation(
         async <T>(fn: () => Promise<T>): Promise<[Error, null] | [null, T]> => {
           // oxlint-disable-next-line immutable-data
           attemptAsyncCallIndex.value += 1;
