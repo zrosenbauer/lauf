@@ -1,7 +1,10 @@
+import type { Stats } from 'node:fs';
+
 import type { ArgDefs, ScriptConfig, WatchConfig } from '@laufen/engine';
 import { watch as chokidarWatch } from 'chokidar';
 import { attemptAsync } from 'es-toolkit';
 import { createJiti } from 'jiti';
+import picomatch from 'picomatch';
 
 const DEFAULT_IGNORED: readonly string[] = [
   '**/node_modules/**',
@@ -90,7 +93,23 @@ export function createWatcher(
   onChange: (changedFiles: readonly string[]) => void,
 ): Promise<WatcherHandle> {
   const debounce = config.debounce ?? DEFAULT_DEBOUNCE;
-  const ignored = [...DEFAULT_IGNORED, ...(config.ignored ?? [])];
+  const userIgnored = [...DEFAULT_IGNORED, ...(config.ignored ?? [])];
+  const isIncluded = picomatch([...config.patterns]);
+  const isUserIgnored = picomatch(userIgnored);
+
+  // Chokidar v5 no longer expands globs in watch paths.
+  // Watch the cwd directory and use an ignored function to filter
+  // files to only those matching the configured patterns.
+  const ignored = (filePath: string, stats: Stats | undefined): boolean => {
+    if (isUserIgnored(filePath)) {
+      return true;
+    }
+    // Don't ignore directories — chokidar needs to traverse into them
+    if (stats !== undefined && stats.isDirectory()) {
+      return false;
+    }
+    return !isIncluded(filePath);
+  };
 
   return new Promise((resolve, reject) => {
     const changedFiles = new Set<string>();
@@ -113,7 +132,7 @@ export function createWatcher(
       scheduleCallback();
     };
 
-    const watcher = chokidarWatch([...config.patterns], {
+    const watcher = chokidarWatch('.', {
       cwd,
       ignored,
       persistent: true,
