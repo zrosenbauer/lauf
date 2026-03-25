@@ -10,15 +10,23 @@ enable_free_tier: true
 
 reviews:
   profile: 'assertive'
-  request_changes_workflow: false
+  request_changes_workflow: true
   high_level_summary: false
-  high_level_summary_placeholder: ''
   collapse_walkthrough: true
   review_status: true
+
+  finishing:
+    docstrings:
+      enabled: false
+    unit_tests:
+      enabled: false
+    simplify:
+      enabled: false
 
   auto_review:
     enabled: true
     auto_incremental_review: true
+    auto_pause_after_reviewed_commits: 10
     drafts: false
 
   path_filters:
@@ -163,6 +171,7 @@ reviews:
     markdownlint:
       enabled: true
     ast-grep:
+      enabled: true
       essential_rules: true
 
 chat:
