@@ -18,7 +18,7 @@ const blueprintsDir = join(dirname(fileURLToPath(import.meta.url)), 'blueprints'
  * Returns [error, null] on failure, [null, content] on success.
  */
 export function getBlueprintTemplate(name: BlueprintName) {
-  return attempt(() => readFileSync(join(blueprintsDir, `${name}.lauf.ts`), 'utf-8'));
+  return attempt(() => readFileSync(join(blueprintsDir, `${name}.ts`), 'utf-8'));
 }
 
 /**

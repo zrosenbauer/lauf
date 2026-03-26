@@ -112,7 +112,7 @@ interface DiscoverOptions {
  *
  * @example
  * ```ts
- * const scripts = discoverScripts(['scripts/*.lauf.ts'])
+ * const scripts = discoverScripts(['scripts/*.ts'])
  * // [{ name: '@apps/api/generate-types', path: '/...', ... }, ...]
  * ```
  */
@@ -237,8 +237,8 @@ function stripScriptSuffix(stem: string): string {
  *
  * @example
  * ```ts
- * const allScripts = discoverScripts(['scripts/*.lauf.ts'])
- * const script = findScript('@apps/api/generate-types', ['scripts/*.lauf.ts'], allScripts)
+ * const allScripts = discoverScripts(['scripts/*.ts'])
+ * const script = findScript('@apps/api/generate-types', ['scripts/*.ts'], allScripts)
  * if (script) {
  *   console.log(script.path)
  * }

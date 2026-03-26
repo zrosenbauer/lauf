@@ -43,7 +43,7 @@ import {
 } from './config.ts';
 
 const DEFAULTS = {
-  scripts: ['scripts/*.lauf.ts'],
+  scripts: ['scripts/*.ts'],
   logger: undefined,
   spinner: true,
   sandbox: true,

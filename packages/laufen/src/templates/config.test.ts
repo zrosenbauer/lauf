@@ -15,7 +15,7 @@ describe('configTemplate', () => {
 
   it('includes default scripts glob pattern', () => {
     const result = configTemplate();
-    expect(result).toContain("scripts: ['scripts/*.lauf.ts']");
+    expect(result).toContain("scripts: ['scripts/*.ts']");
   });
 
   it('returns a non-empty string', () => {

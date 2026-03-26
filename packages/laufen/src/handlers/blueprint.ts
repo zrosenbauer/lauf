@@ -60,7 +60,7 @@ export default defineHandler({
       });
     }
 
-    const fileName = `${blueprintName}.lauf.ts`;
+    const fileName = `${blueprintName}.ts`;
     const filePath = path.join(targetDir, fileName);
 
     const resolvedFilePath = path.resolve(filePath);
@@ -147,7 +147,7 @@ function resolveTargetDir(dir: string | undefined, patterns: string[], configDir
 
 /**
  * Extract the static base directory from a glob pattern.
- * e.g. "scripts/*.lauf.ts" → "scripts", "**\/*.ts" → "."
+ * e.g. "scripts/*.ts" → "scripts", "**\/*.ts" → "."
  */
 function resolveGlobBase(pattern: string): string {
   const wildcardIndex = pattern.search(/[*?[\]{}]/);

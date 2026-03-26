@@ -88,7 +88,7 @@ const resolvedLaufConfigSchema: z.ZodType<ResolvedLaufConfig> = z.object({
 }) as z.ZodType<ResolvedLaufConfig>;
 
 const DEFAULTS: ResolvedLaufConfig = {
-  scripts: ['scripts/*.lauf.ts'],
+  scripts: ['scripts/*.ts'],
   logger: undefined,
   spinner: true,
   sandbox: true,
