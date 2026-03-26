@@ -40,7 +40,7 @@
     }
   },
   "scripts": {
-    "build": "tsdown && node --input-type=module --eval \"import{cpSync}from'node:fs';cpSync('src/blueprints','dist/blueprints',{recursive:true})\"",
+    "build": "tsdown",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },

@@ -11,7 +11,7 @@ export const BLUEPRINTS = ['clean', 'copy'] as const;
 
 export type BlueprintName = (typeof BLUEPRINTS)[number];
 
-const blueprintsDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'blueprints');
+const blueprintsDir = join(dirname(fileURLToPath(import.meta.url)), 'blueprints');
 
 /**
  * Get the content of a blueprint template as a Result tuple.
