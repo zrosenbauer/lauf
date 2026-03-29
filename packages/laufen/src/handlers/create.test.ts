@@ -51,7 +51,7 @@ import createHandler from './create.ts';
 
 const mockLoadedConfig = {
   config: {
-    scripts: ['scripts/*.lauf.ts'],
+    scripts: ['scripts/*.ts'],
     logger: undefined,
     spinner: true,
     sandbox: true,
@@ -85,7 +85,7 @@ describe('create handler', () => {
     });
 
     expect(mockWriteFileSync).toHaveBeenCalledWith(
-      expect.stringContaining('my-script.lauf.ts'),
+      expect.stringContaining('my-script.ts'),
       expect.any(String),
       { encoding: 'utf-8', flag: 'wx' },
     );
@@ -102,7 +102,7 @@ describe('create handler', () => {
     });
 
     const writePath = mockWriteFileSync.mock.calls[0][0] as string;
-    expect(writePath).toBe('/workspace/packages/my-pkg/scripts/my-script.lauf.ts');
+    expect(writePath).toBe('/workspace/packages/my-pkg/scripts/my-script.ts');
   });
 
   it('prompts for name when not provided', async () => {
@@ -117,7 +117,7 @@ describe('create handler', () => {
 
     expect(promptForText).toHaveBeenCalledWith('Enter a name for the new script', 'my-script');
     expect(mockWriteFileSync).toHaveBeenCalledWith(
-      expect.stringContaining('prompted-name.lauf.ts'),
+      expect.stringContaining('prompted-name.ts'),
       expect.any(String),
       { encoding: 'utf-8', flag: 'wx' },
     );
@@ -189,27 +189,13 @@ describe('create handler', () => {
     });
 
     expect(mockWriteFileSync).toHaveBeenCalledWith(
-      expect.stringContaining('my-script.lauf.ts'),
+      expect.stringContaining('my-script.ts'),
       expect.any(String),
       { encoding: 'utf-8', flag: 'wx' },
     );
-    // Should NOT contain my-script.ts.lauf.ts
+    // Should NOT contain my-script.ts.ts
     const writePath = mockWriteFileSync.mock.calls[0][0] as string;
-    expect(writePath).not.toContain('.ts.lauf.ts');
-  });
-
-  it('strips .lauf.ts extension from provided name', async () => {
-    vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([null, mockLoadedConfig]);
-    vi.mocked(safeMkdirSync).mockReturnValue([null, undefined]);
-
-    await createHandler({
-      parameters: { name: 'my-script.lauf.ts' },
-      flags: {},
-    });
-
-    const writePath = mockWriteFileSync.mock.calls[0][0] as string;
-    expect(writePath).toContain('my-script.lauf.ts');
-    expect(writePath).not.toContain('.lauf.lauf.ts');
+    expect(writePath).not.toContain('.ts.ts');
   });
 
   it('fails when --dir flag escapes workspace root', async () => {
@@ -246,7 +232,7 @@ describe('create handler', () => {
     });
 
     const writePath = mockWriteFileSync.mock.calls[0][0] as string;
-    expect(writePath).toBe('/workspace/custom/scripts/my-script.lauf.ts');
+    expect(writePath).toBe('/workspace/custom/scripts/my-script.ts');
   });
 
   it('shows correct qualified name in success message', async () => {
@@ -258,7 +244,7 @@ describe('create handler', () => {
       flags: {},
     });
 
-    expect(p.log.success).toHaveBeenCalledWith(expect.stringContaining('my-script.lauf.ts'));
+    expect(p.log.success).toHaveBeenCalledWith(expect.stringContaining('my-script.ts'));
     expect(p.log.message).toHaveBeenCalledWith(expect.stringContaining('lauf run my-script'));
   });
 
@@ -296,7 +282,7 @@ describe('create handler', () => {
     });
 
     const writePath = mockWriteFileSync.mock.calls[0][0] as string;
-    expect(writePath).toBe('/workspace/packages/my-pkg/scripts/my-script.lauf.ts');
+    expect(writePath).toBe('/workspace/packages/my-pkg/scripts/my-script.ts');
     expect(process.exit).not.toHaveBeenCalled();
   });
 });

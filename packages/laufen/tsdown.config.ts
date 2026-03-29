@@ -9,4 +9,5 @@ export default defineConfig({
   unbundle: false,
   platform: 'node',
   target: 'node22',
+  copy: [{ from: 'src/templates/blueprints/*', to: 'dist/blueprints' }],
 });

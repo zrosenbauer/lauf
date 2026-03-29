@@ -11,14 +11,14 @@ export const BLUEPRINTS = ['clean', 'copy'] as const;
 
 export type BlueprintName = (typeof BLUEPRINTS)[number];
 
-const blueprintsDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'blueprints');
+const blueprintsDir = join(dirname(fileURLToPath(import.meta.url)), 'blueprints');
 
 /**
  * Get the content of a blueprint template as a Result tuple.
  * Returns [error, null] on failure, [null, content] on success.
  */
 export function getBlueprintTemplate(name: BlueprintName) {
-  return attempt(() => readFileSync(join(blueprintsDir, `${name}.lauf.ts`), 'utf-8'));
+  return attempt(() => readFileSync(join(blueprintsDir, `${name}.ts`), 'utf-8'));
 }
 
 /**

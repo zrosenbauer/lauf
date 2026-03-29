@@ -31,7 +31,7 @@ afterEach(() => {
 describe('discoverScripts', () => {
   it('returns empty array when no packages found', () => {
     vi.mocked(resolveWorkspacePackages).mockReturnValue([]);
-    const result = discoverScripts(['scripts/*.lauf.ts']);
+    const result = discoverScripts(['scripts/*.ts']);
     expect(result).toEqual([]);
   });
 
@@ -41,7 +41,7 @@ describe('discoverScripts', () => {
     ]);
     vi.mocked(fg.sync).mockReturnValue(['/workspace/packages/my-pkg/scripts/build.ts']);
 
-    const result = discoverScripts(['scripts/*.lauf.ts']);
+    const result = discoverScripts(['scripts/*.ts']);
     expect(result).toHaveLength(1);
     expect(result[0]).toMatchObject({
       name: 'my-pkg/build',
@@ -60,7 +60,7 @@ describe('discoverScripts', () => {
       .mockReturnValueOnce(['/workspace/packages/pkg-b/scripts/zebra.ts'])
       .mockReturnValueOnce(['/workspace/packages/pkg-a/scripts/alpha.ts']);
 
-    const result = discoverScripts(['scripts/*.lauf.ts']);
+    const result = discoverScripts(['scripts/*.ts']);
     expect(result[0]).toMatchObject({ name: 'pkg-a/alpha' });
     expect(result[1]).toMatchObject({ name: 'pkg-b/zebra' });
   });
@@ -71,7 +71,7 @@ describe('discoverScripts', () => {
     ]);
     vi.mocked(fg.sync).mockReturnValue(['/workspace/packages/my-pkg/scripts/deploy.lauf.ts']);
 
-    const result = discoverScripts(['scripts/*.lauf.ts']);
+    const result = discoverScripts(['scripts/*.ts']);
     expect(result[0]).toMatchObject({ name: 'my-pkg/deploy' });
   });
 
@@ -81,7 +81,7 @@ describe('discoverScripts', () => {
     ]);
     vi.mocked(fg.sync).mockReturnValue(['/workspace/packages/my-pkg/scripts/deploy.laufen.ts']);
 
-    const result = discoverScripts(['scripts/*.lauf.ts']);
+    const result = discoverScripts(['scripts/*.ts']);
     expect(result[0]).toMatchObject({ name: 'my-pkg/deploy' });
   });
 
@@ -91,7 +91,7 @@ describe('discoverScripts', () => {
     ]);
     vi.mocked(fg.sync).mockReturnValue(['/workspace/packages/my-pkg/scripts/build.ts']);
 
-    const result = discoverScripts(['scripts/*.lauf.ts']);
+    const result = discoverScripts(['scripts/*.ts']);
     expect(result[0]).toMatchObject({ name: 'my-pkg/build' });
   });
 
@@ -107,7 +107,7 @@ describe('discoverScripts', () => {
         '/workspace/packages/pkg-b/scripts/lint.ts',
       ]);
 
-    const result = discoverScripts(['scripts/*.lauf.ts']);
+    const result = discoverScripts(['scripts/*.ts']);
     expect(result).toHaveLength(3);
   });
 
@@ -117,8 +117,8 @@ describe('discoverScripts', () => {
     ]);
     vi.mocked(fg.sync).mockReturnValue([]);
 
-    discoverScripts(['scripts/*.lauf.ts']);
-    expect(fg.sync).toHaveBeenCalledWith(['scripts/*.lauf.ts'], {
+    discoverScripts(['scripts/*.ts']);
+    expect(fg.sync).toHaveBeenCalledWith(['scripts/*.ts'], {
       cwd: '/workspace/packages/my-pkg',
       absolute: true,
       onlyFiles: true,
@@ -151,9 +151,9 @@ describe('discoverScripts', () => {
     ]);
     vi.mocked(fg.sync).mockReturnValue(['/workspace/packages/my-pkg/scripts/build.ts']);
 
-    const result = discoverScripts(['../bad', 'scripts/*.lauf.ts', '/absolute/bad']);
+    const result = discoverScripts(['../bad', 'scripts/*.ts', '/absolute/bad']);
     expect(result).toHaveLength(1);
-    expect(fg.sync).toHaveBeenCalledWith(['scripts/*.lauf.ts'], expect.any(Object));
+    expect(fg.sync).toHaveBeenCalledWith(['scripts/*.ts'], expect.any(Object));
   });
 
   it('filters out scripts outside workspace root', () => {
@@ -165,7 +165,7 @@ describe('discoverScripts', () => {
       '/outside/workspace/scripts/evil.ts',
     ]);
 
-    const result = discoverScripts(['scripts/*.lauf.ts']);
+    const result = discoverScripts(['scripts/*.ts']);
     expect(result).toHaveLength(1);
     expect(result[0]).toMatchObject({ name: 'my-pkg/build' });
   });
@@ -194,7 +194,7 @@ describe('discoverScripts', () => {
       '/workspace-evil/scripts/evil.ts',
     ]);
 
-    const result = discoverScripts(['scripts/*.lauf.ts']);
+    const result = discoverScripts(['scripts/*.ts']);
     expect(result).toHaveLength(1);
     expect(result[0]).toMatchObject({ name: 'my-pkg/build' });
   });
@@ -206,7 +206,7 @@ describe('discoverScripts', () => {
     ]);
     vi.mocked(fg.sync).mockReturnValue(['/workspace/packages/pkg-a/scripts/build.ts']);
 
-    const result = discoverScripts(['scripts/*.lauf.ts'], { scopeDir: '/workspace/packages' });
+    const result = discoverScripts(['scripts/*.ts'], { scopeDir: '/workspace/packages' });
 
     expect(result).toHaveLength(1);
     expect(result[0]).toMatchObject({
@@ -226,7 +226,7 @@ describe('discoverScripts', () => {
       .mockReturnValueOnce(['/workspace/packages/pkg-a/scripts/build.ts'])
       .mockReturnValueOnce(['/workspace/apps/pkg-b/scripts/deploy.ts']);
 
-    const result = discoverScripts(['scripts/*.lauf.ts']);
+    const result = discoverScripts(['scripts/*.ts']);
 
     expect(result).toHaveLength(2);
     expect(fg.sync).toHaveBeenCalledTimes(2);
@@ -238,7 +238,7 @@ describe('discoverScripts', () => {
       { name: 'pkg-b', dir: '/workspace/apps/pkg-b' },
     ]);
 
-    const result = discoverScripts(['scripts/*.lauf.ts'], { scopeDir: '/workspace/libs' });
+    const result = discoverScripts(['scripts/*.ts'], { scopeDir: '/workspace/libs' });
 
     expect(result).toEqual([]);
     expect(fg.sync).not.toHaveBeenCalled();
@@ -248,7 +248,7 @@ describe('discoverScripts', () => {
     vi.mocked(resolveWorkspacePackages).mockReturnValue([{ name: '<root>', dir: '/workspace' }]);
     vi.mocked(fg.sync).mockReturnValue(['/workspace/scripts/setup.ts']);
 
-    const result = discoverScripts(['scripts/*.lauf.ts']);
+    const result = discoverScripts(['scripts/*.ts']);
     expect(result).toHaveLength(1);
     expect(result[0]).toMatchObject({
       name: 'setup',
@@ -265,7 +265,7 @@ describe('discoverScripts', () => {
       .mockReturnValueOnce(['/workspace/packages/scripts/build.ts'])
       .mockReturnValueOnce(['/workspace/packages/nested/scripts/test.ts']);
 
-    const result = discoverScripts(['scripts/*.lauf.ts'], { scopeDir: '/workspace/packages' });
+    const result = discoverScripts(['scripts/*.ts'], { scopeDir: '/workspace/packages' });
 
     expect(result).toHaveLength(2);
     expect(result[0]).toMatchObject({ name: 'nested-pkg/test' });
@@ -279,7 +279,7 @@ describe('discoverScripts', () => {
     ]);
     vi.mocked(fg.sync).mockReturnValue(['/workspace/packages/pkg-a/scripts/build.ts']);
 
-    const result = discoverScripts(['scripts/*.lauf.ts'], {
+    const result = discoverScripts(['scripts/*.ts'], {
       packageDir: '/workspace/packages/pkg-a',
     });
 
@@ -296,7 +296,7 @@ describe('discoverScripts', () => {
       { name: 'pkg-a', dir: '/workspace/packages/pkg-a' },
     ]);
 
-    const result = discoverScripts(['scripts/*.lauf.ts'], {
+    const result = discoverScripts(['scripts/*.ts'], {
       packageDir: '/workspace/packages/nonexistent',
     });
 
@@ -314,7 +314,7 @@ describe('discoverScripts', () => {
       .mockReturnValueOnce(['/workspace/packages/api/scripts/build.ts'])
       .mockReturnValueOnce(['/workspace/packages/web/scripts/deploy.ts']);
 
-    const result = discoverScripts(['scripts/*.lauf.ts'], { filterGlobs: ['@apps/*'] });
+    const result = discoverScripts(['scripts/*.ts'], { filterGlobs: ['@apps/*'] });
 
     expect(result).toHaveLength(2);
     expect(result[0]).toMatchObject({ name: '@apps/api/build' });
@@ -332,7 +332,7 @@ describe('discoverScripts', () => {
       .mockReturnValueOnce(['/workspace/packages/pkg-a/scripts/build.ts'])
       .mockReturnValueOnce(['/workspace/packages/pkg-b/scripts/test.ts']);
 
-    const result = discoverScripts(['scripts/*.lauf.ts'], { filterGlobs: ['*'] });
+    const result = discoverScripts(['scripts/*.ts'], { filterGlobs: ['*'] });
 
     expect(result).toHaveLength(2);
     expect(fg.sync).toHaveBeenCalledTimes(2);
@@ -343,7 +343,7 @@ describe('discoverScripts', () => {
       { name: 'pkg-a', dir: '/workspace/packages/pkg-a' },
     ]);
 
-    const result = discoverScripts(['scripts/*.lauf.ts'], { filterGlobs: ['@nonexistent/*'] });
+    const result = discoverScripts(['scripts/*.ts'], { filterGlobs: ['@nonexistent/*'] });
 
     expect(result).toEqual([]);
     expect(fg.sync).not.toHaveBeenCalled();
@@ -356,7 +356,7 @@ describe('discoverScripts', () => {
     ]);
     vi.mocked(fg.sync).mockReturnValue(['/workspace/packages/pkg-a/scripts/build.ts']);
 
-    const result = discoverScripts(['scripts/*.lauf.ts'], {
+    const result = discoverScripts(['scripts/*.ts'], {
       packageDir: '/workspace/packages/pkg-a',
       filterGlobs: ['*'],
     });
@@ -374,7 +374,7 @@ describe('findScript', () => {
     ]);
     vi.mocked(fg.sync).mockReturnValue(['/workspace/packages/my-pkg/scripts/build.ts']);
 
-    const result = findScript('my-pkg/build', ['scripts/*.lauf.ts']);
+    const result = findScript('my-pkg/build', ['scripts/*.ts']);
     expect(result).toMatchObject({
       name: 'my-pkg/build',
       path: '/workspace/packages/my-pkg/scripts/build.ts',
@@ -387,13 +387,13 @@ describe('findScript', () => {
     ]);
     vi.mocked(fg.sync).mockReturnValue(['/workspace/packages/my-pkg/scripts/build.ts']);
 
-    const result = findScript('my-pkg/nonexistent', ['scripts/*.lauf.ts']);
+    const result = findScript('my-pkg/nonexistent', ['scripts/*.ts']);
     expect(result).toBeUndefined();
   });
 
   it('returns undefined when no scripts exist', () => {
     vi.mocked(resolveWorkspacePackages).mockReturnValue([]);
-    const result = findScript('any/script', ['scripts/*.lauf.ts']);
+    const result = findScript('any/script', ['scripts/*.ts']);
     expect(result).toBeUndefined();
   });
 
@@ -407,7 +407,7 @@ describe('findScript', () => {
       },
     ] as const;
 
-    const result = findScript('my-pkg/build', ['scripts/*.lauf.ts'], cachedScripts);
+    const result = findScript('my-pkg/build', ['scripts/*.ts'], cachedScripts);
     expect(result).toMatchObject({ name: 'my-pkg/build' });
     // Should not call discoverScripts (no fg.sync calls)
     expect(fg.sync).not.toHaveBeenCalled();
@@ -423,7 +423,7 @@ describe('findScript', () => {
       },
     ] as const;
 
-    const result = findScript('my-pkg/nonexistent', ['scripts/*.lauf.ts'], cachedScripts);
+    const result = findScript('my-pkg/nonexistent', ['scripts/*.ts'], cachedScripts);
     expect(result).toBeUndefined();
     expect(fg.sync).not.toHaveBeenCalled();
   });

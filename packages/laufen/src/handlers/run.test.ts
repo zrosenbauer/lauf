@@ -55,7 +55,7 @@ const mockScript: DiscoveredScript = {
 
 const mockLoadedConfig = {
   config: {
-    scripts: ['scripts/*.lauf.ts'],
+    scripts: ['scripts/*.ts'],
     logger: undefined,
     spinner: true,
     sandbox: true,
