@@ -8,8 +8,8 @@ export default lauf({
     const data = {
       name: ctx.name,
       date: formatDate(),
-      workspace: ctx.dir.root,
-      package: ctx.dir.package,
+      workspace: ctx.dirs.root,
+      package: ctx.dirs.package,
     };
 
     await writeJsonFile('output.json', data);

@@ -33,7 +33,7 @@ export default lauf({
 
     ctx.spinner.start('Scanning for artifacts...');
 
-    const entries = await readdir(ctx.dir.package, { withFileTypes: true });
+    const entries = await readdir(ctx.dirs.package, { withFileTypes: true });
     const matched = entries
       .filter((entry) => matchesTarget(entry.name, targets))
       .map((entry) => entry.name);
@@ -68,7 +68,7 @@ export default lauf({
 
     ctx.spinner.start('Removing artifacts...');
 
-    const paths = matched.map((name) => join(ctx.dir.package, name));
+    const paths = matched.map((name) => join(ctx.dirs.package, name));
     await rimraf(paths);
 
     ctx.spinner.stop('Cleanup complete');

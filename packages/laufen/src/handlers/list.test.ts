@@ -58,7 +58,7 @@ describe('list handler', () => {
       null,
       {
         config: {
-          scripts: ['scripts/*.lauf.ts'],
+          scripts: ['scripts/*.ts'],
           logger: undefined,
           spinner: true,
           sandbox: true,
@@ -96,7 +96,7 @@ describe('list handler', () => {
       null,
       {
         config: {
-          scripts: ['scripts/*.lauf.ts'],
+          scripts: ['scripts/*.ts'],
           logger: undefined,
           spinner: true,
           sandbox: true,
@@ -129,7 +129,7 @@ describe('list handler', () => {
       null,
       {
         config: {
-          scripts: ['src/**/*.lauf.ts'],
+          scripts: ['src/**/*.ts'],
           logger: undefined,
           spinner: true,
           sandbox: true,
@@ -145,7 +145,7 @@ describe('list handler', () => {
 
     await listHandler({ flags: {} });
 
-    expect(discoverScripts).toHaveBeenCalledWith(['src/**/*.lauf.ts'], {
+    expect(discoverScripts).toHaveBeenCalledWith(['src/**/*.ts'], {
       packageDir: '/workspace/packages/my-pkg',
     });
   });
@@ -163,7 +163,7 @@ describe('list handler', () => {
       null,
       {
         config: {
-          scripts: ['scripts/*.lauf.ts'],
+          scripts: ['scripts/*.ts'],
           logger: undefined,
           spinner: true,
           sandbox: true,
@@ -190,7 +190,7 @@ describe('list handler', () => {
       null,
       {
         config: {
-          scripts: ['scripts/*.lauf.ts'],
+          scripts: ['scripts/*.ts'],
           logger: undefined,
           spinner: true,
           sandbox: true,
@@ -236,7 +236,7 @@ describe('list handler --all flag', () => {
     vi.mocked(loadAllLaufConfigs).mockResolvedValue([
       {
         config: {
-          scripts: ['scripts/*.lauf.ts'],
+          scripts: ['scripts/*.ts'],
           logger: undefined,
           spinner: true,
           sandbox: true,
@@ -260,7 +260,7 @@ describe('list handler --all flag', () => {
     await listHandler({ flags: { all: true } });
 
     expect(loadAllLaufConfigs).toHaveBeenCalledWith(process.cwd());
-    expect(discoverScripts).toHaveBeenCalledWith(['scripts/*.lauf.ts'], { scopeDir: '/workspace' });
+    expect(discoverScripts).toHaveBeenCalledWith(['scripts/*.ts'], { scopeDir: '/workspace' });
     expect(p.note).toHaveBeenCalledWith(expect.any(String), expect.stringContaining('1 script(s)'));
     expect(process.exit).not.toHaveBeenCalled();
   });
@@ -269,7 +269,7 @@ describe('list handler --all flag', () => {
     vi.mocked(loadAllLaufConfigs).mockResolvedValue([
       {
         config: {
-          scripts: ['scripts/*.lauf.ts'],
+          scripts: ['scripts/*.ts'],
           logger: undefined,
           spinner: true,
           sandbox: true,
@@ -293,7 +293,7 @@ describe('list handler --all flag', () => {
     vi.mocked(loadAllLaufConfigs).mockResolvedValue([
       {
         config: {
-          scripts: ['scripts/*.lauf.ts'],
+          scripts: ['scripts/*.ts'],
           logger: undefined,
           spinner: true,
           sandbox: true,
@@ -339,7 +339,7 @@ describe('list handler --all flag', () => {
     await listHandler({ flags: { all: true } });
 
     expect(discoverScripts).toHaveBeenCalledTimes(2);
-    expect(discoverScripts).toHaveBeenCalledWith(['scripts/*.lauf.ts'], { scopeDir: '/workspace' });
+    expect(discoverScripts).toHaveBeenCalledWith(['scripts/*.ts'], { scopeDir: '/workspace' });
     expect(discoverScripts).toHaveBeenCalledWith(['tasks/*.ts'], {
       scopeDir: '/workspace/packages/api',
     });
@@ -351,7 +351,7 @@ describe('list handler --all flag', () => {
     vi.mocked(loadAllLaufConfigs).mockResolvedValue([
       {
         config: {
-          scripts: ['scripts/*.lauf.ts'],
+          scripts: ['scripts/*.ts'],
           logger: undefined,
           spinner: true,
           sandbox: true,
@@ -364,7 +364,7 @@ describe('list handler --all flag', () => {
       },
       {
         config: {
-          scripts: ['scripts/*.lauf.ts'],
+          scripts: ['scripts/*.ts'],
           logger: undefined,
           spinner: true,
           sandbox: true,
@@ -405,7 +405,7 @@ describe('list handler --all flag', () => {
     vi.mocked(loadAllLaufConfigs).mockResolvedValue([
       {
         config: {
-          scripts: ['scripts/*.lauf.ts'],
+          scripts: ['scripts/*.ts'],
           logger: undefined,
           spinner: true,
           sandbox: true,
@@ -430,7 +430,7 @@ describe('list handler --all flag', () => {
       null,
       {
         config: {
-          scripts: ['scripts/*.lauf.ts'],
+          scripts: ['scripts/*.ts'],
           logger: undefined,
           spinner: true,
           sandbox: true,
@@ -450,7 +450,7 @@ describe('list handler --all flag', () => {
     expect(loadAllLaufConfigs).not.toHaveBeenCalled();
     expect(resolveCurrentPackage).toHaveBeenCalledWith(process.cwd());
     // discoverScripts should be called with packageDir from resolveCurrentPackage
-    expect(discoverScripts).toHaveBeenCalledWith(['scripts/*.lauf.ts'], {
+    expect(discoverScripts).toHaveBeenCalledWith(['scripts/*.ts'], {
       packageDir: '/workspace/packages/my-pkg',
     });
   });
@@ -462,7 +462,7 @@ describe('list handler --filter flag', () => {
       null,
       {
         config: {
-          scripts: ['scripts/*.lauf.ts'],
+          scripts: ['scripts/*.ts'],
           logger: undefined,
           spinner: true,
           sandbox: true,
@@ -486,7 +486,7 @@ describe('list handler --filter flag', () => {
     await listHandler({ flags: { filter: '@apps/*' } });
 
     expect(safeLoadLaufConfigWithMeta).toHaveBeenCalledWith(process.cwd());
-    expect(discoverScripts).toHaveBeenCalledWith(['scripts/*.lauf.ts'], {
+    expect(discoverScripts).toHaveBeenCalledWith(['scripts/*.ts'], {
       filterGlobs: ['@apps/*'],
     });
     expect(p.note).toHaveBeenCalledWith(expect.any(String), expect.stringContaining('1 script(s)'));
@@ -498,7 +498,7 @@ describe('list handler --filter flag', () => {
       null,
       {
         config: {
-          scripts: ['scripts/*.lauf.ts'],
+          scripts: ['scripts/*.ts'],
           logger: undefined,
           spinner: true,
           sandbox: true,
@@ -523,7 +523,7 @@ describe('list handler --filter flag', () => {
       null,
       {
         config: {
-          scripts: ['scripts/*.lauf.ts'],
+          scripts: ['scripts/*.ts'],
           logger: undefined,
           spinner: true,
           sandbox: true,
@@ -539,7 +539,7 @@ describe('list handler --filter flag', () => {
 
     await listHandler({ flags: { filter: '@apps/*', all: true } });
 
-    expect(discoverScripts).toHaveBeenCalledWith(['scripts/*.lauf.ts'], {
+    expect(discoverScripts).toHaveBeenCalledWith(['scripts/*.ts'], {
       filterGlobs: ['@apps/*'],
     });
     expect(loadAllLaufConfigs).not.toHaveBeenCalled();
@@ -560,7 +560,7 @@ describe('list handler default mode (current package)', () => {
       null,
       {
         config: {
-          scripts: ['scripts/*.lauf.ts'],
+          scripts: ['scripts/*.ts'],
           logger: undefined,
           spinner: true,
           sandbox: true,
@@ -585,7 +585,7 @@ describe('list handler default mode (current package)', () => {
       null,
       {
         config: {
-          scripts: ['scripts/*.lauf.ts'],
+          scripts: ['scripts/*.ts'],
           logger: undefined,
           spinner: true,
           sandbox: true,
@@ -611,7 +611,7 @@ describe('root package scripts', () => {
       null,
       {
         config: {
-          scripts: ['scripts/*.lauf.ts'],
+          scripts: ['scripts/*.ts'],
           logger: undefined,
           spinner: true,
           sandbox: true,
@@ -650,7 +650,7 @@ describe('root package scripts', () => {
       null,
       {
         config: {
-          scripts: ['scripts/*.lauf.ts'],
+          scripts: ['scripts/*.ts'],
           logger: undefined,
           spinner: true,
           sandbox: true,
@@ -685,7 +685,7 @@ describe('tree display format', () => {
       null,
       {
         config: {
-          scripts: ['scripts/*.lauf.ts'],
+          scripts: ['scripts/*.ts'],
           logger: undefined,
           spinner: true,
           sandbox: true,
@@ -733,7 +733,7 @@ describe('tree display format', () => {
       null,
       {
         config: {
-          scripts: ['scripts/*.lauf.ts'],
+          scripts: ['scripts/*.ts'],
           logger: undefined,
           spinner: true,
           sandbox: true,
@@ -773,7 +773,7 @@ describe('tree display format', () => {
       null,
       {
         config: {
-          scripts: ['scripts/*.lauf.ts'],
+          scripts: ['scripts/*.ts'],
           logger: undefined,
           spinner: true,
           sandbox: true,
@@ -821,7 +821,7 @@ describe('tree display format', () => {
       null,
       {
         config: {
-          scripts: ['scripts/*.lauf.ts'],
+          scripts: ['scripts/*.ts'],
           logger: undefined,
           spinner: true,
           sandbox: true,

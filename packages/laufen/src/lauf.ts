@@ -70,7 +70,7 @@ export function lauf<T extends ArgDefs = Record<string, never>>(
  * import { defineConfig } from 'laufen'
  *
  * export default defineConfig({
- *   scripts: ['scripts/*.lauf.ts'],
+ *   scripts: ['scripts/*.ts'],
  *   logger: myLogger,
  * })
  * ```

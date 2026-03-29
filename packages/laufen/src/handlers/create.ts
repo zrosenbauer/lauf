@@ -56,8 +56,8 @@ export default defineHandler({
       });
     }
 
-    const stem = name.replace(/\.lauf\.ts$|\.ts$/, '');
-    const fileName = `${stem}.lauf.ts`;
+    const stem = name.replace(/\.ts$/, '');
+    const fileName = `${stem}.ts`;
     const filePath = path.join(targetDir, fileName);
 
     const resolvedFilePath = path.resolve(filePath);

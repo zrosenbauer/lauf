@@ -23,6 +23,7 @@ vi.mock('../lib/discovery.ts', () => ({
 
 vi.mock('../lib/paths.ts', () => ({
   getWorkspaceRoot: vi.fn(() => '/workspace'),
+  resolveCurrentPackage: vi.fn(() => ({ name: 'my-pkg', dir: '/workspace/packages/my-pkg' })),
   LAUF_ROOT: '/lauf-root',
 }));
 
@@ -54,7 +55,7 @@ const mockScript: DiscoveredScript = {
 
 const mockLoadedConfig = {
   config: {
-    scripts: ['scripts/*.lauf.ts'],
+    scripts: ['scripts/*.ts'],
     logger: undefined,
     spinner: true,
     sandbox: true,
@@ -69,6 +70,7 @@ const mockLoadedConfig = {
 const expectedRunOptions = {
   workspaceRoot: '/workspace',
   cliPackageRoot: '/lauf-root',
+  workspaceDir: '/workspace/packages/my-pkg',
   spinner: true,
   env: {},
   cliEnv: {},
@@ -176,6 +178,7 @@ describe('run handler', () => {
         help: true,
         workspaceRoot: '/workspace',
         cliPackageRoot: '/lauf-root',
+        workspaceDir: '/workspace/packages/my-pkg',
         spinner: true,
         env: {},
         workspacePackages: { chalk: '^5.0.0' },
@@ -205,6 +208,7 @@ describe('run handler', () => {
         help: true,
         workspaceRoot: '/workspace',
         cliPackageRoot: '/lauf-root',
+        workspaceDir: '/workspace/packages/my-pkg',
         spinner: true,
         env: {},
         workspacePackages: { chalk: '^5.0.0' },

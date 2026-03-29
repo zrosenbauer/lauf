@@ -53,15 +53,15 @@ describe('lauf', () => {
 
 describe('defineConfig', () => {
   it('returns the config object as-is', () => {
-    const config = { scripts: ['scripts/*.lauf.ts'] };
+    const config = { scripts: ['scripts/*.ts'] };
     const result = defineConfig(config);
     expect(result).toBe(config);
   });
 
   it('preserves scripts array', () => {
-    const config = { scripts: ['src/**/*.lauf.ts', 'tools/*.ts'] };
+    const config = { scripts: ['src/**/*.ts', 'tools/*.ts'] };
     const result = defineConfig(config);
-    expect(result.scripts).toEqual(['src/**/*.lauf.ts', 'tools/*.ts']);
+    expect(result.scripts).toEqual(['src/**/*.ts', 'tools/*.ts']);
   });
 
   it('works with empty config', () => {
@@ -79,7 +79,7 @@ describe('defineConfig', () => {
       message: () => {},
       newlines: () => {},
     };
-    const config = { scripts: ['scripts/*.lauf.ts'], logger };
+    const config = { scripts: ['scripts/*.ts'], logger };
     const result = defineConfig(config);
     expect(result.logger).toBe(logger);
   });

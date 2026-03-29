@@ -50,7 +50,7 @@ import blueprintHandler from './blueprint.ts';
 
 const mockLoadedConfig = {
   config: {
-    scripts: ['scripts/*.lauf.ts'],
+    scripts: ['scripts/*.ts'],
     logger: undefined,
     spinner: true,
     sandbox: true,
@@ -197,7 +197,7 @@ describe('blueprint handler', () => {
       await blueprintHandler({ parameters: { name: 'clean' }, flags: {} });
 
       expect(mockWriteFileSync).toHaveBeenCalledWith(
-        '/workspace/scripts/clean.lauf.ts',
+        '/workspace/scripts/clean.ts',
         'template content',
         { encoding: 'utf-8', flag: 'wx' },
       );
@@ -216,13 +216,13 @@ describe('blueprint handler', () => {
       await blueprintHandler({ parameters: { name: 'clean' }, flags: {} });
 
       const writePath = mockWriteFileSync.mock.calls[0][0] as string;
-      expect(writePath).toBe('/workspace/scripts/clean.lauf.ts');
+      expect(writePath).toBe('/workspace/scripts/clean.ts');
     });
 
     it('falls back to scripts/ when scripts pattern has no static base', async () => {
       const globConfig = {
         ...mockLoadedConfig,
-        config: { ...mockLoadedConfig.config, scripts: ['**/*.lauf.ts'] },
+        config: { ...mockLoadedConfig.config, scripts: ['**/*.ts'] },
       };
       vi.mocked(isBlueprintName).mockReturnValue(true);
       vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([null, globConfig]);
@@ -231,7 +231,7 @@ describe('blueprint handler', () => {
       await blueprintHandler({ parameters: { name: 'clean' }, flags: {} });
 
       const writePath = mockWriteFileSync.mock.calls[0][0] as string;
-      expect(writePath).toBe('/workspace/scripts/clean.lauf.ts');
+      expect(writePath).toBe('/workspace/scripts/clean.ts');
     });
 
     it('resolves relative --dir from config dir', async () => {
@@ -245,7 +245,7 @@ describe('blueprint handler', () => {
       });
 
       const writePath = mockWriteFileSync.mock.calls[0][0] as string;
-      expect(writePath).toBe('/workspace/custom/scripts/clean.lauf.ts');
+      expect(writePath).toBe('/workspace/custom/scripts/clean.ts');
     });
 
     it('shows success message with relative path and run command', async () => {
@@ -255,7 +255,7 @@ describe('blueprint handler', () => {
 
       await blueprintHandler({ parameters: { name: 'clean' }, flags: {} });
 
-      expect(p.log.success).toHaveBeenCalledWith(expect.stringContaining('clean.lauf.ts'));
+      expect(p.log.success).toHaveBeenCalledWith(expect.stringContaining('clean.ts'));
       expect(p.log.message).toHaveBeenCalledWith(expect.stringContaining('lauf run my-pkg/clean'));
     });
   });
