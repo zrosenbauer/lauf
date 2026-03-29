@@ -15,7 +15,7 @@ reviews:
   collapse_walkthrough: true
   review_status: true
 
-  finishing:
+  finishing_touches:
     docstrings:
       enabled: false
     unit_tests:
@@ -171,7 +171,6 @@ reviews:
     markdownlint:
       enabled: true
     ast-grep:
-      enabled: true
       essential_rules: true
 
 chat:
