@@ -125,24 +125,24 @@ export interface ScriptContext<T extends ArgDefs> {
   /**
    * Directory paths organized by namespace.
    */
-  readonly dir: {
+  readonly dirs: {
     /** Absolute path to the workspace root (git repository root) */
     readonly root: string;
     /** Absolute path to the package containing this script */
     readonly package: string;
-    /** Alias for dir.package */
+    /** Absolute path to the workspace package where lauf was invoked */
     readonly workspace: string;
   };
 
   /**
    * Absolute path to the monorepo root.
-   * @deprecated Use `ctx.dir.root` instead
+   * @deprecated Use `ctx.dirs.root` instead
    */
   readonly root: string;
 
   /**
    * Absolute path to the package containing this script.
-   * @deprecated Use `ctx.dir.package` instead
+   * @deprecated Use `ctx.dirs.package` instead
    */
   readonly packageDir: string;
 
