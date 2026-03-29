@@ -53,7 +53,7 @@ describe('createContext', () => {
     env: { NODE_ENV: 'test' },
     root: '/project',
     packageDir: '/project/packages/app',
-    invocationDir: '/project/packages/app',
+    workspaceDir: '/project/packages/app',
     packageCacheDir: null,
     name: '@app/script',
     spinner: false,
@@ -138,14 +138,14 @@ describe('createContext', () => {
     expect(ctx.spinner).toBe(mockCreateSpinner.mock.results[0].value);
   });
 
-  it('returns dir.workspace matching invocationDir', () => {
+  it('returns dirs.workspace matching workspaceDir', () => {
     const ctx = createContext({
       ...baseParams,
       packageDir: '/project',
-      invocationDir: '/project/packages/app',
+      workspaceDir: '/project/packages/app',
     });
-    expect(ctx.dir.workspace).toBe('/project/packages/app');
-    expect(ctx.dir.package).toBe('/project');
+    expect(ctx.dirs.workspace).toBe('/project/packages/app');
+    expect(ctx.dirs.package).toBe('/project');
   });
 
   it('returns context with correct watch', () => {

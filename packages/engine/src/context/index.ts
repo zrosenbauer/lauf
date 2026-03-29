@@ -12,7 +12,7 @@ interface CreateContextParams<T extends ArgDefs> {
   readonly env: Record<string, string>;
   readonly root: string;
   readonly packageDir: string;
-  readonly invocationDir: string;
+  readonly workspaceDir: string;
   readonly packageCacheDir: string | null;
   readonly name: string;
   readonly spinner: boolean;
@@ -63,17 +63,17 @@ export function createContext<T extends ArgDefs>(params: CreateContextParams<T>)
   return {
     args: params.args,
     env: Object.freeze(params.env),
-    dir: {
+    dirs: {
       root: params.root,
       package: params.packageDir,
-      workspace: params.invocationDir,
+      workspace: params.workspaceDir,
     },
     get root() {
-      warnDeprecation('root', 'dir.root');
+      warnDeprecation('root', 'dirs.root');
       return params.root;
     },
     get packageDir() {
-      warnDeprecation('packageDir', 'dir.package');
+      warnDeprecation('packageDir', 'dirs.package');
       return params.packageDir;
     },
     name: params.name,

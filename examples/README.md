@@ -46,7 +46,7 @@ pnpm lauf run @examples/lauf/dev --watch
 | `clean`          | Clean build artifacts with confirmation for safety       | rimraf, chalk |
 | `fetch-releases` | Fetch GitHub releases for a repo and save to JSON        | -             |
 | `format-json`    | Format JSON files with prettier                          | prettier      |
-| `with-utils`     | Example using ctx.dir and ctx.fs helpers                 | -             |
+| `with-utils`     | Example using ctx.dirs and ctx.fs helpers                | -             |
 | `using-lib`      | Example using shared utility libraries                   | -             |
 | `dev`            | Watch TypeScript source files and report changes on save | -             |
 
@@ -156,7 +156,7 @@ export default lauf({
     ctx.logger.info(`Hello, ${ctx.args.name}!`);
 
     if (ctx.args.verbose) {
-      ctx.logger.info(`Running from ${ctx.dir.package}`);
+      ctx.logger.info(`Running from ${ctx.dirs.package}`);
     }
 
     ctx.logger.success('Done!');
@@ -223,9 +223,9 @@ The script context (`ctx`) provides:
 
 ### Paths
 
-- `ctx.dir.root` - Workspace root (git repository root)
-- `ctx.dir.package` - Package directory where the script lives
-- `ctx.dir.workspace` - Alias for `ctx.dir.package`
+- `ctx.dirs.root` - Workspace root (git repository root)
+- `ctx.dirs.package` - Package directory where the script lives
+- `ctx.dirs.workspace` - The workspace package where `lauf` was invoked
 
 ### Watch
 

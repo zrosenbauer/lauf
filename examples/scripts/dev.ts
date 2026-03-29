@@ -23,7 +23,7 @@ export default lauf({
 
     ctx.spinner.start('Scanning source files...');
 
-    const files = await findSourceFiles(ctx.dir.package);
+    const files = await findSourceFiles(ctx.dirs.package);
 
     ctx.spinner.stop(`Found ${files.length} TypeScript file(s)`);
     ctx.logger.newlines();
