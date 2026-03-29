@@ -148,11 +148,6 @@ describe('createContext', () => {
     expect(ctx.dirs.package).toBe('/project');
   });
 
-  it('returns frozen dirs context', () => {
-    const ctx = createContext(baseParams);
-    expect(Object.isFrozen(ctx.dirs)).toBe(true);
-  });
-
   it('returns context with correct watch', () => {
     const ctx = createContext(baseParams);
     expect(ctx.watch).toEqual({ enabled: false, changedFiles: [], patterns: [] });

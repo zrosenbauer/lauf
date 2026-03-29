@@ -63,11 +63,11 @@ export function createContext<T extends ArgDefs>(params: CreateContextParams<T>)
   return {
     args: params.args,
     env: Object.freeze(params.env),
-    dirs: Object.freeze({
+    dirs: {
       root: params.root,
       package: params.packageDir,
       workspace: params.workspaceDir,
-    }),
+    },
     get root() {
       warnDeprecation('root', 'dirs.root');
       return params.root;
