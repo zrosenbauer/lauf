@@ -1,5 +1,24 @@
 # laufen
 
+## 1.3.0
+
+### Minor Changes
+
+- 5a6c6e9: Change default script file extension from `*.lauf.ts` to `*.ts` across blueprints, create, init, and config defaults. Fix blueprint templates not being found at runtime by moving them next to the template module and using tsdown's copy feature.
+- ead12d1: fix: scope script discovery to current package and add ctx.dirs.workspace
+
+  **Breaking:** `ctx.dir` renamed to `ctx.dirs` (plural). Update all scripts: `ctx.dir.root` -> `ctx.dirs.root`, `ctx.dir.package` -> `ctx.dirs.package`.
+
+  - `ctx.dirs.workspace` resolves to the workspace package where `lauf` was invoked (not the script's package)
+  - Run handler now scopes interactive script discovery to the current package (consistent with list handler)
+  - Added `LAUF_WORKSPACE_DIR` env var to pass workspace context through the execution pipeline
+  - Deprecated `ctx.root` and `ctx.packageDir` in favor of `ctx.dirs.root` and `ctx.dirs.package`
+
+### Patch Changes
+
+- Updated dependencies [ead12d1]
+  - @laufen/engine@1.3.0
+
 ## 1.2.1
 
 ### Patch Changes
