@@ -39,7 +39,7 @@ export default defineHandler({
     }
 
     const currentPkg = resolveCurrentPackage(process.cwd());
-    const currentPkgDir = currentPkg ? currentPkg.dir : undefined;
+    const currentPkgDir = currentPkg && currentPkg.dir;
 
     const [scriptError, script] = await resolveScript(
       ctx.parameters.script,

@@ -38,7 +38,9 @@ export function resolveScript(
     return Promise.resolve(ok(script));
   }
 
-  const discoverOptions = options?.packageDir ? { packageDir: options.packageDir } : undefined;
-  const scripts = discoverScripts(patterns, discoverOptions);
-  return promptForScript(scripts);
+  const packageDir = options && options.packageDir;
+  if (packageDir) {
+    return promptForScript(discoverScripts(patterns, { packageDir }));
+  }
+  return promptForScript(discoverScripts(patterns));
 }
