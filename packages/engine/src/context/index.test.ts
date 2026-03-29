@@ -53,6 +53,7 @@ describe('createContext', () => {
     env: { NODE_ENV: 'test' },
     root: '/project',
     packageDir: '/project/packages/app',
+    invocationDir: '/project/packages/app',
     packageCacheDir: null,
     name: '@app/script',
     spinner: false,
@@ -135,6 +136,16 @@ describe('createContext', () => {
   it('assigns the result of createSpinner to context spinner when enabled', () => {
     const ctx = createContext({ ...baseParams, spinner: true });
     expect(ctx.spinner).toBe(mockCreateSpinner.mock.results[0].value);
+  });
+
+  it('returns dir.workspace matching invocationDir', () => {
+    const ctx = createContext({
+      ...baseParams,
+      packageDir: '/project',
+      invocationDir: '/project/packages/app',
+    });
+    expect(ctx.dir.workspace).toBe('/project/packages/app');
+    expect(ctx.dir.package).toBe('/project');
   });
 
   it('returns context with correct watch', () => {

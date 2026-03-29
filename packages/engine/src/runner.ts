@@ -21,6 +21,7 @@ export interface RunScriptOptions {
   readonly help?: boolean;
   readonly workspaceRoot: string;
   readonly cliPackageRoot: string;
+  readonly invocationDir?: string;
   readonly spinner?: boolean;
   readonly logger?: Logger;
   readonly env?: Record<string, string>;
@@ -461,6 +462,7 @@ function buildScriptEnv(
     LAUF_ARGS: JSON.stringify(args),
     LAUF_WORKSPACE_ROOT: options.workspaceRoot,
     LAUF_PACKAGE_DIR: script.packageDir,
+    LAUF_INVOCATION_DIR: options.invocationDir ?? script.packageDir,
     LAUF_SCRIPT_NAME: script.name,
     LAUF_SPINNER: spinnerValue,
     LAUF_ENV: JSON.stringify(userEnv),

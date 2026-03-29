@@ -130,7 +130,7 @@ export interface ScriptContext<T extends ArgDefs> {
     readonly root: string;
     /** Absolute path to the package containing this script */
     readonly package: string;
-    /** Alias for dir.package */
+    /** Absolute path to the workspace package where lauf was invoked */
     readonly workspace: string;
   };
 

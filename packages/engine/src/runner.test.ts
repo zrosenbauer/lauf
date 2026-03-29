@@ -187,6 +187,7 @@ describe('runScript', () => {
       expect(spawnEnv.LAUF_ARGS).toBe(JSON.stringify({ verbose: true, count: 5 }));
       expect(spawnEnv.LAUF_WORKSPACE_ROOT).toBe('/workspace');
       expect(spawnEnv.LAUF_PACKAGE_DIR).toBe('/workspace');
+      expect(spawnEnv.LAUF_INVOCATION_DIR).toBe('/workspace');
       expect(spawnEnv.LAUF_SCRIPT_NAME).toBe('test-script');
       expect(spawnEnv.LAUF_ENV).toBe('{}');
     });

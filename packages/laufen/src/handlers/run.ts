@@ -16,7 +16,7 @@ import { z } from 'zod';
 import type { ResolvedLaufConfig } from '../lib/config.ts';
 import { safeLoadLaufConfigWithMeta } from '../lib/config.ts';
 import { defineHandler } from '../lib/handler.ts';
-import { LAUF_ROOT, getWorkspaceRoot } from '../lib/paths.ts';
+import { LAUF_ROOT, getWorkspaceRoot, resolveCurrentPackage } from '../lib/paths.ts';
 import type { HandlerResult, Result } from '../lib/result.ts';
 import { fail, ok } from '../lib/result.ts';
 import { createWatcher, loadScriptWatchConfig, mergeWatchConfig } from '../lib/watcher.ts';
@@ -38,7 +38,14 @@ export default defineHandler({
       return fail({ message: `Failed to load lauf config: ${safeParseError(configError)}` });
     }
 
-    const [scriptError, script] = await resolveScript(ctx.parameters.script, loaded.config.scripts);
+    const currentPkg = resolveCurrentPackage(process.cwd());
+    const currentPkgDir = currentPkg ? currentPkg.dir : undefined;
+
+    const [scriptError, script] = await resolveScript(
+      ctx.parameters.script,
+      loaded.config.scripts,
+      { packageDir: currentPkgDir },
+    );
     if (scriptError) {
       return fail(scriptError);
     }
@@ -77,6 +84,7 @@ export default defineHandler({
       return runHelpMode(
         script,
         workspaceRoot,
+        currentPkgDir,
         loaded.config.spinner,
         configEnv,
         cliEnv,
@@ -101,6 +109,7 @@ export default defineHandler({
         script,
         parseRawArgs(scriptArgv),
         workspaceRoot,
+        currentPkgDir,
         loaded.config,
         configEnv,
         cliEnv,
@@ -112,6 +121,7 @@ export default defineHandler({
       script,
       parseRawArgs(scriptArgv),
       workspaceRoot,
+      currentPkgDir,
       loaded.config,
       configEnv,
       cliEnv,
@@ -152,6 +162,7 @@ function resolveConfigEnv(
 async function runHelpMode(
   script: ScriptTarget,
   workspaceRoot: string,
+  invocationDir: string | undefined,
   spinner: boolean,
   env: Record<string, string>,
   cliEnv: Record<string, string>,
@@ -165,6 +176,7 @@ async function runHelpMode(
       help: true,
       workspaceRoot,
       cliPackageRoot: LAUF_ROOT,
+      invocationDir,
       spinner,
       env,
       cliEnv,
@@ -186,6 +198,7 @@ async function runNormalMode(
   script: ScriptTarget,
   args: Record<string, unknown>,
   workspaceRoot: string,
+  invocationDir: string | undefined,
   config: ResolvedLaufConfig,
   configEnv: Record<string, string>,
   cliEnv: Record<string, string>,
@@ -194,6 +207,7 @@ async function runNormalMode(
     script,
     args,
     workspaceRoot,
+    invocationDir,
     config.spinner,
     configEnv,
     cliEnv,
@@ -219,6 +233,7 @@ async function executeScript(
   script: ScriptTarget,
   args: Record<string, unknown>,
   workspaceRoot: string,
+  invocationDir: string | undefined,
   spinner: boolean,
   env: Record<string, string>,
   cliEnv: Record<string, string>,
@@ -232,6 +247,7 @@ async function executeScript(
   const result = await runScript(script, args, {
     workspaceRoot,
     cliPackageRoot: LAUF_ROOT,
+    invocationDir,
     spinner,
     env,
     cliEnv,
@@ -261,6 +277,7 @@ async function runWatchMode(
   script: ScriptTarget,
   args: Record<string, unknown>,
   workspaceRoot: string,
+  invocationDir: string | undefined,
   config: ResolvedLaufConfig,
   configEnv: Record<string, string>,
   cliEnv: Record<string, string>,
@@ -273,6 +290,7 @@ async function runWatchMode(
     script,
     args,
     workspaceRoot,
+    invocationDir,
     config.spinner,
     configEnv,
     cliEnv,
@@ -305,6 +323,7 @@ async function runWatchMode(
         script,
         args,
         workspaceRoot,
+        invocationDir,
         config.spinner,
         configEnv,
         cliEnv,
