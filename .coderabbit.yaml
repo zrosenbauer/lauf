@@ -11,6 +11,8 @@ enable_free_tier: true
 reviews:
   profile: 'assertive'
   request_changes_workflow: true
+  auto_approve:
+    enabled: true
   high_level_summary: false
   collapse_walkthrough: true
   review_status: true
@@ -107,8 +109,10 @@ reviews:
     - path: 'packages/engine/src/context/**'
       instructions: >-
         Context files build the ScriptContext (logger, prompts, spinner) passed
-        to user scripts. Keep factory functions small and composable. The context
-        object should be immutable once created (Object.freeze).
+        to user scripts. Keep factory functions small and composable. Immutability
+        is enforced via TypeScript readonly types — do not recommend Object.freeze
+        for context properties. Only env, watch.changedFiles, and watch.patterns
+        are frozen at runtime for security reasons (user-supplied data).
 
     - path: 'packages/engine/src/utils/**'
       instructions: >-

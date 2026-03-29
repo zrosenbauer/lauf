@@ -17,7 +17,7 @@ export default lauf({
     // Type-safe import - prettier installed to ~/.lauf/packages/<hash>/
     const prettier = await ctx.import('prettier');
 
-    const filePath = join(ctx.dir.package, ctx.args.file);
+    const filePath = join(ctx.dirs.package, ctx.args.file);
 
     ctx.spinner.start(`Reading ${ctx.args.file}...`);
     const content = await readFile(filePath, 'utf-8');
