@@ -1,4 +1,4 @@
-import { discoverScripts, findScript } from '../lib/discovery.ts';
+import { discoverScripts, findScript, reattributeScripts } from '../lib/discovery.ts';
 import { fail, ok } from '../lib/result.ts';
 import type { HandlerResult } from '../lib/result.ts';
 import type { DiscoveredScript } from '../lib/types.ts';
@@ -40,7 +40,9 @@ export function resolveScript(
 
   const packageDir = options && options.packageDir;
   if (packageDir) {
-    return promptForScript(discoverScripts(patterns, { packageDir }));
+    const scripts = reattributeScripts(discoverScripts(patterns, { packageDir }));
+    const scoped = scripts.filter((s) => s.packageDir === packageDir);
+    return promptForScript(scoped);
   }
-  return promptForScript(discoverScripts(patterns));
+  return promptForScript(reattributeScripts(discoverScripts(patterns)));
 }

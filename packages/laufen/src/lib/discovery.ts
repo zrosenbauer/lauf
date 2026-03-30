@@ -213,6 +213,49 @@ function filterPackagesByScope(
   });
 }
 
+/**
+ * Re-attribute scripts to their deepest matching workspace package.
+ *
+ * Corrects attribution when a parent package's glob patterns reach into
+ * a nested workspace package.
+ */
+export function reattributeScripts(
+  scripts: readonly DiscoveredScript[],
+): readonly DiscoveredScript[] {
+  const packages = resolveWorkspacePackages();
+
+  return scripts.map((script) => {
+    const resolved = path.resolve(script.path);
+    const matching = packages.filter((pkg) => {
+      const pkgDir = path.resolve(pkg.dir);
+      return resolved.startsWith(`${pkgDir}${path.sep}`);
+    });
+
+    if (matching.length === 0) {
+      return script;
+    }
+
+    const deepest = matching.reduce((best, pkg) => {
+      if (pkg.dir.length > best.dir.length) {
+        return pkg;
+      }
+      return best;
+    });
+
+    if (deepest.name === script.packageName) {
+      return script;
+    }
+
+    const stem = stripScriptSuffix(path.basename(script.path, '.ts'));
+    return {
+      name: qualifyScriptName(deepest.name, stem),
+      path: script.path,
+      packageDir: deepest.dir,
+      packageName: deepest.name,
+    };
+  });
+}
+
 function stripScriptSuffix(stem: string): string {
   if (stem.endsWith('.laufen')) {
     return stem.slice(0, -'.laufen'.length);

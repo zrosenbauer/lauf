@@ -17,6 +17,7 @@ vi.mock('../lib/config.ts', () => ({
 vi.mock('../lib/discovery.ts', () => ({
   discoverScripts: vi.fn(() => []),
   findScript: vi.fn(),
+  reattributeScripts: vi.fn((scripts: unknown[]) => scripts),
 }));
 
 vi.mock('../lib/paths.ts', () => ({

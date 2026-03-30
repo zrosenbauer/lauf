@@ -20,6 +20,7 @@ vi.mock('../lib/config.ts', () => ({
 vi.mock('../lib/discovery.ts', () => ({
   ROOT_PACKAGE_NAME: '<root>',
   discoverScripts: vi.fn(),
+  reattributeScripts: vi.fn((scripts: unknown[]) => scripts),
 }));
 
 vi.mock('../lib/paths.ts', () => ({
@@ -72,16 +73,16 @@ describe('list handler', () => {
     ]);
     vi.mocked(discoverScripts).mockReturnValue([
       {
-        name: 'pkg/build',
-        path: '/workspace/packages/pkg/scripts/build.ts',
-        packageDir: '/workspace/packages/pkg',
-        packageName: 'pkg',
+        name: 'my-pkg/build',
+        path: '/workspace/packages/my-pkg/scripts/build.ts',
+        packageDir: '/workspace/packages/my-pkg',
+        packageName: 'my-pkg',
       },
       {
-        name: 'pkg/test',
-        path: '/workspace/packages/pkg/scripts/test.ts',
-        packageDir: '/workspace/packages/pkg',
-        packageName: 'pkg',
+        name: 'my-pkg/test',
+        path: '/workspace/packages/my-pkg/scripts/test.ts',
+        packageDir: '/workspace/packages/my-pkg',
+        packageName: 'my-pkg',
       },
     ]);
 
@@ -153,10 +154,10 @@ describe('list handler', () => {
   it('calls loadDescriptions with scripts and options', async () => {
     const scripts = [
       {
-        name: 'pkg/build',
-        path: '/workspace/packages/pkg/scripts/build.ts',
-        packageDir: '/workspace/packages/pkg',
-        packageName: 'pkg',
+        name: 'my-pkg/build',
+        path: '/workspace/packages/my-pkg/scripts/build.ts',
+        packageDir: '/workspace/packages/my-pkg',
+        packageName: 'my-pkg',
       },
     ];
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([
@@ -204,21 +205,21 @@ describe('list handler', () => {
     ]);
     vi.mocked(discoverScripts).mockReturnValue([
       {
-        name: 'pkg/build',
-        path: '/workspace/packages/pkg/scripts/build.ts',
-        packageDir: '/workspace/packages/pkg',
-        packageName: 'pkg',
+        name: 'my-pkg/build',
+        path: '/workspace/packages/my-pkg/scripts/build.ts',
+        packageDir: '/workspace/packages/my-pkg',
+        packageName: 'my-pkg',
       },
       {
-        name: 'pkg/test',
-        path: '/workspace/packages/pkg/scripts/test.ts',
-        packageDir: '/workspace/packages/pkg',
-        packageName: 'pkg',
+        name: 'my-pkg/test',
+        path: '/workspace/packages/my-pkg/scripts/test.ts',
+        packageDir: '/workspace/packages/my-pkg',
+        packageName: 'my-pkg',
       },
     ]);
     vi.mocked(loadDescriptions).mockResolvedValue({
-      '/workspace/packages/pkg/scripts/build.ts': 'Build the project',
-      '/workspace/packages/pkg/scripts/test.ts': 'Run tests',
+      '/workspace/packages/my-pkg/scripts/build.ts': 'Build the project',
+      '/workspace/packages/my-pkg/scripts/test.ts': 'Run tests',
     });
 
     await listHandler({ flags: {} });
@@ -606,7 +607,8 @@ describe('list handler default mode (current package)', () => {
 });
 
 describe('root package scripts', () => {
-  it('includes scripts from the workspace root package in monorepo mode', async () => {
+  it('filters to only root scripts when current package is root', async () => {
+    vi.mocked(resolveCurrentPackage).mockReturnValue({ name: '<root>', dir: '/workspace' });
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([
       null,
       {
@@ -625,10 +627,10 @@ describe('root package scripts', () => {
     ]);
     vi.mocked(discoverScripts).mockReturnValue([
       {
-        name: 'my-monorepo/root-script',
+        name: 'root-script',
         path: '/workspace/scripts/root-script.ts',
         packageDir: '/workspace',
-        packageName: 'my-monorepo',
+        packageName: '<root>',
       },
       {
         name: 'pkg/build',
@@ -640,12 +642,13 @@ describe('root package scripts', () => {
 
     await listHandler({ flags: {} });
 
-    // Both root and sub-package scripts should appear
-    expect(p.note).toHaveBeenCalledWith(expect.any(String), expect.stringContaining('2 script(s)'));
+    // Only root scripts should appear (pkg/build is filtered out)
+    expect(p.note).toHaveBeenCalledWith(expect.any(String), expect.stringContaining('1 script(s)'));
     expect(process.exit).not.toHaveBeenCalled();
   });
 
   it('displays root-only scripts in monorepo mode', async () => {
+    vi.mocked(resolveCurrentPackage).mockReturnValue({ name: '<root>', dir: '/workspace' });
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([
       null,
       {
@@ -664,10 +667,10 @@ describe('root package scripts', () => {
     ]);
     vi.mocked(discoverScripts).mockReturnValue([
       {
-        name: 'my-monorepo/root-script',
+        name: 'root-script',
         path: '/workspace/scripts/root-script.ts',
         packageDir: '/workspace',
-        packageName: 'my-monorepo',
+        packageName: '<root>',
       },
     ]);
 
@@ -681,8 +684,7 @@ describe('root package scripts', () => {
 
 describe('tree display format', () => {
   it('renders tree connectors for packages and scripts', async () => {
-    vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([
-      null,
+    vi.mocked(loadAllLaufConfigs).mockResolvedValue([
       {
         config: {
           scripts: ['scripts/*.ts'],
@@ -718,7 +720,7 @@ describe('tree display format', () => {
       },
     ]);
 
-    await listHandler({ flags: {} });
+    await listHandler({ flags: { all: true } });
 
     const noteCall = vi.mocked(p.note).mock.calls[0];
     const output = noteCall[0] as string;
@@ -747,10 +749,10 @@ describe('tree display format', () => {
     ]);
     vi.mocked(discoverScripts).mockReturnValue([
       {
-        name: 'pkg/build',
-        path: '/workspace/packages/pkg/scripts/build.ts',
-        packageDir: '/workspace/packages/pkg',
-        packageName: 'pkg',
+        name: 'my-pkg/build',
+        path: '/workspace/packages/my-pkg/scripts/build.ts',
+        packageDir: '/workspace/packages/my-pkg',
+        packageName: 'my-pkg',
       },
     ]);
 
@@ -760,7 +762,7 @@ describe('tree display format', () => {
     const output = noteCall[0] as string;
     const lines = output.split('\n');
     // Single package should render as header (like <root>), not nested with └──
-    expect(lines[0]).toContain('pkg');
+    expect(lines[0]).toContain('my-pkg');
     expect(lines[0]).not.toContain('└── ');
     expect(lines[0]).not.toContain('├── ');
     // Script should be a direct child with └── (last item)
@@ -769,8 +771,7 @@ describe('tree display format', () => {
   });
 
   it('renders <root> as top-level heading with scripts and packages nested beneath', async () => {
-    vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([
-      null,
+    vi.mocked(loadAllLaufConfigs).mockResolvedValue([
       {
         config: {
           scripts: ['scripts/*.ts'],
@@ -800,7 +801,7 @@ describe('tree display format', () => {
       },
     ]);
 
-    await listHandler({ flags: {} });
+    await listHandler({ flags: { all: true } });
 
     const noteCall = vi.mocked(p.note).mock.calls[0];
     const output = noteCall[0] as string;
@@ -817,8 +818,7 @@ describe('tree display format', () => {
   });
 
   it('renders <root> with only root scripts and no sub-packages', async () => {
-    vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([
-      null,
+    vi.mocked(loadAllLaufConfigs).mockResolvedValue([
       {
         config: {
           scripts: ['scripts/*.ts'],
@@ -848,7 +848,7 @@ describe('tree display format', () => {
       },
     ]);
 
-    await listHandler({ flags: {} });
+    await listHandler({ flags: { all: true } });
 
     const noteCall = vi.mocked(p.note).mock.calls[0];
     const output = noteCall[0] as string;
