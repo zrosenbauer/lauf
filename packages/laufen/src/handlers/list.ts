@@ -7,7 +7,7 @@ import { z } from 'zod';
 
 import type { LoadedConfig } from '../lib/config.ts';
 import { loadAllLaufConfigs, safeLoadLaufConfigWithMeta } from '../lib/config.ts';
-import { discoverScripts } from '../lib/discovery.ts';
+import { discoverScripts, reattributeScripts } from '../lib/discovery.ts';
 import { defineHandler } from '../lib/handler.ts';
 import { LAUF_ROOT, getWorkspaceRoot, resolveCurrentPackage } from '../lib/paths.ts';
 import { fail, ok } from '../lib/result.ts';
@@ -51,7 +51,7 @@ async function listFilteredScripts(filterGlob: string) {
   }
 
   const scripts = discoverScripts(loaded.config.scripts, { filterGlobs: [filterGlob] });
-  return displayScripts(scripts);
+  return displayScripts(reattributeScripts(scripts));
 }
 
 /**
@@ -71,8 +71,11 @@ async function listCurrentPackageScripts() {
     });
   }
 
-  const scripts = discoverScripts(loaded.config.scripts, { packageDir: currentPkg.dir });
-  return displayScripts(scripts);
+  const scripts = reattributeScripts(
+    discoverScripts(loaded.config.scripts, { packageDir: currentPkg.dir }),
+  );
+  const currentOnly = scripts.filter((s) => s.packageName === currentPkg.name);
+  return displayScripts(currentOnly);
 }
 
 /**
@@ -88,7 +91,7 @@ async function listAllScripts() {
   // Deduplicate by script path (closest config wins since configs are sorted shallowest-first)
   const unique = uniqBy(allScripts, (s) => s.path);
 
-  return displayScripts(unique);
+  return displayScripts(reattributeScripts(unique));
 }
 
 /**
