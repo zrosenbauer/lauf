@@ -1,5 +1,11 @@
 # laufen
 
+## 1.3.1
+
+### Patch Changes
+
+- 3592b18: Fix `lauf list` showing nested workspace scripts under root instead of grouped by workspace. Scripts are now re-attributed to their deepest matching workspace package, so the default view at root only shows root-level scripts and `--all` properly groups by workspace.
+
 ## 1.3.0
 
 ### Minor Changes
