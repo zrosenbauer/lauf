@@ -1,8 +1,8 @@
 import { groupBy } from 'es-toolkit';
 import pc from 'picocolors';
 
-import { ROOT_PACKAGE_NAME } from '../lib/discovery.ts';
-import type { DiscoveredScript } from '../lib/types.ts';
+import { ROOT_WORKSPACE_NAME } from '../lib/workspace/scripts.ts';
+import type { DiscoveredScript } from '../lib/workspace/types.ts';
 
 /**
  * Extract the script stem from a qualified name.
@@ -168,9 +168,9 @@ export function buildScriptTree(
   scripts: readonly DiscoveredScript[],
   descriptions: Record<string, string>,
 ): string {
-  const grouped = groupBy(scripts, (s) => s.packageName);
-  const rootScripts = grouped[ROOT_PACKAGE_NAME] || [];
-  const packageEntries = Object.entries(grouped).filter(([name]) => name !== ROOT_PACKAGE_NAME);
+  const grouped = groupBy(scripts, (s) => s.workspaceName);
+  const rootScripts = grouped[ROOT_WORKSPACE_NAME] || [];
+  const packageEntries = Object.entries(grouped).filter(([name]) => name !== ROOT_WORKSPACE_NAME);
   const maxStemLen = Math.max(...scripts.map((s) => scriptStem(s.name).length));
   const padWidth = maxStemLen + 2;
 
@@ -181,7 +181,7 @@ export function buildScriptTree(
     return formatPackageBranches(packageEntries, descriptions, padWidth);
   }
 
-  const header = pc.bold(ROOT_PACKAGE_NAME);
+  const header = pc.bold(ROOT_WORKSPACE_NAME);
   const scriptLines = formatRootScriptLines(
     rootScripts,
     descriptions,

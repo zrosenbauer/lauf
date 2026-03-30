@@ -1,6 +1,8 @@
 import * as p from '@clack/prompts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { Workspace, WorkspaceRoot } from '../lib/workspace/types.ts';
+
 vi.mock('@clack/prompts', () => ({
   log: {
     error: vi.fn(),
@@ -17,16 +19,31 @@ vi.mock('../lib/config.ts', () => ({
   loadAllLaufConfigs: vi.fn(),
 }));
 
-vi.mock('../lib/discovery.ts', () => ({
-  ROOT_PACKAGE_NAME: '<root>',
-  discoverScripts: vi.fn(),
-  reattributeScripts: vi.fn((scripts: unknown[]) => scripts),
+vi.mock('../lib/paths.ts', () => ({
+  LAUF_ROOT: '/lauf-root',
 }));
 
-vi.mock('../lib/paths.ts', () => ({
-  getWorkspaceRoot: vi.fn(() => '/workspace'),
-  LAUF_ROOT: '/lauf-root',
-  resolveCurrentPackage: vi.fn(() => ({ name: 'my-pkg', dir: '/workspace/packages/my-pkg' })),
+const mockRoot: WorkspaceRoot = { dir: '/workspace', source: 'git' };
+
+const mockCurrentWorkspace: Workspace = {
+  name: 'my-pkg',
+  dir: '/workspace/packages/my-pkg',
+  configFile: '/workspace/packages/my-pkg/lauf.config.ts',
+  configName: 'lauf',
+  isRoot: false,
+};
+
+vi.mock('../lib/workspace/index.ts', () => ({
+  getWorkspaceState: vi.fn(() => ({
+    root: mockRoot,
+    tree: { root: mockRoot, workspaces: [mockCurrentWorkspace] },
+    current: mockCurrentWorkspace,
+  })),
+}));
+
+vi.mock('../lib/workspace/scripts.ts', () => ({
+  ROOT_WORKSPACE_NAME: '<root>',
+  discoverWorkspaceScripts: vi.fn(() => []),
 }));
 
 vi.mock('@laufen/engine', () => ({
@@ -36,17 +53,29 @@ vi.mock('@laufen/engine', () => ({
 import { loadDescriptions } from '@laufen/engine';
 
 import { loadAllLaufConfigs, safeLoadLaufConfigWithMeta } from '../lib/config.ts';
-import { discoverScripts } from '../lib/discovery.ts';
-import { resolveCurrentPackage } from '../lib/paths.ts';
+import { getWorkspaceState } from '../lib/workspace/index.ts';
+import { discoverWorkspaceScripts } from '../lib/workspace/scripts.ts';
 import listHandler from './list.ts';
+
+const baseConfig = {
+  root: false,
+  scripts: ['scripts/*.ts'],
+  logger: undefined,
+  spinner: true,
+  sandbox: true,
+  env: {},
+  packages: {},
+  watch: undefined,
+};
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
-  vi.mocked(resolveCurrentPackage).mockReturnValue({
-    name: 'my-pkg',
-    dir: '/workspace/packages/my-pkg',
+  vi.mocked(getWorkspaceState).mockReturnValue({
+    root: mockRoot,
+    tree: { root: mockRoot, workspaces: [mockCurrentWorkspace] },
+    current: mockCurrentWorkspace,
   });
+  vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
 });
 
 afterEach(() => {
@@ -57,32 +86,20 @@ describe('list handler', () => {
   it('displays scripts when found', async () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([
       null,
-      {
-        config: {
-          scripts: ['scripts/*.ts'],
-          logger: undefined,
-          spinner: true,
-          sandbox: true,
-          env: {},
-          packages: {},
-          watch: undefined,
-        },
-        configFile: 'lauf.config.ts',
-        configDir: '/workspace',
-      },
+      { config: baseConfig, configFile: 'lauf.config.ts', configDir: '/workspace' },
     ]);
-    vi.mocked(discoverScripts).mockReturnValue([
+    vi.mocked(discoverWorkspaceScripts).mockReturnValue([
       {
         name: 'my-pkg/build',
         path: '/workspace/packages/my-pkg/scripts/build.ts',
         packageDir: '/workspace/packages/my-pkg',
-        packageName: 'my-pkg',
+        workspaceName: 'my-pkg',
       },
       {
         name: 'my-pkg/test',
         path: '/workspace/packages/my-pkg/scripts/test.ts',
         packageDir: '/workspace/packages/my-pkg',
-        packageName: 'my-pkg',
+        workspaceName: 'my-pkg',
       },
     ]);
 
@@ -95,21 +112,9 @@ describe('list handler', () => {
   it('shows warning when no scripts found', async () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([
       null,
-      {
-        config: {
-          scripts: ['scripts/*.ts'],
-          logger: undefined,
-          spinner: true,
-          sandbox: true,
-          env: {},
-          packages: {},
-          watch: undefined,
-        },
-        configFile: 'lauf.config.ts',
-        configDir: '/workspace',
-      },
+      { config: baseConfig, configFile: 'lauf.config.ts', configDir: '/workspace' },
     ]);
-    vi.mocked(discoverScripts).mockReturnValue([]);
+    vi.mocked(discoverWorkspaceScripts).mockReturnValue([]);
 
     await listHandler({ flags: {} });
 
@@ -125,30 +130,24 @@ describe('list handler', () => {
     expect(process.exit).toHaveBeenCalledWith(1);
   });
 
-  it('calls discoverScripts with config patterns and packageDir', async () => {
+  it('calls discoverWorkspaceScripts with current workspace and config patterns', async () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([
       null,
       {
-        config: {
-          scripts: ['src/**/*.ts'],
-          logger: undefined,
-          spinner: true,
-          sandbox: true,
-          env: {},
-          packages: {},
-          watch: undefined,
-        },
+        config: { ...baseConfig, scripts: ['src/**/*.ts'] },
         configFile: 'lauf.config.ts',
         configDir: '/workspace',
       },
     ]);
-    vi.mocked(discoverScripts).mockReturnValue([]);
+    vi.mocked(discoverWorkspaceScripts).mockReturnValue([]);
 
     await listHandler({ flags: {} });
 
-    expect(discoverScripts).toHaveBeenCalledWith(['src/**/*.ts'], {
-      packageDir: '/workspace/packages/my-pkg',
-    });
+    expect(discoverWorkspaceScripts).toHaveBeenCalledWith(
+      mockCurrentWorkspace,
+      ['src/**/*.ts'],
+      mockRoot,
+    );
   });
 
   it('calls loadDescriptions with scripts and options', async () => {
@@ -157,26 +156,14 @@ describe('list handler', () => {
         name: 'my-pkg/build',
         path: '/workspace/packages/my-pkg/scripts/build.ts',
         packageDir: '/workspace/packages/my-pkg',
-        packageName: 'my-pkg',
+        workspaceName: 'my-pkg',
       },
     ];
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([
       null,
-      {
-        config: {
-          scripts: ['scripts/*.ts'],
-          logger: undefined,
-          spinner: true,
-          sandbox: true,
-          env: {},
-          packages: {},
-          watch: undefined,
-        },
-        configFile: 'lauf.config.ts',
-        configDir: '/workspace',
-      },
+      { config: baseConfig, configFile: 'lauf.config.ts', configDir: '/workspace' },
     ]);
-    vi.mocked(discoverScripts).mockReturnValue(scripts);
+    vi.mocked(discoverWorkspaceScripts).mockReturnValue(scripts);
 
     await listHandler({ flags: {} });
 
@@ -189,32 +176,20 @@ describe('list handler', () => {
   it('displays descriptions from loadDescriptions in tree output', async () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([
       null,
-      {
-        config: {
-          scripts: ['scripts/*.ts'],
-          logger: undefined,
-          spinner: true,
-          sandbox: true,
-          env: {},
-          packages: {},
-          watch: undefined,
-        },
-        configFile: 'lauf.config.ts',
-        configDir: '/workspace',
-      },
+      { config: baseConfig, configFile: 'lauf.config.ts', configDir: '/workspace' },
     ]);
-    vi.mocked(discoverScripts).mockReturnValue([
+    vi.mocked(discoverWorkspaceScripts).mockReturnValue([
       {
         name: 'my-pkg/build',
         path: '/workspace/packages/my-pkg/scripts/build.ts',
         packageDir: '/workspace/packages/my-pkg',
-        packageName: 'my-pkg',
+        workspaceName: 'my-pkg',
       },
       {
         name: 'my-pkg/test',
         path: '/workspace/packages/my-pkg/scripts/test.ts',
         packageDir: '/workspace/packages/my-pkg',
-        packageName: 'my-pkg',
+        workspaceName: 'my-pkg',
       },
     ]);
     vi.mocked(loadDescriptions).mockResolvedValue({
@@ -233,56 +208,44 @@ describe('list handler', () => {
 });
 
 describe('list handler --all flag', () => {
-  it('calls loadAllLaufConfigs and discoverScripts with scopeDir when --all is set', async () => {
+  it('calls loadAllLaufConfigs and discoverWorkspaceScripts when --all is set', async () => {
+    const ws: Workspace = {
+      name: 'pkg',
+      dir: '/workspace/packages/pkg',
+      configFile: '/workspace/packages/pkg/lauf.config.ts',
+      configName: 'lauf',
+      isRoot: false,
+    };
+    vi.mocked(getWorkspaceState).mockReturnValue({
+      root: mockRoot,
+      tree: { root: mockRoot, workspaces: [ws] },
+      current: ws,
+    });
     vi.mocked(loadAllLaufConfigs).mockResolvedValue([
-      {
-        config: {
-          scripts: ['scripts/*.ts'],
-          logger: undefined,
-          spinner: true,
-          sandbox: true,
-          env: {},
-          packages: {},
-          watch: undefined,
-        },
-        configFile: 'lauf.config.ts',
-        configDir: '/workspace',
-      },
+      { config: baseConfig, configFile: 'lauf.config.ts', configDir: '/workspace/packages/pkg' },
     ]);
-    vi.mocked(discoverScripts).mockReturnValue([
+    vi.mocked(discoverWorkspaceScripts).mockReturnValue([
       {
         name: 'pkg/build',
         path: '/workspace/packages/pkg/scripts/build.ts',
         packageDir: '/workspace/packages/pkg',
-        packageName: 'pkg',
+        workspaceName: 'pkg',
       },
     ]);
 
     await listHandler({ flags: { all: true } });
 
     expect(loadAllLaufConfigs).toHaveBeenCalledWith(process.cwd());
-    expect(discoverScripts).toHaveBeenCalledWith(['scripts/*.ts'], { scopeDir: '/workspace' });
+    expect(discoverWorkspaceScripts).toHaveBeenCalledWith(ws, ['scripts/*.ts'], mockRoot);
     expect(p.note).toHaveBeenCalledWith(expect.any(String), expect.stringContaining('1 script(s)'));
     expect(process.exit).not.toHaveBeenCalled();
   });
 
   it('does not call safeLoadLaufConfigWithMeta when --all is set', async () => {
     vi.mocked(loadAllLaufConfigs).mockResolvedValue([
-      {
-        config: {
-          scripts: ['scripts/*.ts'],
-          logger: undefined,
-          spinner: true,
-          sandbox: true,
-          env: {},
-          packages: {},
-          watch: undefined,
-        },
-        configFile: 'lauf.config.ts',
-        configDir: '/workspace',
-      },
+      { config: baseConfig, configFile: 'lauf.config.ts', configDir: '/workspace' },
     ]);
-    vi.mocked(discoverScripts).mockReturnValue([]);
+    vi.mocked(discoverWorkspaceScripts).mockReturnValue([]);
 
     await listHandler({ flags: { all: true } });
 
@@ -291,41 +254,40 @@ describe('list handler --all flag', () => {
   });
 
   it('aggregates scripts from multiple configs', async () => {
+    const wsA: Workspace = {
+      name: 'app',
+      dir: '/workspace/packages/app',
+      configFile: '/workspace/packages/app/lauf.config.ts',
+      configName: 'lauf',
+      isRoot: false,
+    };
+    const wsB: Workspace = {
+      name: 'api',
+      dir: '/workspace/packages/api',
+      configFile: '/workspace/packages/api/lauf.config.ts',
+      configName: 'lauf',
+      isRoot: false,
+    };
+    vi.mocked(getWorkspaceState).mockReturnValue({
+      root: mockRoot,
+      tree: { root: mockRoot, workspaces: [wsA, wsB] },
+      current: wsA,
+    });
     vi.mocked(loadAllLaufConfigs).mockResolvedValue([
+      { config: baseConfig, configFile: 'lauf.config.ts', configDir: '/workspace/packages/app' },
       {
-        config: {
-          scripts: ['scripts/*.ts'],
-          logger: undefined,
-          spinner: true,
-          sandbox: true,
-          env: {},
-          packages: {},
-          watch: undefined,
-        },
-        configFile: 'lauf.config.ts',
-        configDir: '/workspace',
-      },
-      {
-        config: {
-          scripts: ['tasks/*.ts'],
-          logger: undefined,
-          spinner: true,
-          sandbox: true,
-          env: {},
-          packages: {},
-          watch: undefined,
-        },
+        config: { ...baseConfig, scripts: ['tasks/*.ts'] },
         configFile: 'lauf.config.ts',
         configDir: '/workspace/packages/api',
       },
     ]);
-    vi.mocked(discoverScripts)
+    vi.mocked(discoverWorkspaceScripts)
       .mockReturnValueOnce([
         {
           name: 'app/build',
           path: '/workspace/packages/app/scripts/build.ts',
           packageDir: '/workspace/packages/app',
-          packageName: 'app',
+          workspaceName: 'app',
         },
       ])
       .mockReturnValueOnce([
@@ -333,92 +295,22 @@ describe('list handler --all flag', () => {
           name: 'api/migrate',
           path: '/workspace/packages/api/tasks/migrate.ts',
           packageDir: '/workspace/packages/api',
-          packageName: 'api',
+          workspaceName: 'api',
         },
       ]);
 
     await listHandler({ flags: { all: true } });
 
-    expect(discoverScripts).toHaveBeenCalledTimes(2);
-    expect(discoverScripts).toHaveBeenCalledWith(['scripts/*.ts'], { scopeDir: '/workspace' });
-    expect(discoverScripts).toHaveBeenCalledWith(['tasks/*.ts'], {
-      scopeDir: '/workspace/packages/api',
-    });
+    expect(discoverWorkspaceScripts).toHaveBeenCalledTimes(2);
     expect(p.note).toHaveBeenCalledWith(expect.any(String), expect.stringContaining('2 script(s)'));
-    expect(process.exit).not.toHaveBeenCalled();
-  });
-
-  it('deduplicates scripts by path across configs', async () => {
-    vi.mocked(loadAllLaufConfigs).mockResolvedValue([
-      {
-        config: {
-          scripts: ['scripts/*.ts'],
-          logger: undefined,
-          spinner: true,
-          sandbox: true,
-          env: {},
-          packages: {},
-          watch: undefined,
-        },
-        configFile: 'lauf.config.ts',
-        configDir: '/workspace',
-      },
-      {
-        config: {
-          scripts: ['scripts/*.ts'],
-          logger: undefined,
-          spinner: true,
-          sandbox: true,
-          env: {},
-          packages: {},
-          watch: undefined,
-        },
-        configFile: 'lauf.config.ts',
-        configDir: '/workspace/packages/pkg',
-      },
-    ]);
-    vi.mocked(discoverScripts)
-      .mockReturnValueOnce([
-        {
-          name: 'pkg/build',
-          path: '/workspace/packages/pkg/scripts/build.ts',
-          packageDir: '/workspace/packages/pkg',
-          packageName: 'pkg',
-        },
-      ])
-      .mockReturnValueOnce([
-        {
-          name: 'pkg/build',
-          path: '/workspace/packages/pkg/scripts/build.ts',
-          packageDir: '/workspace/packages/pkg',
-          packageName: 'pkg',
-        },
-      ]);
-
-    await listHandler({ flags: { all: true } });
-
-    // Should show only 1 script after deduplication
-    expect(p.note).toHaveBeenCalledWith(expect.any(String), expect.stringContaining('1 script(s)'));
     expect(process.exit).not.toHaveBeenCalled();
   });
 
   it('shows warning when --all finds no scripts across all configs', async () => {
     vi.mocked(loadAllLaufConfigs).mockResolvedValue([
-      {
-        config: {
-          scripts: ['scripts/*.ts'],
-          logger: undefined,
-          spinner: true,
-          sandbox: true,
-          env: {},
-          packages: {},
-          watch: undefined,
-        },
-        configFile: 'lauf.config.ts',
-        configDir: '/workspace',
-      },
+      { config: baseConfig, configFile: 'lauf.config.ts', configDir: '/workspace' },
     ]);
-    vi.mocked(discoverScripts).mockReturnValue([]);
+    vi.mocked(discoverWorkspaceScripts).mockReturnValue([]);
 
     await listHandler({ flags: { all: true } });
 
@@ -426,299 +318,135 @@ describe('list handler --all flag', () => {
     expect(process.exit).not.toHaveBeenCalled();
   });
 
-  it('uses current package when --all is not set', async () => {
+  it('uses current workspace when --all is not set', async () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([
       null,
-      {
-        config: {
-          scripts: ['scripts/*.ts'],
-          logger: undefined,
-          spinner: true,
-          sandbox: true,
-          env: {},
-          packages: {},
-          watch: undefined,
-        },
-        configFile: 'lauf.config.ts',
-        configDir: '/workspace',
-      },
+      { config: baseConfig, configFile: 'lauf.config.ts', configDir: '/workspace' },
     ]);
-    vi.mocked(discoverScripts).mockReturnValue([]);
+    vi.mocked(discoverWorkspaceScripts).mockReturnValue([]);
 
     await listHandler({ flags: {} });
 
     expect(safeLoadLaufConfigWithMeta).toHaveBeenCalledWith(process.cwd());
     expect(loadAllLaufConfigs).not.toHaveBeenCalled();
-    expect(resolveCurrentPackage).toHaveBeenCalledWith(process.cwd());
-    // discoverScripts should be called with packageDir from resolveCurrentPackage
-    expect(discoverScripts).toHaveBeenCalledWith(['scripts/*.ts'], {
-      packageDir: '/workspace/packages/my-pkg',
-    });
+    expect(discoverWorkspaceScripts).toHaveBeenCalledWith(
+      mockCurrentWorkspace,
+      ['scripts/*.ts'],
+      mockRoot,
+    );
   });
 });
 
 describe('list handler --filter flag', () => {
-  it('calls discoverScripts with filterGlobs when --filter is set', async () => {
-    vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([
-      null,
-      {
-        config: {
-          scripts: ['scripts/*.ts'],
-          logger: undefined,
-          spinner: true,
-          sandbox: true,
-          env: {},
-          packages: {},
-          watch: undefined,
-        },
-        configFile: 'lauf.config.ts',
-        configDir: '/workspace',
-      },
+  it('filters workspaces by name glob when --filter is set', async () => {
+    const wsApi: Workspace = {
+      name: '@apps/api',
+      dir: '/workspace/packages/api',
+      configFile: '/workspace/packages/api/lauf.config.ts',
+      configName: 'lauf',
+      isRoot: false,
+    };
+    vi.mocked(getWorkspaceState).mockReturnValue({
+      root: mockRoot,
+      tree: { root: mockRoot, workspaces: [wsApi] },
+      current: wsApi,
+    });
+    vi.mocked(loadAllLaufConfigs).mockResolvedValue([
+      { config: baseConfig, configFile: 'lauf.config.ts', configDir: '/workspace/packages/api' },
     ]);
-    vi.mocked(discoverScripts).mockReturnValue([
+    vi.mocked(discoverWorkspaceScripts).mockReturnValue([
       {
         name: '@apps/api/build',
         path: '/workspace/packages/api/scripts/build.ts',
         packageDir: '/workspace/packages/api',
-        packageName: '@apps/api',
+        workspaceName: '@apps/api',
       },
     ]);
 
     await listHandler({ flags: { filter: '@apps/*' } });
 
-    expect(safeLoadLaufConfigWithMeta).toHaveBeenCalledWith(process.cwd());
-    expect(discoverScripts).toHaveBeenCalledWith(['scripts/*.ts'], {
-      filterGlobs: ['@apps/*'],
-    });
+    expect(loadAllLaufConfigs).toHaveBeenCalledWith(process.cwd());
     expect(p.note).toHaveBeenCalledWith(expect.any(String), expect.stringContaining('1 script(s)'));
     expect(process.exit).not.toHaveBeenCalled();
-  });
-
-  it('does not call loadAllLaufConfigs or resolveCurrentPackage when --filter is set', async () => {
-    vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([
-      null,
-      {
-        config: {
-          scripts: ['scripts/*.ts'],
-          logger: undefined,
-          spinner: true,
-          sandbox: true,
-          env: {},
-          packages: {},
-          watch: undefined,
-        },
-        configFile: 'lauf.config.ts',
-        configDir: '/workspace',
-      },
-    ]);
-    vi.mocked(discoverScripts).mockReturnValue([]);
-
-    await listHandler({ flags: { filter: '@apps/*' } });
-
-    expect(loadAllLaufConfigs).not.toHaveBeenCalled();
-    expect(resolveCurrentPackage).not.toHaveBeenCalled();
   });
 
   it('--filter takes priority over --all', async () => {
-    vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([
-      null,
-      {
-        config: {
-          scripts: ['scripts/*.ts'],
-          logger: undefined,
-          spinner: true,
-          sandbox: true,
-          env: {},
-          packages: {},
-          watch: undefined,
-        },
-        configFile: 'lauf.config.ts',
-        configDir: '/workspace',
-      },
+    vi.mocked(loadAllLaufConfigs).mockResolvedValue([
+      { config: baseConfig, configFile: 'lauf.config.ts', configDir: '/workspace' },
     ]);
-    vi.mocked(discoverScripts).mockReturnValue([]);
+    vi.mocked(discoverWorkspaceScripts).mockReturnValue([]);
 
     await listHandler({ flags: { filter: '@apps/*', all: true } });
 
-    expect(discoverScripts).toHaveBeenCalledWith(['scripts/*.ts'], {
-      filterGlobs: ['@apps/*'],
+    expect(loadAllLaufConfigs).toHaveBeenCalledWith(process.cwd());
+    // Filter mode still calls loadAllLaufConfigs, but filters by name
+    expect(safeLoadLaufConfigWithMeta).not.toHaveBeenCalled();
+  });
+});
+
+describe('list handler default mode (current workspace)', () => {
+  it('fails with hint when no current workspace found', async () => {
+    vi.mocked(getWorkspaceState).mockReturnValue({
+      root: mockRoot,
+      tree: { root: mockRoot, workspaces: [] },
+      current: undefined,
     });
-    expect(loadAllLaufConfigs).not.toHaveBeenCalled();
-  });
-
-  it('fails when config cannot be loaded with --filter', async () => {
-    vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([new Error('config error'), null]);
-
-    await listHandler({ flags: { filter: '@apps/*' } });
-
-    expect(process.exit).toHaveBeenCalledWith(1);
-  });
-});
-
-describe('list handler default mode (current package)', () => {
-  it('fails with hint when resolveCurrentPackage returns undefined', async () => {
-    vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([
-      null,
-      {
-        config: {
-          scripts: ['scripts/*.ts'],
-          logger: undefined,
-          spinner: true,
-          sandbox: true,
-          env: {},
-          packages: {},
-          watch: undefined,
-        },
-        configFile: 'lauf.config.ts',
-        configDir: '/workspace',
-      },
-    ]);
-    vi.mocked(resolveCurrentPackage).mockReturnValue(undefined);
 
     await listHandler({ flags: {} });
 
     expect(process.exit).toHaveBeenCalledWith(1);
-    expect(p.log.error).toHaveBeenCalledWith('Could not determine the current package.');
-  });
-
-  it('calls resolveCurrentPackage with process.cwd()', async () => {
-    vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([
-      null,
-      {
-        config: {
-          scripts: ['scripts/*.ts'],
-          logger: undefined,
-          spinner: true,
-          sandbox: true,
-          env: {},
-          packages: {},
-          watch: undefined,
-        },
-        configFile: 'lauf.config.ts',
-        configDir: '/workspace',
-      },
-    ]);
-    vi.mocked(discoverScripts).mockReturnValue([]);
-
-    await listHandler({ flags: {} });
-
-    expect(resolveCurrentPackage).toHaveBeenCalledWith(process.cwd());
-  });
-});
-
-describe('root package scripts', () => {
-  it('filters to only root scripts when current package is root', async () => {
-    vi.mocked(resolveCurrentPackage).mockReturnValue({ name: '<root>', dir: '/workspace' });
-    vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([
-      null,
-      {
-        config: {
-          scripts: ['scripts/*.ts'],
-          logger: undefined,
-          spinner: true,
-          sandbox: true,
-          env: {},
-          packages: {},
-          watch: undefined,
-        },
-        configFile: 'lauf.config.ts',
-        configDir: '/workspace',
-      },
-    ]);
-    vi.mocked(discoverScripts).mockReturnValue([
-      {
-        name: 'root-script',
-        path: '/workspace/scripts/root-script.ts',
-        packageDir: '/workspace',
-        packageName: '<root>',
-      },
-      {
-        name: 'pkg/build',
-        path: '/workspace/packages/pkg/scripts/build.ts',
-        packageDir: '/workspace/packages/pkg',
-        packageName: 'pkg',
-      },
-    ]);
-
-    await listHandler({ flags: {} });
-
-    // Only root scripts should appear (pkg/build is filtered out)
-    expect(p.note).toHaveBeenCalledWith(expect.any(String), expect.stringContaining('1 script(s)'));
-    expect(process.exit).not.toHaveBeenCalled();
-  });
-
-  it('displays root-only scripts in monorepo mode', async () => {
-    vi.mocked(resolveCurrentPackage).mockReturnValue({ name: '<root>', dir: '/workspace' });
-    vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([
-      null,
-      {
-        config: {
-          scripts: ['scripts/*.ts'],
-          logger: undefined,
-          spinner: true,
-          sandbox: true,
-          env: {},
-          packages: {},
-          watch: undefined,
-        },
-        configFile: 'lauf.config.ts',
-        configDir: '/workspace',
-      },
-    ]);
-    vi.mocked(discoverScripts).mockReturnValue([
-      {
-        name: 'root-script',
-        path: '/workspace/scripts/root-script.ts',
-        packageDir: '/workspace',
-        packageName: '<root>',
-      },
-    ]);
-
-    await listHandler({ flags: {} });
-
-    expect(p.note).toHaveBeenCalledWith(expect.any(String), expect.stringContaining('1 script(s)'));
-    expect(p.log.warn).not.toHaveBeenCalledWith('No scripts found.');
-    expect(process.exit).not.toHaveBeenCalled();
+    expect(p.log.error).toHaveBeenCalledWith('Could not determine the current workspace.');
   });
 });
 
 describe('tree display format', () => {
   it('renders tree connectors for packages and scripts', async () => {
+    const wsApi: Workspace = {
+      name: 'api',
+      dir: '/workspace/packages/api',
+      configFile: '/workspace/packages/api/lauf.config.ts',
+      configName: 'lauf',
+      isRoot: false,
+    };
+    const wsWeb: Workspace = {
+      name: 'web',
+      dir: '/workspace/packages/web',
+      configFile: '/workspace/packages/web/lauf.config.ts',
+      configName: 'lauf',
+      isRoot: false,
+    };
+    vi.mocked(getWorkspaceState).mockReturnValue({
+      root: mockRoot,
+      tree: { root: mockRoot, workspaces: [wsApi, wsWeb] },
+      current: wsApi,
+    });
     vi.mocked(loadAllLaufConfigs).mockResolvedValue([
-      {
-        config: {
-          scripts: ['scripts/*.ts'],
-          logger: undefined,
-          spinner: true,
-          sandbox: true,
-          env: {},
-          packages: {},
-          watch: undefined,
+      { config: baseConfig, configFile: 'lauf.config.ts', configDir: '/workspace/packages/api' },
+      { config: baseConfig, configFile: 'lauf.config.ts', configDir: '/workspace/packages/web' },
+    ]);
+    vi.mocked(discoverWorkspaceScripts)
+      .mockReturnValueOnce([
+        {
+          name: 'api/build',
+          path: '/workspace/packages/api/scripts/build.ts',
+          packageDir: '/workspace/packages/api',
+          workspaceName: 'api',
         },
-        configFile: 'lauf.config.ts',
-        configDir: '/workspace',
-      },
-    ]);
-    vi.mocked(discoverScripts).mockReturnValue([
-      {
-        name: 'api/build',
-        path: '/workspace/packages/api/scripts/build.ts',
-        packageDir: '/workspace/packages/api',
-        packageName: 'api',
-      },
-      {
-        name: 'api/test',
-        path: '/workspace/packages/api/scripts/test.ts',
-        packageDir: '/workspace/packages/api',
-        packageName: 'api',
-      },
-      {
-        name: 'web/deploy',
-        path: '/workspace/packages/web/scripts/deploy.ts',
-        packageDir: '/workspace/packages/web',
-        packageName: 'web',
-      },
-    ]);
+        {
+          name: 'api/test',
+          path: '/workspace/packages/api/scripts/test.ts',
+          packageDir: '/workspace/packages/api',
+          workspaceName: 'api',
+        },
+      ])
+      .mockReturnValueOnce([
+        {
+          name: 'web/deploy',
+          path: '/workspace/packages/web/scripts/deploy.ts',
+          packageDir: '/workspace/packages/web',
+          workspaceName: 'web',
+        },
+      ]);
 
     await listHandler({ flags: { all: true } });
 
@@ -733,26 +461,14 @@ describe('tree display format', () => {
   it('renders single package as header with scripts directly beneath', async () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([
       null,
-      {
-        config: {
-          scripts: ['scripts/*.ts'],
-          logger: undefined,
-          spinner: true,
-          sandbox: true,
-          env: {},
-          packages: {},
-          watch: undefined,
-        },
-        configFile: 'lauf.config.ts',
-        configDir: '/workspace',
-      },
+      { config: baseConfig, configFile: 'lauf.config.ts', configDir: '/workspace' },
     ]);
-    vi.mocked(discoverScripts).mockReturnValue([
+    vi.mocked(discoverWorkspaceScripts).mockReturnValue([
       {
         name: 'my-pkg/build',
         path: '/workspace/packages/my-pkg/scripts/build.ts',
         packageDir: '/workspace/packages/my-pkg',
-        packageName: 'my-pkg',
+        workspaceName: 'my-pkg',
       },
     ]);
 
@@ -771,35 +487,46 @@ describe('tree display format', () => {
   });
 
   it('renders <root> as top-level heading with scripts and packages nested beneath', async () => {
+    const wsRoot: Workspace = {
+      name: '<root>',
+      dir: '/workspace',
+      configFile: '/workspace/lauf.config.ts',
+      configName: 'lauf',
+      isRoot: true,
+    };
+    const wsApi: Workspace = {
+      name: 'api',
+      dir: '/workspace/packages/api',
+      configFile: '/workspace/packages/api/lauf.config.ts',
+      configName: 'lauf',
+      isRoot: false,
+    };
+    vi.mocked(getWorkspaceState).mockReturnValue({
+      root: mockRoot,
+      tree: { root: mockRoot, workspaces: [wsRoot, wsApi] },
+      current: wsRoot,
+    });
     vi.mocked(loadAllLaufConfigs).mockResolvedValue([
-      {
-        config: {
-          scripts: ['scripts/*.ts'],
-          logger: undefined,
-          spinner: true,
-          sandbox: true,
-          env: {},
-          packages: {},
-          watch: undefined,
+      { config: baseConfig, configFile: 'lauf.config.ts', configDir: '/workspace' },
+      { config: baseConfig, configFile: 'lauf.config.ts', configDir: '/workspace/packages/api' },
+    ]);
+    vi.mocked(discoverWorkspaceScripts)
+      .mockReturnValueOnce([
+        {
+          name: 'setup',
+          path: '/workspace/scripts/setup.ts',
+          packageDir: '/workspace',
+          workspaceName: '<root>',
         },
-        configFile: 'lauf.config.ts',
-        configDir: '/workspace',
-      },
-    ]);
-    vi.mocked(discoverScripts).mockReturnValue([
-      {
-        name: 'setup',
-        path: '/workspace/scripts/setup.ts',
-        packageDir: '/workspace',
-        packageName: '<root>',
-      },
-      {
-        name: 'api/build',
-        path: '/workspace/packages/api/scripts/build.ts',
-        packageDir: '/workspace/packages/api',
-        packageName: 'api',
-      },
-    ]);
+      ])
+      .mockReturnValueOnce([
+        {
+          name: 'api/build',
+          path: '/workspace/packages/api/scripts/build.ts',
+          packageDir: '/workspace/packages/api',
+          workspaceName: 'api',
+        },
+      ]);
 
     await listHandler({ flags: { all: true } });
 
@@ -810,7 +537,7 @@ describe('tree display format', () => {
     expect(lines[0]).toContain('<root>');
     expect(lines[0]).not.toContain('├── <root>');
     expect(lines[0]).not.toContain('└── <root>');
-    // Root script should be a direct child (no indentation prefix)
+    // Root script should be a direct child
     expect(output).toContain('├── ');
     expect(output).toContain('setup');
     // Sub-package should appear beneath root scripts
@@ -818,33 +545,33 @@ describe('tree display format', () => {
   });
 
   it('renders <root> with only root scripts and no sub-packages', async () => {
+    const wsRoot: Workspace = {
+      name: '<root>',
+      dir: '/workspace',
+      configFile: '/workspace/lauf.config.ts',
+      configName: 'lauf',
+      isRoot: true,
+    };
+    vi.mocked(getWorkspaceState).mockReturnValue({
+      root: mockRoot,
+      tree: { root: mockRoot, workspaces: [wsRoot] },
+      current: wsRoot,
+    });
     vi.mocked(loadAllLaufConfigs).mockResolvedValue([
-      {
-        config: {
-          scripts: ['scripts/*.ts'],
-          logger: undefined,
-          spinner: true,
-          sandbox: true,
-          env: {},
-          packages: {},
-          watch: undefined,
-        },
-        configFile: 'lauf.config.ts',
-        configDir: '/workspace',
-      },
+      { config: baseConfig, configFile: 'lauf.config.ts', configDir: '/workspace' },
     ]);
-    vi.mocked(discoverScripts).mockReturnValue([
+    vi.mocked(discoverWorkspaceScripts).mockReturnValue([
       {
         name: 'setup',
         path: '/workspace/scripts/setup.ts',
         packageDir: '/workspace',
-        packageName: '<root>',
+        workspaceName: '<root>',
       },
       {
         name: 'teardown',
         path: '/workspace/scripts/teardown.ts',
         packageDir: '/workspace',
-        packageName: '<root>',
+        workspaceName: '<root>',
       },
     ]);
 

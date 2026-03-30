@@ -50,6 +50,7 @@ import blueprintHandler from './blueprint.ts';
 
 const mockLoadedConfig = {
   config: {
+    root: false,
     scripts: ['scripts/*.ts'],
     logger: undefined,
     spinner: true,

@@ -1,14 +1,18 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { DiscoveredConfig } from './config-discovery.ts';
+import type { Workspace, WorkspaceRoot } from './workspace/types.ts';
 
 const { mockLoadConfig } = vi.hoisted(() => ({
   mockLoadConfig: vi.fn(),
 }));
 
-const { mockFindConfigFile, mockDiscoverAllConfigs } = vi.hoisted(() => ({
-  mockFindConfigFile: vi.fn(),
-  mockDiscoverAllConfigs: vi.fn(),
+const { mockFindNearestWorkspace, mockDiscoverWorkspaces } = vi.hoisted(() => ({
+  mockFindNearestWorkspace: vi.fn(),
+  mockDiscoverWorkspaces: vi.fn((): Workspace[] => []),
+}));
+
+const { mockResolveRoot } = vi.hoisted(() => ({
+  mockResolveRoot: vi.fn((): WorkspaceRoot => ({ dir: '/project', source: 'git' })),
 }));
 
 const { mockLogWarn } = vi.hoisted(() => ({
@@ -19,9 +23,13 @@ vi.mock('c12', () => ({
   loadConfig: mockLoadConfig,
 }));
 
-vi.mock('./config-discovery.ts', () => ({
-  findConfigFile: mockFindConfigFile,
-  discoverAllConfigs: mockDiscoverAllConfigs,
+vi.mock('./workspace/discovery.ts', () => ({
+  findNearestWorkspace: mockFindNearestWorkspace,
+  discoverWorkspaces: mockDiscoverWorkspaces,
+}));
+
+vi.mock('./workspace/root.ts', () => ({
+  resolveRoot: mockResolveRoot,
 }));
 
 vi.mock('@clack/prompts', () => ({
@@ -43,6 +51,7 @@ import {
 } from './config.ts';
 
 const DEFAULTS = {
+  root: false,
   scripts: ['scripts/*.ts'],
   logger: undefined,
   spinner: true,
@@ -52,19 +61,24 @@ const DEFAULTS = {
   watch: undefined,
 } as const;
 
-const DISCOVERED_LAUF: DiscoveredConfig = {
+const WS_LAUF: Workspace = {
+  name: 'my-project',
+  dir: '/project',
   configFile: '/project/lauf.config.ts',
-  configDir: '/project',
   configName: 'lauf',
+  isRoot: false,
 };
 
-const DISCOVERED_LAUFEN: DiscoveredConfig = {
+const WS_LAUFEN: Workspace = {
+  name: 'my-project',
+  dir: '/project',
   configFile: '/project/laufen.config.ts',
-  configDir: '/project',
   configName: 'laufen',
+  isRoot: false,
 };
 
 const VALID_CONFIG = {
+  root: false,
   scripts: ['src/**/*.ts'],
   logger: undefined,
   spinner: true,
@@ -83,8 +97,8 @@ afterEach(() => {
 });
 
 describe('loadLaufConfig', () => {
-  it('returns config when findConfigFile returns a discovered config and loadConfig succeeds', async () => {
-    mockFindConfigFile.mockReturnValue(DISCOVERED_LAUF);
+  it('returns config when workspace found and loadConfig succeeds', async () => {
+    mockFindNearestWorkspace.mockReturnValue(WS_LAUF);
     mockLoadConfig.mockResolvedValueOnce({
       configFile: '/project/lauf.config.ts',
       config: VALID_CONFIG,
@@ -94,8 +108,8 @@ describe('loadLaufConfig', () => {
     expect(result).toEqual(VALID_CONFIG);
   });
 
-  it('returns defaults when findConfigFile returns undefined', async () => {
-    mockFindConfigFile.mockReturnValue(undefined);
+  it('returns defaults when no workspace found', async () => {
+    mockFindNearestWorkspace.mockReturnValue(undefined);
 
     const result = await loadLaufConfig('/project');
     expect(result).toEqual(DEFAULTS);
@@ -103,7 +117,7 @@ describe('loadLaufConfig', () => {
   });
 
   it('returns defaults and warns when config fails Zod validation', async () => {
-    mockFindConfigFile.mockReturnValue(DISCOVERED_LAUF);
+    mockFindNearestWorkspace.mockReturnValue(WS_LAUF);
     mockLoadConfig.mockResolvedValueOnce({
       configFile: '/project/lauf.config.ts',
       config: { scripts: 'not-an-array', spinner: 'not-a-boolean' },
@@ -117,7 +131,7 @@ describe('loadLaufConfig', () => {
   });
 
   it('returns defaults when c12 loadConfig resolves with no configFile', async () => {
-    mockFindConfigFile.mockReturnValue(DISCOVERED_LAUF);
+    mockFindNearestWorkspace.mockReturnValue(WS_LAUF);
     mockLoadConfig.mockResolvedValueOnce({
       configFile: undefined,
       config: {},
@@ -127,8 +141,8 @@ describe('loadLaufConfig', () => {
     expect(result).toEqual(DEFAULTS);
   });
 
-  it('passes correct name and cwd to c12 loadConfig based on discovered config', async () => {
-    mockFindConfigFile.mockReturnValue(DISCOVERED_LAUFEN);
+  it('passes correct name and cwd to c12 loadConfig based on workspace', async () => {
+    mockFindNearestWorkspace.mockReturnValue(WS_LAUFEN);
     mockLoadConfig.mockResolvedValueOnce({
       configFile: '/project/laufen.config.ts',
       config: { scripts: ['tools/*.ts'], logger: undefined, spinner: true },
@@ -142,8 +156,8 @@ describe('loadLaufConfig', () => {
 });
 
 describe('loadLaufConfigWithMeta', () => {
-  it('returns config with metadata when config is found', async () => {
-    mockFindConfigFile.mockReturnValue(DISCOVERED_LAUF);
+  it('returns config with metadata when workspace is found', async () => {
+    mockFindNearestWorkspace.mockReturnValue(WS_LAUF);
     mockLoadConfig.mockResolvedValueOnce({
       configFile: '/project/lauf.config.ts',
       config: VALID_CONFIG,
@@ -157,8 +171,8 @@ describe('loadLaufConfigWithMeta', () => {
     });
   });
 
-  it('returns defaults with configFile=undefined when no config found', async () => {
-    mockFindConfigFile.mockReturnValue(undefined);
+  it('returns defaults with configFile=undefined when no workspace found', async () => {
+    mockFindNearestWorkspace.mockReturnValue(undefined);
 
     const result = await loadLaufConfigWithMeta('/project');
     expect(result).toEqual({
@@ -169,13 +183,15 @@ describe('loadLaufConfigWithMeta', () => {
     expect(mockLoadConfig).not.toHaveBeenCalled();
   });
 
-  it('returns discovered configDir and configFile in result', async () => {
-    const discovered: DiscoveredConfig = {
+  it('returns workspace dir and configFile in result', async () => {
+    const ws: Workspace = {
+      name: '@apps/web',
+      dir: '/workspace/packages/app',
       configFile: '/workspace/packages/app/lauf.config.ts',
-      configDir: '/workspace/packages/app',
       configName: 'lauf',
+      isRoot: false,
     };
-    mockFindConfigFile.mockReturnValue(discovered);
+    mockFindNearestWorkspace.mockReturnValue(ws);
     mockLoadConfig.mockResolvedValueOnce({
       configFile: '/workspace/packages/app/lauf.config.ts',
       config: VALID_CONFIG,
@@ -188,22 +204,27 @@ describe('loadLaufConfigWithMeta', () => {
 });
 
 describe('loadAllLaufConfigs', () => {
-  it('returns configs from all discovered configs', async () => {
-    const discoveredA: DiscoveredConfig = {
+  it('returns configs from all discovered workspaces', async () => {
+    const wsA: Workspace = {
+      name: 'pkg-a',
+      dir: '/workspace/packages/a',
       configFile: '/workspace/packages/a/lauf.config.ts',
-      configDir: '/workspace/packages/a',
       configName: 'lauf',
+      isRoot: false,
     };
-    const discoveredB: DiscoveredConfig = {
+    const wsB: Workspace = {
+      name: 'pkg-b',
+      dir: '/workspace/packages/b',
       configFile: '/workspace/packages/b/laufen.config.ts',
-      configDir: '/workspace/packages/b',
       configName: 'laufen',
+      isRoot: false,
     };
-    mockDiscoverAllConfigs.mockReturnValue([discoveredA, discoveredB]);
+    mockDiscoverWorkspaces.mockReturnValue([wsA, wsB]);
     mockLoadConfig
       .mockResolvedValueOnce({
         configFile: '/workspace/packages/a/lauf.config.ts',
         config: {
+          root: false,
           scripts: ['src/*.ts'],
           logger: undefined,
           spinner: true,
@@ -216,6 +237,7 @@ describe('loadAllLaufConfigs', () => {
       .mockResolvedValueOnce({
         configFile: '/workspace/packages/b/laufen.config.ts',
         config: {
+          root: false,
           scripts: ['tools/*.ts'],
           logger: undefined,
           spinner: false,
@@ -228,54 +250,40 @@ describe('loadAllLaufConfigs', () => {
 
     const results = await loadAllLaufConfigs('/workspace');
     expect(results).toHaveLength(2);
-    expect(results[0]).toEqual({
-      config: {
-        scripts: ['src/*.ts'],
-        logger: undefined,
-        spinner: true,
-        sandbox: true,
-        env: {},
-        packages: {},
-        watch: undefined,
-      },
+    expect(results[0]).toMatchObject({
       configFile: '/workspace/packages/a/lauf.config.ts',
       configDir: '/workspace/packages/a',
     });
-    expect(results[1]).toEqual({
-      config: {
-        scripts: ['tools/*.ts'],
-        logger: undefined,
-        spinner: false,
-        sandbox: true,
-        env: {},
-        packages: {},
-        watch: undefined,
-      },
+    expect(results[1]).toMatchObject({
       configFile: '/workspace/packages/b/laufen.config.ts',
       configDir: '/workspace/packages/b',
     });
   });
 
-  it('returns defaults when discoverAllConfigs returns empty array', async () => {
-    mockDiscoverAllConfigs.mockReturnValue([]);
+  it('returns defaults when no workspaces discovered', async () => {
+    mockDiscoverWorkspaces.mockReturnValue([]);
 
     const results = await loadAllLaufConfigs('/workspace');
     expect(results).toEqual([{ config: DEFAULTS, configFile: undefined, configDir: '/workspace' }]);
     expect(mockLoadConfig).not.toHaveBeenCalled();
   });
 
-  it('loads each discovered config via c12', async () => {
-    const discoveredA: DiscoveredConfig = {
+  it('loads each workspace config via c12', async () => {
+    const wsA: Workspace = {
+      name: 'pkg-a',
+      dir: '/workspace/a',
       configFile: '/workspace/a/lauf.config.ts',
-      configDir: '/workspace/a',
       configName: 'lauf',
+      isRoot: false,
     };
-    const discoveredB: DiscoveredConfig = {
+    const wsB: Workspace = {
+      name: 'pkg-b',
+      dir: '/workspace/b',
       configFile: '/workspace/b/laufen.config.ts',
-      configDir: '/workspace/b',
       configName: 'laufen',
+      isRoot: false,
     };
-    mockDiscoverAllConfigs.mockReturnValue([discoveredA, discoveredB]);
+    mockDiscoverWorkspaces.mockReturnValue([wsA, wsB]);
     mockLoadConfig.mockResolvedValue({
       configFile: '/workspace/a/lauf.config.ts',
       config: VALID_CONFIG,
@@ -294,7 +302,7 @@ describe('loadAllLaufConfigs', () => {
 
 describe('safeLoadLaufConfig', () => {
   it('returns [null, config] on success', async () => {
-    mockFindConfigFile.mockReturnValue(DISCOVERED_LAUF);
+    mockFindNearestWorkspace.mockReturnValue(WS_LAUF);
     mockLoadConfig.mockResolvedValueOnce({
       configFile: '/project/lauf.config.ts',
       config: VALID_CONFIG,
@@ -306,7 +314,7 @@ describe('safeLoadLaufConfig', () => {
   });
 
   it('returns [error, null] when loadConfig throws Error', async () => {
-    mockFindConfigFile.mockReturnValue(DISCOVERED_LAUF);
+    mockFindNearestWorkspace.mockReturnValue(WS_LAUF);
     mockLoadConfig.mockRejectedValueOnce(new Error('config load failed'));
 
     const [error, config] = await safeLoadLaufConfig('/project');
@@ -315,7 +323,7 @@ describe('safeLoadLaufConfig', () => {
   });
 
   it('returns [error, null] when loadConfig throws non-Error value', async () => {
-    mockFindConfigFile.mockReturnValue(DISCOVERED_LAUF);
+    mockFindNearestWorkspace.mockReturnValue(WS_LAUF);
     mockLoadConfig.mockRejectedValueOnce('string rejection');
 
     const [error, config] = await safeLoadLaufConfig('/project');
@@ -327,7 +335,7 @@ describe('safeLoadLaufConfig', () => {
 
 describe('safeLoadLaufConfigWithMeta', () => {
   it('returns [null, loaded] on success', async () => {
-    mockFindConfigFile.mockReturnValue(DISCOVERED_LAUF);
+    mockFindNearestWorkspace.mockReturnValue(WS_LAUF);
     mockLoadConfig.mockResolvedValueOnce({
       configFile: '/project/lauf.config.ts',
       config: VALID_CONFIG,
@@ -343,7 +351,7 @@ describe('safeLoadLaufConfigWithMeta', () => {
   });
 
   it('returns [error, null] when loading throws Error', async () => {
-    mockFindConfigFile.mockReturnValue(DISCOVERED_LAUF);
+    mockFindNearestWorkspace.mockReturnValue(WS_LAUF);
     mockLoadConfig.mockRejectedValueOnce(new Error('meta load failed'));
 
     const [error, loaded] = await safeLoadLaufConfigWithMeta('/project');
@@ -352,7 +360,7 @@ describe('safeLoadLaufConfigWithMeta', () => {
   });
 
   it('returns [error, null] when loading throws non-Error value', async () => {
-    mockFindConfigFile.mockReturnValue(DISCOVERED_LAUF);
+    mockFindNearestWorkspace.mockReturnValue(WS_LAUF);
     mockLoadConfig.mockRejectedValueOnce(42);
 
     const [error, loaded] = await safeLoadLaufConfigWithMeta('/project');

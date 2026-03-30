@@ -14,15 +14,22 @@ vi.mock('../lib/config.ts', () => ({
   safeLoadLaufConfigWithMeta: vi.fn(),
 }));
 
-vi.mock('../lib/discovery.ts', () => ({
-  discoverScripts: vi.fn(() => []),
-  findScript: vi.fn(),
-  reattributeScripts: vi.fn((scripts: unknown[]) => scripts),
+vi.mock('../lib/paths.ts', () => ({
+  LAUF_ROOT: '/lauf-root',
 }));
 
-vi.mock('../lib/paths.ts', () => ({
-  getWorkspaceRoot: vi.fn(() => '/workspace'),
-  LAUF_ROOT: '/lauf-root',
+vi.mock('../lib/workspace/index.ts', () => ({
+  getWorkspaceState: vi.fn(() => ({
+    root: { dir: '/workspace', source: 'git' },
+    tree: { root: { dir: '/workspace', source: 'git' }, workspaces: [] },
+    current: {
+      name: 'my-pkg',
+      dir: '/workspace/packages/my-pkg',
+      configFile: '/workspace/packages/my-pkg/lauf.config.ts',
+      configName: 'lauf',
+      isRoot: false,
+    },
+  })),
 }));
 
 vi.mock('@laufen/engine', () => ({
@@ -30,27 +37,27 @@ vi.mock('@laufen/engine', () => ({
   resolveEnvValue: vi.fn(() => Promise.resolve([null, {}])),
 }));
 
-vi.mock('../utils/prompt.ts', () => ({
-  promptForScript: vi.fn(),
+vi.mock('../utils/resolve-script.ts', () => ({
+  resolveScript: vi.fn(),
 }));
 
 import { resolveEnvValue, runScript } from '@laufen/engine';
 
 import { safeLoadLaufConfigWithMeta } from '../lib/config.ts';
-import { findScript } from '../lib/discovery.ts';
-import type { DiscoveredScript } from '../lib/types.ts';
-import { promptForScript } from '../utils/prompt.ts';
+import type { DiscoveredScript } from '../lib/workspace/types.ts';
+import { resolveScript } from '../utils/resolve-script.ts';
 import infoHandler from './info.ts';
 
 const mockScript: DiscoveredScript = {
   name: 'my-pkg/build',
   path: '/workspace/packages/my-pkg/scripts/build.ts',
   packageDir: '/workspace/packages/my-pkg',
-  packageName: 'my-pkg',
+  workspaceName: 'my-pkg',
 };
 
 const mockLoadedConfig = {
   config: {
+    root: false,
     scripts: ['scripts/*.ts'],
     logger: undefined,
     spinner: true,
@@ -77,7 +84,7 @@ afterEach(() => {
 describe('info handler', () => {
   it('shows help for a named script', async () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([null, mockLoadedConfig]);
-    vi.mocked(findScript).mockReturnValue(mockScript);
+    vi.mocked(resolveScript).mockResolvedValue([null, mockScript]);
     vi.mocked(runScript).mockResolvedValue({ exitCode: 0, script: mockScript });
 
     await infoHandler({ parameters: { script: 'my-pkg/build' } } as never);
@@ -100,12 +107,12 @@ describe('info handler', () => {
 
   it('prompts for script when name not provided', async () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([null, mockLoadedConfig]);
-    vi.mocked(promptForScript).mockResolvedValue([null, mockScript]);
+    vi.mocked(resolveScript).mockResolvedValue([null, mockScript]);
     vi.mocked(runScript).mockResolvedValue({ exitCode: 0, script: mockScript });
 
     await infoHandler({ parameters: {} } as never);
 
-    expect(promptForScript).toHaveBeenCalled();
+    expect(resolveScript).toHaveBeenCalledWith(undefined, ['scripts/*.ts']);
     expect(runScript).toHaveBeenCalledWith(
       mockScript,
       {},
@@ -123,7 +130,13 @@ describe('info handler', () => {
 
   it('fails when script not found by name', async () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([null, mockLoadedConfig]);
-    vi.mocked(findScript).mockReturnValue(undefined);
+    vi.mocked(resolveScript).mockResolvedValue([
+      {
+        message: 'Script not found: nonexistent',
+        hint: 'Run `lauf list` to see available scripts.',
+      },
+      null,
+    ]);
 
     await infoHandler({ parameters: { script: 'nonexistent' } } as never);
 
@@ -140,7 +153,7 @@ describe('info handler', () => {
 
   it('fails when help execution returns non-zero exit code', async () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([null, mockLoadedConfig]);
-    vi.mocked(findScript).mockReturnValue(mockScript);
+    vi.mocked(resolveScript).mockResolvedValue([null, mockScript]);
     vi.mocked(runScript).mockResolvedValue({ exitCode: 1, script: mockScript });
 
     await infoHandler({ parameters: { script: 'my-pkg/build' } } as never);
@@ -150,7 +163,7 @@ describe('info handler', () => {
 
   it('fails when prompt returns error', async () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([null, mockLoadedConfig]);
-    vi.mocked(promptForScript).mockResolvedValue([{ message: 'Cancelled', exitCode: 0 }, null]);
+    vi.mocked(resolveScript).mockResolvedValue([{ message: 'Cancelled', exitCode: 0 }, null]);
 
     await infoHandler({ parameters: {} } as never);
 
@@ -159,7 +172,7 @@ describe('info handler', () => {
 
   it('fails when resolveEnvValue returns error', async () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([null, mockLoadedConfig]);
-    vi.mocked(findScript).mockReturnValue(mockScript);
+    vi.mocked(resolveScript).mockResolvedValue([null, mockScript]);
     vi.mocked(resolveEnvValue).mockResolvedValue([new Error('env fn failed'), null]);
 
     await infoHandler({ parameters: { script: 'my-pkg/build' } } as never);

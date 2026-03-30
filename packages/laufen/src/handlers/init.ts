@@ -5,9 +5,10 @@ import * as p from '@clack/prompts';
 import { attempt } from 'es-toolkit';
 import pc from 'picocolors';
 
-import { findConfigFile } from '../lib/config-discovery.ts';
 import { defineHandler } from '../lib/handler.ts';
 import { fail, ok } from '../lib/result.ts';
+import { findNearestWorkspace } from '../lib/workspace/discovery.ts';
+import { resolveRoot } from '../lib/workspace/root.ts';
 import { configTemplate } from '../templates/config.ts';
 
 const MANIFEST_FILE = 'lauf.config.ts';
@@ -22,7 +23,8 @@ export default defineHandler(() => {
   const cwd = process.cwd();
 
   // Check if there's already a reachable config
-  const existing = findConfigFile(cwd);
+  const root = resolveRoot(cwd);
+  const existing = findNearestWorkspace(cwd, root);
   if (existing) {
     return fail({
       message: `Already initialized: config found at ${pc.dim(existing.configFile)}`,

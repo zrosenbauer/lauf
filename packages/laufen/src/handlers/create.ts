@@ -9,9 +9,9 @@ import { z } from 'zod';
 
 import { safeLoadLaufConfigWithMeta } from '../lib/config.ts';
 import { defineHandler } from '../lib/handler.ts';
-import { getWorkspaceRoot } from '../lib/paths.ts';
 import { fail, ok } from '../lib/result.ts';
 import type { HandlerResult } from '../lib/result.ts';
+import { getWorkspaceState } from '../lib/workspace/index.ts';
 import { scriptTemplate } from '../templates/script.ts';
 import { readPackageJSON, safeParseError } from '../utils/cli.ts';
 import { safeMkdirSync } from '../utils/fs.ts';
@@ -142,7 +142,8 @@ function resolveTargetDir(dir: string | undefined, patterns: string[], configDir
  * while sub-package scripts include the package prefix (e.g. `my-pkg/setup`).
  */
 function buildQualifiedName(configDir: string, packageName: string, stem: string): string {
-  if (path.resolve(configDir) === path.resolve(getWorkspaceRoot())) {
+  const wsState = getWorkspaceState(process.cwd());
+  if (path.resolve(configDir) === path.resolve(wsState.root.dir)) {
     return stem;
   }
   return `${packageName}/${stem}`;

@@ -3,10 +3,11 @@ import { resolveEnvValue, runScript } from '@laufen/engine';
 
 import { safeLoadLaufConfigWithMeta } from '../lib/config.ts';
 import { defineHandler } from '../lib/handler.ts';
-import { LAUF_ROOT, getWorkspaceRoot } from '../lib/paths.ts';
+import { LAUF_ROOT } from '../lib/paths.ts';
 import type { HandlerResult } from '../lib/result.ts';
 import { fail, ok } from '../lib/result.ts';
-import type { DiscoveredScript } from '../lib/types.ts';
+import { getWorkspaceState } from '../lib/workspace/index.ts';
+import type { DiscoveredScript } from '../lib/workspace/types.ts';
 import { safeParseError } from '../utils/cli.ts';
 import { resolveScript } from '../utils/resolve-script.ts';
 
@@ -65,7 +66,7 @@ export default defineHandler(async (ctx: { parameters: { script?: string } }) =>
     return fail(scriptError);
   }
 
-  const workspaceRoot = getWorkspaceRoot();
+  const workspaceRoot = getWorkspaceState(process.cwd()).root.dir;
   const envCtx: EnvContext = {
     script: { name: script.name, path: script.path, packageDir: script.packageDir },
     workspace: workspaceRoot,
