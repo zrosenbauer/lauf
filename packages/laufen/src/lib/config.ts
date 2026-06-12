@@ -6,9 +6,13 @@ import { createJiti } from 'jiti';
 import { z } from 'zod';
 
 import type { DefaultLogger } from '../types.ts';
-import type { DiscoveredConfig } from './config-discovery.ts';
-import { discoverAllConfigs, findConfigFile } from './config-discovery.ts';
 import type { Result } from './result.ts';
+import {
+  type Workspace,
+  discoverWorkspaces,
+  findNearestWorkspace,
+  resolveRoot,
+} from './workspace/index.ts';
 
 /**
  * Env value type: a static record or a function that receives an EnvContext.
@@ -16,6 +20,11 @@ import type { Result } from './result.ts';
 type EnvValue = Record<string, string> | EnvFn;
 
 export interface LaufConfig {
+  /**
+   * Mark this config as the workspace root boundary.
+   * When `true`, workspace discovery stops here instead of walking up to `.git`.
+   */
+  root?: boolean;
   scripts?: string[];
   logger?: DefaultLogger;
   spinner?: boolean;
@@ -30,6 +39,7 @@ export interface LaufConfig {
 }
 
 export interface ResolvedLaufConfig {
+  root: boolean;
   scripts: string[];
   logger: DefaultLogger | undefined;
   spinner: boolean;
@@ -78,6 +88,7 @@ const watchConfigSchema: z.ZodType<WatchConfig | undefined> = z
  * we use a union of `z.record` and `z.function()`.
  */
 const resolvedLaufConfigSchema: z.ZodType<ResolvedLaufConfig> = z.object({
+  root: z.boolean(),
   scripts: z.array(z.string()),
   logger: loggerSchema,
   spinner: z.boolean(),
@@ -88,6 +99,7 @@ const resolvedLaufConfigSchema: z.ZodType<ResolvedLaufConfig> = z.object({
 }) as z.ZodType<ResolvedLaufConfig>;
 
 const DEFAULTS: ResolvedLaufConfig = {
+  root: false,
   scripts: ['scripts/*.ts'],
   logger: undefined,
   spinner: true,
@@ -126,14 +138,14 @@ function createConfigImport(configFile: string): (id: string) => Promise<unknown
 }
 
 /**
- * Load a config from a discovered config file via c12.
+ * Load a config from a discovered workspace via c12.
  */
-async function loadConfigFromDiscovered(discovered: DiscoveredConfig): Promise<ResolvedLaufConfig> {
+async function loadConfigFromWorkspace(workspace: Workspace): Promise<ResolvedLaufConfig> {
   const loaded = await loadConfig<LaufConfig>({
-    name: discovered.configName,
-    cwd: discovered.configDir,
+    name: workspace.configName,
+    cwd: workspace.dir,
     defaults: DEFAULTS,
-    import: createConfigImport(discovered.configFile),
+    import: createConfigImport(workspace.configFile),
   });
 
   if (!loaded.configFile) {
@@ -153,15 +165,16 @@ async function loadConfigFromDiscovered(discovered: DiscoveredConfig): Promise<R
 /**
  * Load the closest lauf config by walking upward from cwd.
  *
- * Uses {@link findConfigFile} to locate the nearest config file,
+ * Uses workspace discovery to locate the nearest config file,
  * then loads it via c12. Returns defaults when no config is found.
  */
 export function loadLaufConfig(cwd: string): Promise<ResolvedLaufConfig> {
-  const discovered = findConfigFile(cwd);
-  if (!discovered) {
+  const root = resolveRoot(cwd);
+  const workspace = findNearestWorkspace(cwd, root);
+  if (!workspace) {
     return Promise.resolve(DEFAULTS);
   }
-  return loadConfigFromDiscovered(discovered);
+  return loadConfigFromWorkspace(workspace);
 }
 
 /**
@@ -172,38 +185,40 @@ export function loadLaufConfig(cwd: string): Promise<ResolvedLaufConfig> {
  * and `configDir` set to the provided cwd.
  */
 export async function loadLaufConfigWithMeta(cwd: string): Promise<LoadedConfig> {
-  const discovered = findConfigFile(cwd);
-  if (!discovered) {
+  const root = resolveRoot(cwd);
+  const workspace = findNearestWorkspace(cwd, root);
+  if (!workspace) {
     return { config: DEFAULTS, configFile: undefined, configDir: cwd };
   }
 
-  const config = await loadConfigFromDiscovered(discovered);
+  const config = await loadConfigFromWorkspace(workspace);
   return {
     config,
-    configFile: discovered.configFile,
-    configDir: discovered.configDir,
+    configFile: workspace.configFile,
+    configDir: workspace.dir,
   };
 }
 
 /**
- * Load all configs within the search boundary.
+ * Load all configs within the workspace root boundary.
  *
  * Used by the `--all` flag to aggregate configs from subdirectories.
  * Returns at least one entry — defaults when no config files are found.
  */
 export function loadAllLaufConfigs(startDir: string): Promise<readonly LoadedConfig[]> {
-  const configs = discoverAllConfigs(startDir);
-  if (configs.length === 0) {
+  const root = resolveRoot(startDir);
+  const workspaces = discoverWorkspaces(root);
+  if (workspaces.length === 0) {
     return Promise.resolve([{ config: DEFAULTS, configFile: undefined, configDir: startDir }]);
   }
 
   return Promise.all(
-    configs.map(async (discovered): Promise<LoadedConfig> => {
-      const config = await loadConfigFromDiscovered(discovered);
+    workspaces.map(async (workspace): Promise<LoadedConfig> => {
+      const config = await loadConfigFromWorkspace(workspace);
       return {
         config,
-        configFile: discovered.configFile,
-        configDir: discovered.configDir,
+        configFile: workspace.configFile,
+        configDir: workspace.dir,
       };
     }),
   );

@@ -36,7 +36,7 @@ describe('promptForScript', () => {
       name: 'pkg/my-script',
       path: '/path/to/script.ts',
       packageDir: '/path/to',
-      packageName: 'pkg',
+      workspaceName: 'pkg',
     };
     vi.mocked(p.select).mockResolvedValue(script);
     vi.mocked(p.isCancel).mockReturnValue(false);
@@ -51,7 +51,7 @@ describe('promptForScript', () => {
       name: 'pkg/my-script',
       path: '/path/to/script.ts',
       packageDir: '/path/to',
-      packageName: 'pkg',
+      workspaceName: 'pkg',
     };
     vi.mocked(p.select).mockResolvedValue(Symbol('cancel'));
     vi.mocked(p.isCancel).mockReturnValue(true);
@@ -66,7 +66,7 @@ describe('promptForScript', () => {
       name: 'pkg/my-script',
       path: '/path/to/script.ts',
       packageDir: '/path/to',
-      packageName: 'pkg',
+      workspaceName: 'pkg',
     };
     vi.mocked(p.select).mockResolvedValue(Symbol('cancel'));
     vi.mocked(p.isCancel).mockReturnValue(true);
@@ -77,8 +77,8 @@ describe('promptForScript', () => {
 
   it('presents scripts as select options', async () => {
     const scripts = [
-      { name: 'pkg/a', path: '/a.ts', packageDir: '/pkg', packageName: 'pkg' },
-      { name: 'pkg/b', path: '/b.ts', packageDir: '/pkg', packageName: 'pkg' },
+      { name: 'pkg/a', path: '/a.ts', packageDir: '/pkg', workspaceName: 'pkg' },
+      { name: 'pkg/b', path: '/b.ts', packageDir: '/pkg', workspaceName: 'pkg' },
     ];
     vi.mocked(p.select).mockResolvedValue(scripts[0]);
     vi.mocked(p.isCancel).mockReturnValue(false);

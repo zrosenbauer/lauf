@@ -16,10 +16,11 @@ import { z } from 'zod';
 import type { ResolvedLaufConfig } from '../lib/config.ts';
 import { safeLoadLaufConfigWithMeta } from '../lib/config.ts';
 import { defineHandler } from '../lib/handler.ts';
-import { LAUF_ROOT, getWorkspaceRoot, resolveCurrentPackage } from '../lib/paths.ts';
+import { LAUF_ROOT } from '../lib/paths.ts';
 import type { HandlerResult, Result } from '../lib/result.ts';
 import { fail, ok } from '../lib/result.ts';
 import { createWatcher, loadScriptWatchConfig, mergeWatchConfig } from '../lib/watcher.ts';
+import { getWorkspaceState } from '../lib/workspace/index.ts';
 import { consumeScriptHelpRequested } from '../state/script-help.ts';
 import { extractEnvFlags, parseRawArgs, sliceArgvAfter } from '../utils/argv.ts';
 import { safeParseError } from '../utils/cli.ts';
@@ -38,13 +39,13 @@ export default defineHandler({
       return fail({ message: `Failed to load lauf config: ${safeParseError(configError)}` });
     }
 
-    const currentPkg = resolveCurrentPackage(process.cwd());
-    const currentPkgDir = currentPkg && currentPkg.dir;
+    const wsState = getWorkspaceState(process.cwd());
+    const currentWorkspaceDir = wsState.current && wsState.current.dir;
 
     const [scriptError, script] = await resolveScript(
       ctx.parameters.script,
       loaded.config.scripts,
-      { packageDir: currentPkgDir },
+      { workspaceDir: currentWorkspaceDir },
     );
     if (scriptError) {
       return fail(scriptError);
@@ -56,7 +57,7 @@ export default defineHandler({
       consumeScriptHelpRequested() || cleanArgv.includes('--help') || cleanArgv.includes('-h');
     const isWatch = cleanArgv.includes('--watch') || cleanArgv.includes('-w');
     const scriptArgv = cleanArgv.filter((arg) => arg !== '--watch' && arg !== '-w');
-    const workspaceRoot = getWorkspaceRoot();
+    const workspaceRoot = wsState.root.dir;
 
     const [envError, configEnv] = await resolveConfigEnv(loaded.config.env, script, workspaceRoot);
     if (envError) {
@@ -84,7 +85,7 @@ export default defineHandler({
       return runHelpMode(
         script,
         workspaceRoot,
-        currentPkgDir,
+        currentWorkspaceDir,
         loaded.config.spinner,
         configEnv,
         cliEnv,
@@ -109,7 +110,7 @@ export default defineHandler({
         script,
         parseRawArgs(scriptArgv),
         workspaceRoot,
-        currentPkgDir,
+        currentWorkspaceDir,
         loaded.config,
         configEnv,
         cliEnv,
@@ -121,7 +122,7 @@ export default defineHandler({
       script,
       parseRawArgs(scriptArgv),
       workspaceRoot,
-      currentPkgDir,
+      currentWorkspaceDir,
       loaded.config,
       configEnv,
       cliEnv,

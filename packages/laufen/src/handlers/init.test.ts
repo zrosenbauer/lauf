@@ -1,7 +1,7 @@
 import * as p from '@clack/prompts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { DiscoveredConfig } from '../lib/config-discovery.ts';
+import type { Workspace, WorkspaceRoot } from '../lib/workspace/types.ts';
 
 const { mockWriteFileSync } = vi.hoisted(() => ({
   mockWriteFileSync: vi.fn(),
@@ -25,21 +25,26 @@ vi.mock('@clack/prompts', () => ({
   },
 }));
 
-vi.mock('../lib/config-discovery.ts', () => ({
-  findConfigFile: vi.fn(() => undefined),
+vi.mock('../lib/workspace/discovery.ts', () => ({
+  findNearestWorkspace: vi.fn(() => undefined),
+}));
+
+vi.mock('../lib/workspace/root.ts', () => ({
+  resolveRoot: vi.fn((): WorkspaceRoot => ({ dir: '/workspace', source: 'git' })),
 }));
 
 vi.mock('../templates/config.ts', () => ({
   configTemplate: vi.fn(() => 'config content'),
 }));
 
-import { findConfigFile } from '../lib/config-discovery.ts';
+import { findNearestWorkspace } from '../lib/workspace/discovery.ts';
+import { resolveRoot } from '../lib/workspace/root.ts';
 import initHandler from './init.ts';
 
 beforeEach(() => {
   vi.clearAllMocks();
   mockWriteFileSync.mockReset();
-  vi.mocked(findConfigFile).mockReturnValue(undefined);
+  vi.mocked(findNearestWorkspace).mockReturnValue(undefined);
   vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
   vi.spyOn(process, 'cwd').mockReturnValue('/workspace/packages/my-pkg');
 });
@@ -74,13 +79,15 @@ describe('init handler', () => {
     expect(process.exit).not.toHaveBeenCalled();
   });
 
-  it('fails when findConfigFile returns an existing config', async () => {
-    const existing: DiscoveredConfig = {
+  it('fails when findNearestWorkspace returns an existing workspace', async () => {
+    const existing: Workspace = {
+      name: 'my-project',
+      dir: '/workspace',
       configFile: '/workspace/lauf.config.ts',
-      configDir: '/workspace',
       configName: 'lauf',
+      isRoot: false,
     };
-    vi.mocked(findConfigFile).mockReturnValue(existing);
+    vi.mocked(findNearestWorkspace).mockReturnValue(existing);
 
     await initHandler({} as never);
 
@@ -112,11 +119,15 @@ describe('init handler', () => {
     expect(p.log.error).toHaveBeenCalledWith(expect.stringContaining('Failed to write'));
   });
 
-  it('calls findConfigFile with cwd', async () => {
+  it('calls resolveRoot and findNearestWorkspace with cwd', async () => {
     mockWriteFileSync.mockReturnValue(undefined);
 
     await initHandler({} as never);
 
-    expect(findConfigFile).toHaveBeenCalledWith('/workspace/packages/my-pkg');
+    expect(resolveRoot).toHaveBeenCalledWith('/workspace/packages/my-pkg');
+    expect(findNearestWorkspace).toHaveBeenCalledWith('/workspace/packages/my-pkg', {
+      dir: '/workspace',
+      source: 'git',
+    });
   });
 });

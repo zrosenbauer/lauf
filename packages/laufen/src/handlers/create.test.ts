@@ -28,8 +28,15 @@ vi.mock('../lib/config.ts', () => ({
 }));
 
 vi.mock('../lib/paths.ts', () => ({
-  getWorkspaceRoot: vi.fn(() => '/workspace'),
   LAUF_ROOT: '/lauf-root',
+}));
+
+vi.mock('../lib/workspace/index.ts', () => ({
+  getWorkspaceState: vi.fn(() => ({
+    root: { dir: '/workspace', source: 'git' },
+    tree: { root: { dir: '/workspace', source: 'git' }, workspaces: [] },
+    current: undefined,
+  })),
 }));
 
 vi.mock('../utils/fs.ts', () => ({
@@ -51,6 +58,7 @@ import createHandler from './create.ts';
 
 const mockLoadedConfig = {
   config: {
+    root: false,
     scripts: ['scripts/*.ts'],
     logger: undefined,
     spinner: true,
@@ -262,6 +270,7 @@ describe('create handler', () => {
   it('falls back to scripts/ directory when config has empty scripts array', async () => {
     const emptyScriptsConfig = {
       config: {
+        root: false,
         scripts: [],
         logger: undefined,
         spinner: true,

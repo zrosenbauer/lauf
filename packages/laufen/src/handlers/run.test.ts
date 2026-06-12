@@ -16,16 +16,22 @@ vi.mock('../lib/config.ts', () => ({
   safeLoadLaufConfigWithMeta: vi.fn(),
 }));
 
-vi.mock('../lib/discovery.ts', () => ({
-  discoverScripts: vi.fn(() => []),
-  findScript: vi.fn(),
-  reattributeScripts: vi.fn((scripts: unknown[]) => scripts),
+vi.mock('../lib/paths.ts', () => ({
+  LAUF_ROOT: '/lauf-root',
 }));
 
-vi.mock('../lib/paths.ts', () => ({
-  getWorkspaceRoot: vi.fn(() => '/workspace'),
-  resolveCurrentPackage: vi.fn(() => ({ name: 'my-pkg', dir: '/workspace/packages/my-pkg' })),
-  LAUF_ROOT: '/lauf-root',
+vi.mock('../lib/workspace/index.ts', () => ({
+  getWorkspaceState: vi.fn(() => ({
+    root: { dir: '/workspace', source: 'git' },
+    tree: { root: { dir: '/workspace', source: 'git' }, workspaces: [] },
+    current: {
+      name: 'my-pkg',
+      dir: '/workspace/packages/my-pkg',
+      configFile: '/workspace/packages/my-pkg/lauf.config.ts',
+      configName: 'lauf',
+      isRoot: false,
+    },
+  })),
 }));
 
 vi.mock('@laufen/engine', () => ({
@@ -35,27 +41,27 @@ vi.mock('@laufen/engine', () => ({
   generatePackageTypes: vi.fn(() => [null, undefined]),
 }));
 
-vi.mock('../utils/prompt.ts', () => ({
-  promptForScript: vi.fn(),
+vi.mock('../utils/resolve-script.ts', () => ({
+  resolveScript: vi.fn(),
 }));
 
 import { resolveEnvValue, runScript } from '@laufen/engine';
 
 import { safeLoadLaufConfigWithMeta } from '../lib/config.ts';
-import { findScript } from '../lib/discovery.ts';
-import type { DiscoveredScript } from '../lib/types.ts';
-import { promptForScript } from '../utils/prompt.ts';
+import type { DiscoveredScript } from '../lib/workspace/types.ts';
+import { resolveScript } from '../utils/resolve-script.ts';
 import runHandler from './run.ts';
 
 const mockScript: DiscoveredScript = {
   name: 'my-pkg/build',
   path: '/workspace/packages/my-pkg/scripts/build.ts',
   packageDir: '/workspace/packages/my-pkg',
-  packageName: 'my-pkg',
+  workspaceName: 'my-pkg',
 };
 
 const mockLoadedConfig = {
   config: {
+    root: false,
     scripts: ['scripts/*.ts'],
     logger: undefined,
     spinner: true,
@@ -108,7 +114,13 @@ describe('run handler', () => {
 
   it('fails when script not found by name', async () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([null, mockLoadedConfig]);
-    vi.mocked(findScript).mockReturnValue(undefined);
+    vi.mocked(resolveScript).mockResolvedValue([
+      {
+        message: 'Script not found: nonexistent',
+        hint: 'Run `lauf list` to see available scripts.',
+      },
+      null,
+    ]);
 
     await runHandler({ parameters: { script: 'pkg/nonexistent' } });
 
@@ -117,7 +129,7 @@ describe('run handler', () => {
 
   it('runs script successfully when found by name', async () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([null, mockLoadedConfig]);
-    vi.mocked(findScript).mockReturnValue(mockScript);
+    vi.mocked(resolveScript).mockResolvedValue([null, mockScript]);
     vi.mocked(runScript).mockResolvedValue({ exitCode: 0, script: mockScript });
 
     Object.defineProperty(process, 'argv', {
@@ -134,7 +146,7 @@ describe('run handler', () => {
 
   it('fails when script exits with non-zero code', async () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([null, mockLoadedConfig]);
-    vi.mocked(findScript).mockReturnValue(mockScript);
+    vi.mocked(resolveScript).mockResolvedValue([null, mockScript]);
     vi.mocked(runScript).mockResolvedValue({ exitCode: 1, script: mockScript });
 
     Object.defineProperty(process, 'argv', {
@@ -150,18 +162,18 @@ describe('run handler', () => {
 
   it('prompts for script when name not provided', async () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([null, mockLoadedConfig]);
-    vi.mocked(promptForScript).mockResolvedValue([null, mockScript]);
+    vi.mocked(resolveScript).mockResolvedValue([null, mockScript]);
     vi.mocked(runScript).mockResolvedValue({ exitCode: 0, script: mockScript });
 
     await runHandler({ parameters: {} });
 
-    expect(promptForScript).toHaveBeenCalled();
+    expect(resolveScript).toHaveBeenCalledWith(undefined, ['scripts/*.ts'], expect.any(Object));
     expect(process.exit).not.toHaveBeenCalled();
   });
 
   it('runs in help mode when --help flag is present', async () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([null, mockLoadedConfig]);
-    vi.mocked(findScript).mockReturnValue(mockScript);
+    vi.mocked(resolveScript).mockResolvedValue([null, mockScript]);
     vi.mocked(runScript).mockResolvedValue({ exitCode: 0, script: mockScript });
 
     Object.defineProperty(process, 'argv', {
@@ -191,7 +203,7 @@ describe('run handler', () => {
 
   it('runs in help mode when -h flag is present', async () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([null, mockLoadedConfig]);
-    vi.mocked(findScript).mockReturnValue(mockScript);
+    vi.mocked(resolveScript).mockResolvedValue([null, mockScript]);
     vi.mocked(runScript).mockResolvedValue({ exitCode: 0, script: mockScript });
 
     Object.defineProperty(process, 'argv', {
@@ -221,7 +233,7 @@ describe('run handler', () => {
 
   it('parses --key=value args', async () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([null, mockLoadedConfig]);
-    vi.mocked(findScript).mockReturnValue(mockScript);
+    vi.mocked(resolveScript).mockResolvedValue([null, mockScript]);
     vi.mocked(runScript).mockResolvedValue({ exitCode: 0, script: mockScript });
 
     Object.defineProperty(process, 'argv', {
@@ -241,7 +253,7 @@ describe('run handler', () => {
 
   it('parses --key value args', async () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([null, mockLoadedConfig]);
-    vi.mocked(findScript).mockReturnValue(mockScript);
+    vi.mocked(resolveScript).mockResolvedValue([null, mockScript]);
     vi.mocked(runScript).mockResolvedValue({ exitCode: 0, script: mockScript });
 
     Object.defineProperty(process, 'argv', {
@@ -261,7 +273,7 @@ describe('run handler', () => {
 
   it('parses --flag as boolean true', async () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([null, mockLoadedConfig]);
-    vi.mocked(findScript).mockReturnValue(mockScript);
+    vi.mocked(resolveScript).mockResolvedValue([null, mockScript]);
     vi.mocked(runScript).mockResolvedValue({ exitCode: 0, script: mockScript });
 
     Object.defineProperty(process, 'argv', {
@@ -281,7 +293,7 @@ describe('run handler', () => {
 
   it('coerces true/false string values to booleans', async () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([null, mockLoadedConfig]);
-    vi.mocked(findScript).mockReturnValue(mockScript);
+    vi.mocked(resolveScript).mockResolvedValue([null, mockScript]);
     vi.mocked(runScript).mockResolvedValue({ exitCode: 0, script: mockScript });
 
     Object.defineProperty(process, 'argv', {
@@ -301,7 +313,7 @@ describe('run handler', () => {
 
   it('coerces numeric string values to numbers', async () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([null, mockLoadedConfig]);
-    vi.mocked(findScript).mockReturnValue(mockScript);
+    vi.mocked(resolveScript).mockResolvedValue([null, mockScript]);
     vi.mocked(runScript).mockResolvedValue({ exitCode: 0, script: mockScript });
 
     Object.defineProperty(process, 'argv', {
@@ -321,7 +333,7 @@ describe('run handler', () => {
 
   it('logs step and success during script execution', async () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([null, mockLoadedConfig]);
-    vi.mocked(findScript).mockReturnValue(mockScript);
+    vi.mocked(resolveScript).mockResolvedValue([null, mockScript]);
     vi.mocked(runScript).mockResolvedValue({ exitCode: 0, script: mockScript });
 
     Object.defineProperty(process, 'argv', {
@@ -338,7 +350,7 @@ describe('run handler', () => {
 
   it('warns when positional arguments are found in argv', async () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([null, mockLoadedConfig]);
-    vi.mocked(findScript).mockReturnValue(mockScript);
+    vi.mocked(resolveScript).mockResolvedValue([null, mockScript]);
     vi.mocked(runScript).mockResolvedValue({ exitCode: 0, script: mockScript });
 
     Object.defineProperty(process, 'argv', {
@@ -359,7 +371,7 @@ describe('run handler', () => {
 
   it('coerces empty string value as-is', async () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([null, mockLoadedConfig]);
-    vi.mocked(findScript).mockReturnValue(mockScript);
+    vi.mocked(resolveScript).mockResolvedValue([null, mockScript]);
     vi.mocked(runScript).mockResolvedValue({ exitCode: 0, script: mockScript });
 
     Object.defineProperty(process, 'argv', {
@@ -379,7 +391,7 @@ describe('run handler', () => {
 
   it('does not coerce hex strings to numbers', async () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([null, mockLoadedConfig]);
-    vi.mocked(findScript).mockReturnValue(mockScript);
+    vi.mocked(resolveScript).mockResolvedValue([null, mockScript]);
     vi.mocked(runScript).mockResolvedValue({ exitCode: 0, script: mockScript });
 
     Object.defineProperty(process, 'argv', {
@@ -399,7 +411,7 @@ describe('run handler', () => {
 
   it('does not coerce scientific notation to numbers', async () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([null, mockLoadedConfig]);
-    vi.mocked(findScript).mockReturnValue(mockScript);
+    vi.mocked(resolveScript).mockResolvedValue([null, mockScript]);
     vi.mocked(runScript).mockResolvedValue({ exitCode: 0, script: mockScript });
 
     Object.defineProperty(process, 'argv', {
@@ -419,7 +431,7 @@ describe('run handler', () => {
 
   it('filters out __proto__ key to prevent prototype pollution', async () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([null, mockLoadedConfig]);
-    vi.mocked(findScript).mockReturnValue(mockScript);
+    vi.mocked(resolveScript).mockResolvedValue([null, mockScript]);
     vi.mocked(runScript).mockResolvedValue({ exitCode: 0, script: mockScript });
 
     Object.defineProperty(process, 'argv', {
@@ -437,7 +449,7 @@ describe('run handler', () => {
 
   it('filters out constructor and prototype keys', async () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([null, mockLoadedConfig]);
-    vi.mocked(findScript).mockReturnValue(mockScript);
+    vi.mocked(resolveScript).mockResolvedValue([null, mockScript]);
     vi.mocked(runScript).mockResolvedValue({ exitCode: 0, script: mockScript });
 
     Object.defineProperty(process, 'argv', {
@@ -464,7 +476,7 @@ describe('run handler', () => {
 
   it('sliceArgvAfter only searches after index 2', async () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([null, mockLoadedConfig]);
-    vi.mocked(findScript).mockReturnValue(mockScript);
+    vi.mocked(resolveScript).mockResolvedValue([null, mockScript]);
     vi.mocked(runScript).mockResolvedValue({ exitCode: 0, script: mockScript });
 
     // Script name matches node binary path — should not match at index 0
@@ -485,7 +497,7 @@ describe('run handler', () => {
 
   it('filters out --__proto__ in key-value form', async () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([null, mockLoadedConfig]);
-    vi.mocked(findScript).mockReturnValue(mockScript);
+    vi.mocked(resolveScript).mockResolvedValue([null, mockScript]);
     vi.mocked(runScript).mockResolvedValue({ exitCode: 0, script: mockScript });
 
     Object.defineProperty(process, 'argv', {
@@ -503,7 +515,7 @@ describe('run handler', () => {
 
   it('filters out --constructor as boolean flag', async () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([null, mockLoadedConfig]);
-    vi.mocked(findScript).mockReturnValue(mockScript);
+    vi.mocked(resolveScript).mockResolvedValue([null, mockScript]);
     vi.mocked(runScript).mockResolvedValue({ exitCode: 0, script: mockScript });
 
     Object.defineProperty(process, 'argv', {
@@ -521,7 +533,7 @@ describe('run handler', () => {
 
   it('returns empty args when script name is not found in argv', async () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([null, mockLoadedConfig]);
-    vi.mocked(findScript).mockReturnValue(mockScript);
+    vi.mocked(resolveScript).mockResolvedValue([null, mockScript]);
     vi.mocked(runScript).mockResolvedValue({ exitCode: 0, script: mockScript });
 
     // argv has script name that does NOT match the provided script param
@@ -545,7 +557,7 @@ describe('run handler', () => {
 
   it('fails when resolveEnvValue returns error', async () => {
     vi.mocked(safeLoadLaufConfigWithMeta).mockResolvedValue([null, mockLoadedConfig]);
-    vi.mocked(findScript).mockReturnValue(mockScript);
+    vi.mocked(resolveScript).mockResolvedValue([null, mockScript]);
     vi.mocked(resolveEnvValue).mockResolvedValue([new Error('env fn failed'), null]);
 
     Object.defineProperty(process, 'argv', {
