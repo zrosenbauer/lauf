@@ -88,7 +88,8 @@ export default defineHandler({
     const [, pkg] = readPackageJSON(loaded.configDir);
     /* v8 ignore next -- fallback branch: readPackageJSON always returns a name in practice */
     const packageName = (pkg && pkg.name) || path.basename(loaded.configDir);
-    const qualifiedName = buildQualifiedName(loaded.configDir, packageName, stem);
+    const wsRoot = getWorkspaceState(process.cwd()).root.dir;
+    const qualifiedName = buildQualifiedName(loaded.configDir, wsRoot, packageName, stem);
 
     const relative = path.relative(loaded.configDir, filePath);
     p.log.success(`Created ${relative}`);
@@ -141,9 +142,13 @@ function resolveTargetDir(dir: string | undefined, patterns: string[], configDir
  * Root workspace scripts use the bare stem (e.g. `setup`),
  * while sub-package scripts include the package prefix (e.g. `my-pkg/setup`).
  */
-function buildQualifiedName(configDir: string, packageName: string, stem: string): string {
-  const wsState = getWorkspaceState(process.cwd());
-  if (path.resolve(configDir) === path.resolve(wsState.root.dir)) {
+function buildQualifiedName(
+  configDir: string,
+  workspaceRoot: string,
+  packageName: string,
+  stem: string,
+): string {
+  if (path.resolve(configDir) === path.resolve(workspaceRoot)) {
     return stem;
   }
   return `${packageName}/${stem}`;

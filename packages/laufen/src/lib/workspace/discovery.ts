@@ -82,23 +82,26 @@ export function discoverWorkspaces(root: WorkspaceRoot): readonly Workspace[] {
   );
 
   // Deduplicate: prefer lauf over laufen in the same directory.
-  const grouped = files.reduce<
-    Record<string, { configFile: string; configName: 'lauf' | 'laufen' }>
-  >(
-    (acc, filePath) => {
+  // Map each file to a [dir, entry] tuple and sort so that within a single
+  // directory `laufen` entries appear before `lauf` entries. `Object.fromEntries`
+  // keeps the last value for duplicate keys, so `lauf` wins.
+  const entries = files
+    .map((filePath) => {
       const dir = path.dirname(filePath);
-      const fileName = path.basename(filePath);
-      const configName = configNameFromFile(fileName);
-      const existing = acc[dir];
-
-      if (existing && existing.configName === 'lauf') {
-        return acc;
+      const configName = configNameFromFile(path.basename(filePath));
+      return [dir, { configFile: filePath, configName }] as const;
+    })
+    .toSorted(([, a], [, b]) => {
+      if (a.configName === b.configName) {
+        return 0;
       }
-
-      return Object.assign(acc, { [dir]: { configFile: filePath, configName } });
-    },
-    Object.create(null) as Record<string, { configFile: string; configName: 'lauf' | 'laufen' }>,
-  );
+      if (a.configName === 'lauf') {
+        return 1;
+      }
+      return -1;
+    });
+  const grouped: Record<string, { configFile: string; configName: 'lauf' | 'laufen' }> =
+    Object.fromEntries(entries);
 
   return Object.entries(grouped)
     .map(

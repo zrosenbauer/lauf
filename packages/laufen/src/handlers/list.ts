@@ -10,6 +10,7 @@ import { loadAllLaufConfigs, safeLoadLaufConfigWithMeta } from '../lib/config.ts
 import { defineHandler } from '../lib/handler.ts';
 import { LAUF_ROOT } from '../lib/paths.ts';
 import { fail, ok } from '../lib/result.ts';
+import type { CachedWorkspaceState } from '../lib/workspace/index.ts';
 import { getWorkspaceState } from '../lib/workspace/index.ts';
 import { discoverWorkspaceScripts } from '../lib/workspace/scripts.ts';
 import type { DiscoveredScript } from '../lib/workspace/types.ts';
@@ -57,7 +58,7 @@ async function listFilteredScripts(filterGlob: string) {
     return Array.from(discoverWorkspaceScripts(ws, loaded.config.scripts, wsState.root));
   });
 
-  return displayScripts(scripts);
+  return displayScripts(scripts, wsState);
 }
 
 /**
@@ -79,7 +80,7 @@ async function listCurrentPackageScripts() {
   }
 
   const scripts = discoverWorkspaceScripts(wsState.current, loaded.config.scripts, wsState.root);
-  return displayScripts(scripts);
+  return displayScripts(scripts, wsState);
 }
 
 /**
@@ -97,7 +98,7 @@ async function listAllScripts() {
     return Array.from(discoverWorkspaceScripts(ws, loaded.config.scripts, wsState.root));
   });
 
-  return displayScripts(allScripts);
+  return displayScripts(allScripts, wsState);
 }
 
 /**
@@ -106,14 +107,13 @@ async function listAllScripts() {
  * Renders a directory-tree-style hierarchy grouped by package,
  * including scripts from all packages (root and workspace members).
  */
-async function displayScripts(scripts: readonly DiscoveredScript[]) {
+async function displayScripts(scripts: readonly DiscoveredScript[], wsState: CachedWorkspaceState) {
   if (scripts.length === 0) {
     p.log.warn('No scripts found.');
     p.log.message(pc.dim('Create one with: lauf create <name>'));
     return ok();
   }
 
-  const wsState = getWorkspaceState(process.cwd());
   const descriptions = await loadDescriptions(scripts, {
     workspaceRoot: wsState.root.dir,
     cliPackageRoot: LAUF_ROOT,

@@ -5,6 +5,7 @@ export { resolveCurrentWorkspace } from './resolve.ts';
 export { resolveRoot } from './root.ts';
 export {
   ROOT_WORKSPACE_NAME,
+  dedupeByDeepestOwner,
   discoverAllScripts,
   discoverWorkspaceScripts,
   findScript,

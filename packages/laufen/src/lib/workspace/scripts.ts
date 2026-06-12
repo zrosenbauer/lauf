@@ -1,5 +1,7 @@
+import * as fs from 'node:fs';
 import * as path from 'node:path';
 
+import { attempt } from 'es-toolkit';
 import fg from 'fast-glob';
 
 import type { DiscoveredScript, Workspace, WorkspaceRoot } from './types.ts';
@@ -61,16 +63,59 @@ function stripScriptSuffix(stem: string): string {
 }
 
 /**
+ * Resolve a path canonically (following symlinks), falling back to `path.resolve`
+ * if the target does not exist or `realpathSync` throws.
+ */
+function canonicalize(target: string): string {
+  const [error, real] = attempt(() => fs.realpathSync(target));
+  if (error || real === null) {
+    return path.resolve(target);
+  }
+  return real;
+}
+
+/**
  * Filter discovered scripts to those within the workspace root boundary.
+ *
+ * Uses canonical (symlink-resolved) paths on both sides so a symlinked
+ * script can't escape the workspace via an indirect path.
  */
 function filterToRoot(
   scripts: readonly DiscoveredScript[],
   root: WorkspaceRoot,
 ): readonly DiscoveredScript[] {
-  const normalizedRoot = path.resolve(root.dir);
+  const normalizedRoot = canonicalize(root.dir);
   return scripts.filter((script) => {
-    const resolved = path.resolve(script.path);
+    const resolved = canonicalize(script.path);
     return resolved === normalizedRoot || resolved.startsWith(`${normalizedRoot}${path.sep}`);
+  });
+}
+
+/**
+ * Dedupe discovered scripts by canonical path, keeping the entry whose
+ * `packageDir` is the deepest (most-specific) workspace that owns the file.
+ *
+ * Prevents a parent workspace's broad glob (e.g. `**\/*.lauf.ts`) from
+ * emitting a script that actually belongs to a nested workspace, which
+ * would otherwise produce duplicate entries under two qualified names.
+ */
+export function dedupeByDeepestOwner(
+  scripts: readonly DiscoveredScript[],
+): readonly DiscoveredScript[] {
+  return scripts.filter((script) => {
+    const canonical = canonicalize(script.path);
+    const ownerDir = canonicalize(script.packageDir);
+    const hasDeeperOwner = scripts.some((other) => {
+      if (other === script) {
+        return false;
+      }
+      if (canonicalize(other.path) !== canonical) {
+        return false;
+      }
+      const otherDir = canonicalize(other.packageDir);
+      return otherDir.startsWith(`${ownerDir}${path.sep}`);
+    });
+    return !hasDeeperOwner;
   });
 }
 
@@ -164,9 +209,11 @@ export function discoverAllScripts(
   const wsDir = options && options.workspaceDir;
   const filtered = filterWorkspaces(workspaces, wsDir);
 
-  return filtered
-    .flatMap(([ws, patterns]) => discoverWorkspaceScripts(ws, patterns, root))
-    .toSorted((a, b) => a.name.localeCompare(b.name));
+  const allScripts = filtered.flatMap(([ws, patterns]) =>
+    discoverWorkspaceScripts(ws, patterns, root),
+  );
+
+  return dedupeByDeepestOwner(allScripts).toSorted((a, b) => a.name.localeCompare(b.name));
 }
 
 /**
