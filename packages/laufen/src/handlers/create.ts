@@ -11,9 +11,10 @@ import { safeLoadLaufConfigWithMeta } from '../lib/config.ts';
 import { defineHandler } from '../lib/handler.ts';
 import { fail, ok } from '../lib/result.ts';
 import type { HandlerResult } from '../lib/result.ts';
-import { getWorkspaceState } from '../lib/workspace/index.ts';
+import { getWorkspaceState, qualifyScriptName } from '../lib/workspace/index.ts';
+import type { Workspace } from '../lib/workspace/index.ts';
 import { scriptTemplate } from '../templates/script.ts';
-import { readPackageJSON, safeParseError } from '../utils/cli.ts';
+import { safeParseError } from '../utils/cli.ts';
 import { safeMkdirSync } from '../utils/fs.ts';
 import { promptForText } from '../utils/prompt.ts';
 
@@ -85,11 +86,11 @@ export default defineHandler({
       return fail({ message: `Failed to write ${filePath}: ${writeError}` });
     }
 
-    const [, pkg] = readPackageJSON(loaded.configDir);
-    /* v8 ignore next -- fallback branch: readPackageJSON always returns a name in practice */
-    const packageName = (pkg && pkg.name) || path.basename(loaded.configDir);
-    const wsRoot = getWorkspaceState(process.cwd()).root.dir;
-    const qualifiedName = buildQualifiedName(loaded.configDir, wsRoot, packageName, stem);
+    const wsState = getWorkspaceState(process.cwd());
+    const ownerWorkspace = wsState.tree.workspaces.find(
+      (w) => path.resolve(w.dir) === path.resolve(loaded.configDir),
+    );
+    const qualifiedName = qualifyOwnedName(ownerWorkspace, stem);
 
     const relative = path.relative(loaded.configDir, filePath);
     p.log.success(`Created ${relative}`);
@@ -137,27 +138,21 @@ function resolveTargetDir(dir: string | undefined, patterns: string[], configDir
 }
 
 /**
- * Build a qualified script name for the "run it with" hint.
- *
- * Root workspace scripts use the bare stem (e.g. `setup`),
- * while sub-package scripts include the package prefix (e.g. `my-pkg/setup`).
- */
-function buildQualifiedName(
-  configDir: string,
-  workspaceRoot: string,
-  packageName: string,
-  stem: string,
-): string {
-  if (path.resolve(configDir) === path.resolve(workspaceRoot)) {
-    return stem;
-  }
-  return `${packageName}/${stem}`;
-}
-
-/**
  * Atomically write a file, failing if it already exists (wx flag).
  * Prevents TOCTOU race between existence check and write.
  */
 function safeWriteFileExclusive(filePath: string, content: string): [unknown, null] | [null, void] {
   return attempt(() => fs.writeFileSync(filePath, content, { encoding: 'utf-8', flag: 'wx' }));
+}
+
+/**
+ * Qualify a script stem against its owning workspace when one is known.
+ * Falls back to the bare stem when no workspace owns the config directory
+ * (e.g. running create without a discovered `lauf.config.ts`).
+ */
+function qualifyOwnedName(ownerWorkspace: Workspace | undefined, stem: string): string {
+  if (!ownerWorkspace) {
+    return stem;
+  }
+  return qualifyScriptName(ownerWorkspace, stem);
 }

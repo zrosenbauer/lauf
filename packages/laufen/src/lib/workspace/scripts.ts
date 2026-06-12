@@ -102,21 +102,25 @@ function filterToRoot(
 export function dedupeByDeepestOwner(
   scripts: readonly DiscoveredScript[],
 ): readonly DiscoveredScript[] {
-  return scripts.filter((script) => {
-    const canonical = canonicalize(script.path);
-    const ownerDir = canonicalize(script.packageDir);
-    const hasDeeperOwner = scripts.some((other) => {
-      if (other === script) {
-        return false;
-      }
-      if (canonicalize(other.path) !== canonical) {
-        return false;
-      }
-      const otherDir = canonicalize(other.packageDir);
-      return otherDir.startsWith(`${ownerDir}${path.sep}`);
-    });
-    return !hasDeeperOwner;
+  const ranked = scripts.map((script) => {
+    const canonicalPath = canonicalize(script.path);
+    const canonicalDir = canonicalize(script.packageDir);
+    return {
+      script,
+      canonicalPath,
+      depth: canonicalDir.split(path.sep).length,
+    };
   });
+
+  // Sort shallowest-first so the deepest owner wins via Object.fromEntries'
+  // last-write semantics. Single pass over inputs; one canonicalize() per side.
+  const byCanonicalPath = Object.fromEntries(
+    ranked
+      .toSorted((a, b) => a.depth - b.depth)
+      .map(({ canonicalPath, script }) => [canonicalPath, script] as const),
+  );
+
+  return Object.values(byCanonicalPath);
 }
 
 /**
