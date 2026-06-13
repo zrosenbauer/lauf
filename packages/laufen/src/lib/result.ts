@@ -35,3 +35,26 @@ export function ok<T>(value?: T): HandlerResult<T> {
 export function fail(error: HandlerError): HandlerResult<never> {
   return [error, null] as const;
 }
+
+/**
+ * Assertion helper: narrow a `Result` tuple to its `[null, T]` branch by
+ * calling `ctx.fail(...)` on the error path. Used inside kidd command
+ * handlers to flatten the `if (err) { ctx.fail(...) }` boilerplate while
+ * still letting TS narrow the value side.
+ */
+export function assertOk<T>(
+  result: readonly [unknown, null] | readonly [null, T],
+  bail: (message: string) => never,
+  prefix: string,
+): asserts result is readonly [null, T] {
+  if (result[0]) {
+    bail(`${prefix}: ${stringifyError(result[0])}`);
+  }
+}
+
+function stringifyError(err: unknown): string {
+  if (err instanceof Error) {
+    return err.message;
+  }
+  return String(err);
+}

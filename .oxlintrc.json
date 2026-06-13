@@ -109,6 +109,7 @@
     },
     {
       "files": [
+        "**/commands/**",
         "**/handlers/**",
         "**/runtime/**",
         "**/lib/**",
