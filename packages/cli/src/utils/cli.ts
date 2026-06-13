@@ -1,11 +1,9 @@
 import * as fs from 'node:fs';
 
+import { type Result, safeParseJSON } from '@laufen/config';
 import { attempt } from 'es-toolkit';
 import * as path from 'pathe';
 import type { PackageJson } from 'type-fest';
-
-import type { Result } from '../lib/result.ts';
-import { safeParseJSON } from './json.ts';
 
 /**
  * Safely extract a human-readable message from an unknown caught value.

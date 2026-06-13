@@ -1,14 +1,13 @@
 import type { CommandContext } from '@kidd-cli/core';
 import { command } from '@kidd-cli/core';
+import { assertOk, loadAllLaufConfigs, safeLoadLaufConfigWithMeta } from '@laufen/config';
+import type { DiscoveredScript, Workspace } from '@laufen/config/workspace';
+import { discoverAllScripts, findScript } from '@laufen/config/workspace';
 import type { EnvContext, RunScriptOptions } from '@laufen/engine';
 import { resolveEnvValue, runScript } from '@laufen/engine';
 import { z } from 'zod';
 
-import { loadAllLaufConfigs, safeLoadLaufConfigWithMeta } from '../lib/config.ts';
 import { LAUF_ROOT } from '../lib/paths.ts';
-import { assertOk } from '../lib/result.ts';
-import { discoverAllScripts, findScript } from '../lib/workspace/scripts.ts';
-import type { DiscoveredScript, Workspace } from '../lib/workspace/types.ts';
 
 const positionals = z.object({
   script: z.string().optional().describe('Script name to show help for'),

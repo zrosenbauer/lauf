@@ -1,7 +1,6 @@
 import { decorateContext, middleware } from '@kidd-cli/core';
-
-import type { CachedWorkspaceState } from '../lib/workspace/index.ts';
-import { getWorkspaceState } from '../lib/workspace/index.ts';
+import type { CachedWorkspaceState } from '@laufen/config/workspace';
+import { getWorkspaceState } from '@laufen/config/workspace';
 
 type WorkspaceEnv = { Variables: { workspace: CachedWorkspaceState } };
 type Middleware<TEnv extends { Variables?: Record<string, unknown> }> = ReturnType<

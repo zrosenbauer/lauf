@@ -1,11 +1,10 @@
 import * as p from '@clack/prompts';
-import type { EnvFn, WatchConfig } from '@laufen/engine';
+import type { DefaultLogger, EnvFn, WatchConfig } from '@laufen/engine';
 import { loadConfig } from 'c12';
 import { attemptAsync } from 'es-toolkit';
 import { createJiti } from 'jiti';
 import { z } from 'zod';
 
-import type { DefaultLogger } from '../types.ts';
 import type { Result } from './result.ts';
 import {
   type Workspace,

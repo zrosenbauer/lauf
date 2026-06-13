@@ -1,14 +1,13 @@
 import { command } from '@kidd-cli/core';
+import type { LoadedConfig } from '@laufen/config';
+import { loadAllLaufConfigs, safeLoadLaufConfigWithMeta } from '@laufen/config';
+import type { CachedWorkspaceState, DiscoveredScript } from '@laufen/config/workspace';
+import { discoverWorkspaceScripts } from '@laufen/config/workspace';
 import { loadDescriptions } from '@laufen/engine';
 import picomatch from 'picomatch';
 import { z } from 'zod';
 
-import type { LoadedConfig } from '../lib/config.ts';
-import { loadAllLaufConfigs, safeLoadLaufConfigWithMeta } from '../lib/config.ts';
 import { LAUF_ROOT } from '../lib/paths.ts';
-import type { CachedWorkspaceState } from '../lib/workspace/index.ts';
-import { discoverWorkspaceScripts } from '../lib/workspace/scripts.ts';
-import type { DiscoveredScript } from '../lib/workspace/types.ts';
 import { buildScriptTree } from '../utils/tree.ts';
 
 const options = z.object({

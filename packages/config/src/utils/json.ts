@@ -1,7 +1,7 @@
 import { attempt } from 'es-toolkit';
 import type { z } from 'zod';
 
-import type { Result } from '../lib/result.ts';
+import type { Result } from '../result.ts';
 
 /**
  * Safely parse a JSON string and validate the result against a Zod schema.

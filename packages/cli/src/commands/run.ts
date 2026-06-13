@@ -1,6 +1,10 @@
 // oxlint-disable import/max-dependencies, max-lines
 import type { CommandContext } from '@kidd-cli/core';
 import { command } from '@kidd-cli/core';
+import type { ResolvedLaufConfig, Result } from '@laufen/config';
+import { assertOk, loadAllLaufConfigs, safeLoadLaufConfigWithMeta } from '@laufen/config';
+import type { CachedWorkspaceState, DiscoveredScript, Workspace } from '@laufen/config/workspace';
+import { discoverAllScripts, findScript } from '@laufen/config/workspace';
 import type {
   EnvContext,
   RunResult,
@@ -13,15 +17,8 @@ import { extractPackages, generatePackageTypes, resolveEnvValue, runScript } fro
 import { attemptAsync } from 'es-toolkit';
 import { z } from 'zod';
 
-import type { ResolvedLaufConfig } from '../lib/config.ts';
-import { loadAllLaufConfigs, safeLoadLaufConfigWithMeta } from '../lib/config.ts';
 import { LAUF_ROOT } from '../lib/paths.ts';
-import type { Result } from '../lib/result.ts';
-import { assertOk } from '../lib/result.ts';
 import { createWatcher, loadScriptWatchConfig, mergeWatchConfig } from '../lib/watcher.ts';
-import type { CachedWorkspaceState } from '../lib/workspace/index.ts';
-import { discoverAllScripts, findScript } from '../lib/workspace/scripts.ts';
-import type { DiscoveredScript, Workspace } from '../lib/workspace/types.ts';
 import { extractEnvFlags, parseRawArgs, sliceArgvAfter } from '../utils/argv.ts';
 import { safeParseError } from '../utils/cli.ts';
 

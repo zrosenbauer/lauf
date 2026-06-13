@@ -1,11 +1,10 @@
 import * as fs from 'node:fs';
 
 import { command } from '@kidd-cli/core';
+import { findNearestWorkspace, resolveRoot } from '@laufen/config/workspace';
 import { attempt } from 'massaman/control';
 import * as path from 'pathe';
 
-import { findNearestWorkspace } from '../lib/workspace/discovery.ts';
-import { resolveRoot } from '../lib/workspace/root.ts';
 import { configTemplate } from '../templates/config.ts';
 
 const MANIFEST_FILE = 'lauf.config.ts';

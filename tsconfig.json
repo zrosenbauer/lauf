@@ -1,4 +1,9 @@
 {
   "files": [],
-  "references": [{ "path": "packages/engine" }, { "path": "packages/laufen" }]
+  "references": [
+    { "path": "packages/engine" },
+    { "path": "packages/config" },
+    { "path": "packages/cli" },
+    { "path": "packages/laufen" }
+  ]
 }

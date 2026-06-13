@@ -64,7 +64,7 @@
   },
   "overrides": [
     {
-      "files": ["**/.vitepress/theme/**"],
+      "files": ["**/.vitepress/theme/**", "packages/laufen/bin/**"],
       "rules": {
         "import/no-unassigned-import": "off"
       }
@@ -117,7 +117,9 @@
         "**/state/**",
         "**/utils/**",
         "**/templates/**",
+        "**/workspace/**",
         "**/index.ts",
+        "packages/config/src/**",
         "packages/engine/src/**"
       ],
       "rules": {

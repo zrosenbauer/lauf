@@ -3,20 +3,17 @@ import * as fs from 'node:fs';
 
 import type { CommandContext } from '@kidd-cli/core';
 import { command } from '@kidd-cli/core';
+import { assertOk, safeLoadLaufConfigWithMeta } from '@laufen/config';
 import { attempt } from 'es-toolkit';
 import * as path from 'pathe';
 import { z } from 'zod';
 
-import { safeLoadLaufConfigWithMeta } from '../lib/config.ts';
-import { assertOk } from '../lib/result.ts';
-import { qualifyScriptName } from '../lib/workspace/index.ts';
-import type { Workspace } from '../lib/workspace/index.ts';
-import { scriptTemplate } from '../templates/script.ts';
-import { safeParseError } from '../utils/cli.ts';
+import { BLUEPRINTS, getBlueprintTemplate, isBlueprintName } from '../templates/blueprint.ts';
+import { readPackageJSON, safeParseError } from '../utils/cli.ts';
 import { safeMkdirSync } from '../utils/fs.ts';
 
 const positionals = z.object({
-  name: z.string().min(1).optional().describe('Name of the new script'),
+  name: z.string().min(1).optional().describe('Blueprint name (omit to list available)'),
 });
 
 const options = z.object({
@@ -24,15 +21,25 @@ const options = z.object({
 });
 
 /**
- * `lauf create [name]` — scaffold a new lauf script file.
+ * `lauf blueprint [name]` — list blueprints or scaffold one into the workspace.
  */
 export default command({
-  description: 'Create a new script',
+  description: 'Scaffold a pre-built script blueprint',
   positionals,
   options,
   // oxlint-disable-next-line max-lines-per-function
   handler: async (ctx) => {
-    const name = await resolveName(ctx, ctx.args.name);
+    const blueprintName = ctx.args.name;
+
+    if (!blueprintName) {
+      listBlueprints(ctx);
+      return;
+    }
+
+    if (!isBlueprintName(blueprintName)) {
+      ctx.fail(`Unknown blueprint: ${blueprintName}. Available: ${BLUEPRINTS.join(', ')}`);
+      return;
+    }
 
     const configResult = await safeLoadLaufConfigWithMeta(process.cwd());
     assertOk(configResult, ctx.fail, 'Failed to load lauf config');
@@ -48,8 +55,7 @@ export default command({
       ctx.fail(`Target directory escapes config root: ${normalizedTarget}`);
     }
 
-    const stem = name.replace(/\.ts$/, '');
-    const fileName = `${stem}.ts`;
+    const fileName = `${blueprintName}.ts`;
     const filePath = path.join(targetDir, fileName);
 
     const resolvedFilePath = path.resolve(filePath);
@@ -63,8 +69,12 @@ export default command({
       ctx.fail(`Failed to create directory ${targetDir}: ${mkdirError}`);
     }
 
+    const templateResult = getBlueprintTemplate(blueprintName);
+    assertOk(templateResult, ctx.fail, `Failed to load blueprint template "${blueprintName}"`);
+    const template = templateResult[1];
+
     const [writeError] = attempt(() =>
-      fs.writeFileSync(filePath, scriptTemplate(stem), { encoding: 'utf-8', flag: 'wx' }),
+      fs.writeFileSync(filePath, template, { encoding: 'utf-8', flag: 'wx' }),
     );
     if (writeError) {
       const nodeError = writeError as NodeJS.ErrnoException;
@@ -74,25 +84,23 @@ export default command({
       ctx.fail(`Failed to write ${filePath}: ${safeParseError(writeError)}`);
     }
 
-    const ownerWorkspace: Workspace | undefined = ctx.workspace.tree.workspaces.find(
-      (w) => path.resolve(w.dir) === path.resolve(loaded.configDir),
-    );
-    const qualifiedName = qualifyOwnedName(ownerWorkspace, stem);
+    const [, pkg] = readPackageJSON(loaded.configDir);
+    const packageName = (pkg && pkg.name) || path.basename(loaded.configDir);
 
     const relative = path.relative(loaded.configDir, filePath);
     ctx.log.success(`Created ${relative}`);
-    ctx.log.message(ctx.colors.dim(`Run it with: lauf run ${qualifiedName}`));
+    ctx.log.message(ctx.colors.dim(`Run it with: lauf run ${packageName}/${blueprintName}`));
   },
 });
 
-function resolveName(ctx: CommandContext, name: string | undefined): Promise<string> {
-  if (name) {
-    return Promise.resolve(name);
-  }
-  return ctx.prompts.text({
-    message: 'Enter a name for the new script',
-    placeholder: 'my-script',
+function listBlueprints(ctx: CommandContext): void {
+  ctx.log.message('Available blueprints:');
+  ctx.log.message('');
+  BLUEPRINTS.forEach((name) => {
+    ctx.log.message(ctx.colors.cyan(`  ${name}`));
   });
+  ctx.log.message('');
+  ctx.log.message(ctx.colors.dim('Usage: lauf blueprint <name>'));
 }
 
 function resolveTargetDir(dir: string | undefined, patterns: string[], configDir: string): string {
@@ -103,15 +111,24 @@ function resolveTargetDir(dir: string | undefined, patterns: string[], configDir
     return path.resolve(configDir, dir);
   }
   const firstPattern = patterns[0];
-  if (firstPattern) {
-    return path.resolve(process.cwd(), path.dirname(firstPattern));
+  if (!firstPattern) {
+    return path.resolve(configDir, 'scripts');
   }
-  return path.resolve(process.cwd(), 'scripts');
+  const baseDir = resolveGlobBase(firstPattern);
+  if (baseDir === '.') {
+    return path.resolve(configDir, 'scripts');
+  }
+  return path.resolve(configDir, baseDir);
 }
 
-function qualifyOwnedName(ownerWorkspace: Workspace | undefined, stem: string): string {
-  if (!ownerWorkspace) {
-    return stem;
+function resolveGlobBase(pattern: string): string {
+  const wildcardIndex = pattern.search(/[*?[\]{}]/);
+  if (wildcardIndex === -1) {
+    return path.dirname(pattern);
   }
-  return qualifyScriptName(ownerWorkspace, stem);
+  const staticPrefix = pattern.slice(0, wildcardIndex);
+  if (staticPrefix.endsWith('/') || staticPrefix.endsWith(path.sep)) {
+    return staticPrefix.slice(0, -1);
+  }
+  return path.dirname(staticPrefix);
 }

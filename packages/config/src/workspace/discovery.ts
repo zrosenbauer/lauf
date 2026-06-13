@@ -4,7 +4,7 @@ import { attempt } from 'es-toolkit';
 import * as path from 'pathe';
 import { globSync } from 'tinyglobby';
 
-import { safeParseJSON } from '../../utils/json.ts';
+import { safeParseJSON } from '../utils/json.ts';
 import type { Workspace, WorkspaceRoot } from './types.ts';
 
 /**

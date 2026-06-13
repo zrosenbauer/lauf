@@ -1,8 +1,7 @@
+import type { DiscoveredScript } from '@laufen/config/workspace';
+import { ROOT_WORKSPACE_NAME } from '@laufen/config/workspace';
 import { groupBy } from 'es-toolkit';
 import pc from 'picocolors';
-
-import { ROOT_WORKSPACE_NAME } from '../lib/workspace/scripts.ts';
-import type { DiscoveredScript } from '../lib/workspace/types.ts';
 
 /**
  * Extract the script stem from a qualified name.
