@@ -111,6 +111,7 @@
       "files": [
         "**/commands/**",
         "**/handlers/**",
+        "**/middleware/**",
         "**/runtime/**",
         "**/lib/**",
         "**/state/**",

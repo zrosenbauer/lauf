@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// oxlint-disable import/max-dependencies
 import { fileURLToPath } from 'node:url';
 
 import { cli } from '@kidd-cli/core';
@@ -10,6 +11,7 @@ import info from './commands/info.ts';
 import init from './commands/init.ts';
 import list from './commands/list.ts';
 import run from './commands/run.ts';
+import { workspaceMiddleware } from './middleware/workspace.ts';
 import { readPackageJSON } from './utils/cli.ts';
 
 const pkgDir = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
@@ -26,6 +28,7 @@ await cli({
   name: 'lauf',
   version: pkg.version,
   description: 'Typed script runner for monorepos',
+  middleware: [workspaceMiddleware],
   commands: {
     init,
     list,

@@ -6,7 +6,7 @@ import { z } from 'zod';
 import type { LoadedConfig } from '../lib/config.ts';
 import { loadAllLaufConfigs, safeLoadLaufConfigWithMeta } from '../lib/config.ts';
 import { LAUF_ROOT } from '../lib/paths.ts';
-import { getWorkspaceState } from '../lib/workspace/index.ts';
+import type { CachedWorkspaceState } from '../lib/workspace/index.ts';
 import { discoverWorkspaceScripts } from '../lib/workspace/scripts.ts';
 import type { DiscoveredScript } from '../lib/workspace/types.ts';
 import { buildScriptTree } from '../utils/tree.ts';
@@ -25,8 +25,7 @@ export default command({
   description: 'List all available scripts',
   options,
   handler: async (ctx) => {
-    const wsState = getWorkspaceState(process.cwd());
-    const scripts = await collectScripts(ctx.args.all, ctx.args.filter, wsState);
+    const scripts = await collectScripts(ctx.args.all, ctx.args.filter, ctx.workspace);
 
     if (scripts.length === 0) {
       ctx.log.warn('No scripts found.');
@@ -35,7 +34,7 @@ export default command({
     }
 
     const descriptions = await loadDescriptions(scripts, {
-      workspaceRoot: wsState.root.dir,
+      workspaceRoot: ctx.workspace.root.dir,
       cliPackageRoot: LAUF_ROOT,
     });
     const tree = buildScriptTree(scripts, descriptions);
@@ -46,7 +45,7 @@ export default command({
 async function collectScripts(
   all: boolean,
   filter: string | undefined,
-  wsState: ReturnType<typeof getWorkspaceState>,
+  wsState: CachedWorkspaceState,
 ): Promise<readonly DiscoveredScript[]> {
   if (filter !== undefined) {
     const configs = await loadAllLaufConfigs(process.cwd());

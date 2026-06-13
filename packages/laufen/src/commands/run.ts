@@ -19,7 +19,7 @@ import { LAUF_ROOT } from '../lib/paths.ts';
 import type { Result } from '../lib/result.ts';
 import { assertOk } from '../lib/result.ts';
 import { createWatcher, loadScriptWatchConfig, mergeWatchConfig } from '../lib/watcher.ts';
-import { getWorkspaceState } from '../lib/workspace/index.ts';
+import type { CachedWorkspaceState } from '../lib/workspace/index.ts';
 import { discoverAllScripts, findScript } from '../lib/workspace/scripts.ts';
 import type { DiscoveredScript, Workspace } from '../lib/workspace/types.ts';
 import { extractEnvFlags, parseRawArgs, sliceArgvAfter } from '../utils/argv.ts';
@@ -51,7 +51,7 @@ export default command({
     assertOk(configResult, ctx.fail, 'Failed to load lauf config');
     const loaded = configResult[1];
 
-    const wsState = getWorkspaceState(process.cwd());
+    const wsState = ctx.workspace;
     const currentWorkspaceDir = wsState.current && wsState.current.dir;
 
     const script = await resolveTarget(ctx, ctx.args.script, currentWorkspaceDir);
@@ -138,7 +138,7 @@ async function resolveTarget(
   scriptName: string | undefined,
   currentWorkspaceDir: string | undefined,
 ): Promise<DiscoveredScript> {
-  const wsState = getWorkspaceState(process.cwd());
+  const wsState = ctx.workspace;
   const configs = await loadAllLaufConfigs(process.cwd());
 
   const workspacePairs: (readonly [Workspace, readonly string[]])[] = wsState.tree.workspaces.map(
@@ -205,7 +205,7 @@ function resolvePatterns(
 
 function collectInteractiveScripts(
   workspacePairs: readonly (readonly [Workspace, readonly string[]])[],
-  root: ReturnType<typeof getWorkspaceState>['root'],
+  root: CachedWorkspaceState['root'],
   currentWorkspaceDir: string | undefined,
 ): readonly DiscoveredScript[] {
   if (currentWorkspaceDir) {

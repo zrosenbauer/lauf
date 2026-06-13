@@ -7,7 +7,6 @@ import { z } from 'zod';
 import { loadAllLaufConfigs, safeLoadLaufConfigWithMeta } from '../lib/config.ts';
 import { LAUF_ROOT } from '../lib/paths.ts';
 import { assertOk } from '../lib/result.ts';
-import { getWorkspaceState } from '../lib/workspace/index.ts';
 import { discoverAllScripts, findScript } from '../lib/workspace/scripts.ts';
 import type { DiscoveredScript, Workspace } from '../lib/workspace/types.ts';
 
@@ -31,7 +30,7 @@ export default command({
 
     const script = await resolveTarget(ctx, ctx.args.script);
 
-    const workspaceRoot = getWorkspaceState(process.cwd()).root.dir;
+    const workspaceRoot = ctx.workspace.root.dir;
     const envCtx: EnvContext = {
       script: { name: script.name, path: script.path, packageDir: script.packageDir },
       workspace: workspaceRoot,
@@ -62,7 +61,7 @@ async function resolveTarget(
   ctx: CommandContext,
   scriptName: string | undefined,
 ): Promise<DiscoveredScript> {
-  const wsState = getWorkspaceState(process.cwd());
+  const wsState = ctx.workspace;
   const configs = await loadAllLaufConfigs(process.cwd());
 
   const workspacePairs: (readonly [Workspace, readonly string[]])[] = wsState.tree.workspaces.map(

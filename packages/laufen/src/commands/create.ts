@@ -9,7 +9,7 @@ import { z } from 'zod';
 
 import { safeLoadLaufConfigWithMeta } from '../lib/config.ts';
 import { assertOk } from '../lib/result.ts';
-import { getWorkspaceState, qualifyScriptName } from '../lib/workspace/index.ts';
+import { qualifyScriptName } from '../lib/workspace/index.ts';
 import type { Workspace } from '../lib/workspace/index.ts';
 import { scriptTemplate } from '../templates/script.ts';
 import { safeParseError } from '../utils/cli.ts';
@@ -74,8 +74,7 @@ export default command({
       ctx.fail(`Failed to write ${filePath}: ${safeParseError(writeError)}`);
     }
 
-    const wsState = getWorkspaceState(process.cwd());
-    const ownerWorkspace: Workspace | undefined = wsState.tree.workspaces.find(
+    const ownerWorkspace: Workspace | undefined = ctx.workspace.tree.workspaces.find(
       (w) => path.resolve(w.dir) === path.resolve(loaded.configDir),
     );
     const qualifiedName = qualifyOwnedName(ownerWorkspace, stem);
