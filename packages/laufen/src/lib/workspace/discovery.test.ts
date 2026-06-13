@@ -1,6 +1,6 @@
 import * as fs from 'node:fs';
 
-import fg from 'fast-glob';
+import { globSync } from 'tinyglobby';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('node:fs', () => ({
@@ -8,10 +8,8 @@ vi.mock('node:fs', () => ({
   readFileSync: vi.fn(() => ''),
 }));
 
-vi.mock('fast-glob', () => ({
-  default: {
-    sync: vi.fn(() => []),
-  },
+vi.mock('tinyglobby', () => ({
+  globSync: vi.fn(() => []),
 }));
 
 vi.mock('../../utils/json.ts', () => ({
@@ -39,14 +37,14 @@ afterEach(() => {
 
 describe('discoverWorkspaces', () => {
   it('returns empty array when no configs found', () => {
-    vi.mocked(fg.sync).mockReturnValue([]);
+    vi.mocked(globSync).mockReturnValue([]);
 
     const result = discoverWorkspaces(ROOT);
     expect(result).toEqual([]);
   });
 
   it('discovers workspaces from lauf.config.ts files', () => {
-    vi.mocked(fg.sync).mockReturnValue([
+    vi.mocked(globSync).mockReturnValue([
       '/workspace/lauf.config.ts',
       '/workspace/packages/app/lauf.config.ts',
     ]);
@@ -72,7 +70,7 @@ describe('discoverWorkspaces', () => {
   });
 
   it('deduplicates preferring lauf over laufen in same directory', () => {
-    vi.mocked(fg.sync).mockReturnValue([
+    vi.mocked(globSync).mockReturnValue([
       '/workspace/laufen.config.ts',
       '/workspace/lauf.config.ts',
     ]);
@@ -84,7 +82,7 @@ describe('discoverWorkspaces', () => {
   });
 
   it('sorts by depth with shallowest first', () => {
-    vi.mocked(fg.sync).mockReturnValue([
+    vi.mocked(globSync).mockReturnValue([
       '/workspace/packages/app/deep/lauf.config.ts',
       '/workspace/lauf.config.ts',
       '/workspace/packages/lauf.config.ts',
@@ -99,7 +97,7 @@ describe('discoverWorkspaces', () => {
   });
 
   it('uses directory basename when no package.json found', () => {
-    vi.mocked(fg.sync).mockReturnValue(['/workspace/packages/my-app/lauf.config.ts']);
+    vi.mocked(globSync).mockReturnValue(['/workspace/packages/my-app/lauf.config.ts']);
     vi.mocked(fs.readFileSync).mockImplementation((p) => {
       const pathStr = String(p);
       if (pathStr.includes('package.json')) {

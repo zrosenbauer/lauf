@@ -1,4 +1,4 @@
-import * as path from 'node:path';
+import * as path from 'pathe';
 
 /**
  * Maximum number of parent directories to traverse before giving up.

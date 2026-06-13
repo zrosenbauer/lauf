@@ -1,11 +1,11 @@
 // oxlint-disable max-dependencies
 import { execFile } from 'node:child_process';
 import * as fs from 'node:fs';
-import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 
 import { attempt, attemptAsync } from 'es-toolkit';
+import * as path from 'pathe';
 import { z } from 'zod';
 
 import { bundleScripts } from './bundler.ts';

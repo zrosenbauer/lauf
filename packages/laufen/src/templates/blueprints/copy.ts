@@ -1,7 +1,7 @@
 import { glob as globNative } from 'node:fs/promises';
-import * as path from 'node:path';
 
 import { lauf, z } from 'laufen';
+import * as path from 'pathe';
 
 // Files to copy — edit the patterns below to match your project.
 // Paths are matched relative to the package root. Remove patterns you don't need.

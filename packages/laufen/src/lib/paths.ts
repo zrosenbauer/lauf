@@ -1,5 +1,6 @@
-import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import * as path from 'pathe';
 
 /**
  * Absolute path to the lauf package directory.

@@ -1,8 +1,8 @@
 import * as os from 'node:os';
-import * as path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { attemptAsync } from 'es-toolkit';
+import * as path from 'pathe';
 
 import type { ArgDefs, ScriptConfig } from './types.ts';
 import { safeParseJSON } from './utils/json.ts';

@@ -1,10 +1,10 @@
 import type { Stats } from 'node:fs';
-import { isAbsolute, relative } from 'node:path';
 
 import type { ArgDefs, ScriptConfig, WatchConfig } from '@laufen/engine';
 import { watch as chokidarWatch } from 'chokidar';
 import { attemptAsync } from 'es-toolkit';
 import { createJiti } from 'jiti';
+import { isAbsolute, relative } from 'pathe';
 import picomatch from 'picomatch';
 
 const DEFAULT_IGNORED: readonly string[] = [

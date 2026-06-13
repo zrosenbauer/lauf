@@ -1,4 +1,4 @@
-import * as path from 'node:path';
+import * as path from 'pathe';
 
 import type { Workspace } from './types.ts';
 

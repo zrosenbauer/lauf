@@ -1,7 +1,7 @@
 import * as fs from 'node:fs';
-import { join } from 'node:path';
 
 import { attempt } from 'es-toolkit';
+import { join } from 'pathe';
 
 import type { Result } from '../result.ts';
 

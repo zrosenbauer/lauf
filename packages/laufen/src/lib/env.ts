@@ -1,9 +1,9 @@
 import * as fs from 'node:fs/promises';
-import * as path from 'node:path';
 
 import type { EnvContext, EnvFn } from '@laufen/engine';
 import { parse } from 'dotenv';
 import { attemptAsync } from 'es-toolkit';
+import * as path from 'pathe';
 
 /**
  * Check whether an error represents a missing file (ENOENT).

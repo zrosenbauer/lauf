@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { attempt } from 'es-toolkit';
+import { dirname, join } from 'pathe';
 
 /**
  * Available blueprint names.

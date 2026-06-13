@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events';
-import * as path from 'node:path';
 
+import * as path from 'pathe';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { RunScriptOptions } from './runner.ts';

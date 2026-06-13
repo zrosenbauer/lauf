@@ -1,10 +1,8 @@
-import fg from 'fast-glob';
+import { globSync } from 'tinyglobby';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('fast-glob', () => ({
-  default: {
-    sync: vi.fn(() => []),
-  },
+vi.mock('tinyglobby', () => ({
+  globSync: vi.fn(() => []),
 }));
 
 import {
@@ -55,14 +53,14 @@ describe('qualifyScriptName', () => {
 
 describe('discoverWorkspaceScripts', () => {
   it('returns empty array when no files found', () => {
-    vi.mocked(fg.sync).mockReturnValue([]);
+    vi.mocked(globSync).mockReturnValue([]);
 
     const result = discoverWorkspaceScripts(APP_WS, ['scripts/*.ts'], ROOT);
     expect(result).toEqual([]);
   });
 
   it('discovers scripts in workspace', () => {
-    vi.mocked(fg.sync).mockReturnValue(['/workspace/packages/web/scripts/build.ts']);
+    vi.mocked(globSync).mockReturnValue(['/workspace/packages/web/scripts/build.ts']);
 
     const result = discoverWorkspaceScripts(APP_WS, ['scripts/*.ts'], ROOT);
     expect(result).toHaveLength(1);
@@ -75,7 +73,7 @@ describe('discoverWorkspaceScripts', () => {
   });
 
   it('produces bare names for root workspace scripts', () => {
-    vi.mocked(fg.sync).mockReturnValue(['/workspace/scripts/setup.ts']);
+    vi.mocked(globSync).mockReturnValue(['/workspace/scripts/setup.ts']);
 
     const result = discoverWorkspaceScripts(ROOT_WS, ['scripts/*.ts'], ROOT);
     expect(result).toHaveLength(1);
@@ -83,21 +81,21 @@ describe('discoverWorkspaceScripts', () => {
   });
 
   it('strips .lauf suffix from script names', () => {
-    vi.mocked(fg.sync).mockReturnValue(['/workspace/packages/web/scripts/deploy.lauf.ts']);
+    vi.mocked(globSync).mockReturnValue(['/workspace/packages/web/scripts/deploy.lauf.ts']);
 
     const result = discoverWorkspaceScripts(APP_WS, ['scripts/*.ts'], ROOT);
     expect(result[0]).toMatchObject({ name: '@apps/web/deploy' });
   });
 
   it('strips .laufen suffix from script names', () => {
-    vi.mocked(fg.sync).mockReturnValue(['/workspace/packages/web/scripts/deploy.laufen.ts']);
+    vi.mocked(globSync).mockReturnValue(['/workspace/packages/web/scripts/deploy.laufen.ts']);
 
     const result = discoverWorkspaceScripts(APP_WS, ['scripts/*.ts'], ROOT);
     expect(result[0]).toMatchObject({ name: '@apps/web/deploy' });
   });
 
   it('sorts scripts by name', () => {
-    vi.mocked(fg.sync).mockReturnValue([
+    vi.mocked(globSync).mockReturnValue([
       '/workspace/packages/web/scripts/zebra.ts',
       '/workspace/packages/web/scripts/alpha.ts',
     ]);
@@ -110,17 +108,17 @@ describe('discoverWorkspaceScripts', () => {
   it('rejects patterns starting with ..', () => {
     const result = discoverWorkspaceScripts(APP_WS, ['../../../etc/passwd'], ROOT);
     expect(result).toEqual([]);
-    expect(fg.sync).not.toHaveBeenCalled();
+    expect(globSync).not.toHaveBeenCalled();
   });
 
   it('rejects absolute path patterns', () => {
     const result = discoverWorkspaceScripts(APP_WS, ['/etc/passwd'], ROOT);
     expect(result).toEqual([]);
-    expect(fg.sync).not.toHaveBeenCalled();
+    expect(globSync).not.toHaveBeenCalled();
   });
 
   it('filters out scripts outside workspace root', () => {
-    vi.mocked(fg.sync).mockReturnValue([
+    vi.mocked(globSync).mockReturnValue([
       '/workspace/packages/web/scripts/build.ts',
       '/outside/workspace/scripts/evil.ts',
     ]);
@@ -133,7 +131,7 @@ describe('discoverWorkspaceScripts', () => {
 
 describe('discoverAllScripts', () => {
   it('discovers scripts across multiple workspaces', () => {
-    vi.mocked(fg.sync)
+    vi.mocked(globSync)
       .mockReturnValueOnce(['/workspace/scripts/setup.ts'])
       .mockReturnValueOnce(['/workspace/packages/web/scripts/build.ts']);
 
@@ -151,7 +149,7 @@ describe('discoverAllScripts', () => {
   });
 
   it('filters to specific workspace when workspaceDir provided', () => {
-    vi.mocked(fg.sync).mockReturnValue(['/workspace/packages/web/scripts/build.ts']);
+    vi.mocked(globSync).mockReturnValue(['/workspace/packages/web/scripts/build.ts']);
 
     const result = discoverAllScripts(
       [
@@ -164,13 +162,13 @@ describe('discoverAllScripts', () => {
 
     expect(result).toHaveLength(1);
     expect(result[0]).toMatchObject({ name: '@apps/web/build' });
-    expect(fg.sync).toHaveBeenCalledTimes(1);
+    expect(globSync).toHaveBeenCalledTimes(1);
   });
 });
 
 describe('findScript', () => {
   it('finds script by qualified name', () => {
-    vi.mocked(fg.sync)
+    vi.mocked(globSync)
       .mockReturnValueOnce(['/workspace/scripts/setup.ts'])
       .mockReturnValueOnce(['/workspace/packages/web/scripts/build.ts']);
 
@@ -184,7 +182,7 @@ describe('findScript', () => {
   });
 
   it('finds bare name in current workspace first', () => {
-    vi.mocked(fg.sync)
+    vi.mocked(globSync)
       .mockReturnValueOnce(['/workspace/scripts/preview.ts'])
       .mockReturnValueOnce(['/workspace/packages/web/scripts/preview.ts']);
 
@@ -201,7 +199,7 @@ describe('findScript', () => {
   });
 
   it('falls back to root script when bare name not in current workspace', () => {
-    vi.mocked(fg.sync)
+    vi.mocked(globSync)
       .mockReturnValueOnce(['/workspace/scripts/setup.ts'])
       .mockReturnValueOnce(['/workspace/packages/web/scripts/build.ts']);
 
@@ -215,7 +213,7 @@ describe('findScript', () => {
   });
 
   it('returns undefined when script not found', () => {
-    vi.mocked(fg.sync).mockReturnValue([]);
+    vi.mocked(globSync).mockReturnValue([]);
 
     const pairs: (readonly [Workspace, readonly string[]])[] = [[ROOT_WS, ['scripts/*.ts']]];
 
@@ -224,7 +222,7 @@ describe('findScript', () => {
   });
 
   it('searches all workspaces when currentWorkspace is undefined', () => {
-    vi.mocked(fg.sync).mockReturnValueOnce(['/workspace/scripts/setup.ts']);
+    vi.mocked(globSync).mockReturnValueOnce(['/workspace/scripts/setup.ts']);
 
     const pairs: (readonly [Workspace, readonly string[]])[] = [[ROOT_WS, ['scripts/*.ts']]];
 

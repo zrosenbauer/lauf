@@ -143,9 +143,6 @@ importers:
       es-toolkit:
         specifier: ^1.45.1
         version: 1.45.1
-      fast-glob:
-        specifier: ^3.3.3
-        version: 3.3.3
       ink:
         specifier: ^7.0.6
         version: 7.0.6(react@19.2.7)

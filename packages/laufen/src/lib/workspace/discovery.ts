@@ -1,8 +1,8 @@
 import * as fs from 'node:fs';
-import * as path from 'node:path';
 
 import { attempt } from 'es-toolkit';
-import fg from 'fast-glob';
+import * as path from 'pathe';
+import { globSync } from 'tinyglobby';
 
 import { safeParseJSON } from '../../utils/json.ts';
 import type { Workspace, WorkspaceRoot } from './types.ts';
@@ -70,7 +70,7 @@ function isRootConfig(configFile: string): boolean {
  * @returns All discovered workspaces, sorted by depth (shallowest first)
  */
 export function discoverWorkspaces(root: WorkspaceRoot): readonly Workspace[] {
-  const files = fg.sync(
+  const files = globSync(
     CONFIG_FILE_NAMES.map((name) => `**/${name}`),
     {
       cwd: root.dir,

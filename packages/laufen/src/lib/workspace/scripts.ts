@@ -1,8 +1,8 @@
 import * as fs from 'node:fs';
-import * as path from 'node:path';
 
 import { attempt } from 'es-toolkit';
-import fg from 'fast-glob';
+import * as path from 'pathe';
+import { globSync } from 'tinyglobby';
 
 import type { DiscoveredScript, Workspace, WorkspaceRoot } from './types.ts';
 
@@ -145,7 +145,7 @@ export function discoverWorkspaceScripts(
     return [];
   }
 
-  const files = fg.sync([...validPatterns], {
+  const files = globSync([...validPatterns], {
     cwd: workspace.dir,
     absolute: true,
     onlyFiles: true,

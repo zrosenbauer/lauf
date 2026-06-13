@@ -1,9 +1,9 @@
 import * as fs from 'node:fs';
 import * as os from 'node:os';
-import * as path from 'node:path';
 
 import { attempt, attemptAsync } from 'es-toolkit';
 import * as esbuild from 'esbuild';
+import * as path from 'pathe';
 
 import type { Result } from './result.ts';
 
