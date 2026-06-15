@@ -1,7 +1,6 @@
 import * as fs from 'node:fs';
 
-import type { Result } from '@laufen/config';
-import { attempt } from '@laufen/config';
+import { attempt, type Result } from 'massaman/control';
 
 /**
  * Safely create directories recursively.

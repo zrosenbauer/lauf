@@ -1,6 +1,6 @@
 import * as fs from 'node:fs';
 
-import { attempt, err, isErr, ok, type Result, safeParseJSON } from '@laufen/config';
+import { attempt, err, isErr, ok, type Result } from 'massaman/control';
 import * as path from 'pathe';
 import type { PackageJson } from 'type-fest';
 
@@ -27,7 +27,7 @@ export function readPackageJSON(dir: string): Result<PackageJson> {
     return err(read.error);
   }
 
-  const parsed = safeParseJSON(read.value);
+  const parsed = attempt(() => JSON.parse(read.value) as unknown);
   if (isErr(parsed)) {
     return err(parsed.error);
   }

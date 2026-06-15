@@ -1,8 +1,8 @@
 import * as fs from 'node:fs';
 
+import { attempt, isErr } from 'massaman/control';
 import * as path from 'pathe';
 
-import { attempt, isErr } from '../result.ts';
 import { safeParseJSON } from '../utils/json.ts';
 
 /**

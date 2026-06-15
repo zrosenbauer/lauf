@@ -1,8 +1,8 @@
 import * as fs from 'node:fs';
 
 import { command } from '@kidd-cli/core';
-import { attempt, isErr } from '@laufen/config';
 import { findNearestWorkspace, resolveRoot } from '@laufen/config/workspace';
+import { attempt, isErr } from 'massaman/control';
 import * as path from 'pathe';
 
 import { configTemplate } from '../templates/config.ts';

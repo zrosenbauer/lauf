@@ -1,7 +1,6 @@
+import type { Result } from 'massaman/control';
+import { attempt, err, ok } from 'massaman/control';
 import type { z } from 'zod';
-
-import type { Result } from '../result.ts';
-import { attempt, err, ok } from '../result.ts';
 
 /**
  * Safely parse a JSON string and validate the result against a Zod schema.

@@ -3,7 +3,8 @@ import * as fs from 'node:fs';
 
 import type { CommandContext } from '@kidd-cli/core';
 import { command } from '@kidd-cli/core';
-import { attempt, isErr, safeLoadLaufConfigWithMeta } from '@laufen/config';
+import { createConfigLoader } from '@laufen/config';
+import { attempt, isErr } from 'massaman/control';
 import * as path from 'pathe';
 import { z } from 'zod';
 
@@ -40,7 +41,7 @@ export default command({
       return;
     }
 
-    const configResult = await safeLoadLaufConfigWithMeta(process.cwd());
+    const configResult = await createConfigLoader().safeLoadWithMeta();
     if (isErr(configResult)) {
       ctx.fail(`Failed to load lauf config: ${configResult.error.message}`);
       return;

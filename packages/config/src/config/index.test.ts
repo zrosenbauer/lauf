@@ -42,13 +42,13 @@ vi.mock('@clack/prompts', () => ({
   },
 }));
 
-import {
-  loadAllLaufConfigs,
-  loadLaufConfig,
-  loadLaufConfigWithMeta,
-  safeLoadLaufConfig,
-  safeLoadLaufConfigWithMeta,
-} from './index.ts';
+import { createConfigLoader } from './index.ts';
+
+const loadLaufConfig = (cwd: string) => createConfigLoader({ cwd }).load();
+const loadLaufConfigWithMeta = (cwd: string) => createConfigLoader({ cwd }).loadWithMeta();
+const loadAllLaufConfigs = (cwd: string) => createConfigLoader({ cwd }).loadAll();
+const safeLoadLaufConfig = (cwd: string) => createConfigLoader({ cwd }).safeLoad();
+const safeLoadLaufConfigWithMeta = (cwd: string) => createConfigLoader({ cwd }).safeLoadWithMeta();
 
 const DEFAULTS = {
   root: false,

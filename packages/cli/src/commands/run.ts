@@ -1,8 +1,8 @@
 // oxlint-disable import/max-dependencies, max-lines
 import type { CommandContext } from '@kidd-cli/core';
 import { command } from '@kidd-cli/core';
-import type { ResolvedLaufConfig } from '@laufen/config';
-import { isErr, loadAllLaufConfigs, safeLoadLaufConfigWithMeta } from '@laufen/config';
+import type { ConfigLoader, ResolvedLaufConfig } from '@laufen/config';
+import { createConfigLoader } from '@laufen/config';
 import type { CachedWorkspaceState, DiscoveredScript, Workspace } from '@laufen/config/workspace';
 import { discoverAllScripts, findScript } from '@laufen/config/workspace';
 import type {
@@ -13,7 +13,7 @@ import type {
   WatchContext,
 } from '@laufen/engine';
 import { extractPackages, generatePackageTypes, resolveEnvValue, runScript } from '@laufen/engine';
-import { attemptAsync } from 'es-toolkit';
+import { attemptAsync, isErr } from 'massaman/control';
 import { z } from 'zod';
 
 import { LAUF_ROOT } from '../lib/paths.ts';
@@ -43,7 +43,9 @@ export default command({
   options,
   // oxlint-disable-next-line max-lines-per-function
   handler: async (ctx) => {
-    const configResult = await safeLoadLaufConfigWithMeta(process.cwd());
+    const configLoader = createConfigLoader();
+
+    const configResult = await configLoader.safeLoadWithMeta();
     if (isErr(configResult)) {
       ctx.fail(`Failed to load lauf config: ${configResult.error.message}`);
       return;
@@ -53,7 +55,7 @@ export default command({
     const wsState = ctx.workspace;
     const currentWorkspaceDir = wsState.current && wsState.current.dir;
 
-    const script = await resolveTarget(ctx, ctx.args.script, currentWorkspaceDir);
+    const script = await resolveTarget(ctx, configLoader, ctx.args.script, currentWorkspaceDir);
 
     const rawArgv = resolveRawArgv(ctx.args.script);
     const { env: cliEnv, remaining: cleanArgv } = extractEnvFlags(rawArgv);
@@ -140,11 +142,12 @@ export default command({
 
 async function resolveTarget(
   ctx: RunCtx,
+  configLoader: ConfigLoader,
   scriptName: string | undefined,
   currentWorkspaceDir: string | undefined,
 ): Promise<DiscoveredScript> {
   const wsState = ctx.workspace;
-  const configs = await loadAllLaufConfigs(process.cwd());
+  const configs = await configLoader.loadAll();
 
   const workspacePairs: (readonly [Workspace, readonly string[]])[] = wsState.tree.workspaces.map(
     (ws) => {
@@ -331,7 +334,7 @@ async function runWatchMode(
 
   let isRunning = false;
 
-  const [watcherError, watcher] = await attemptAsync(() =>
+  const watcherResult = await attemptAsync(() =>
     createWatcher(watchConfig, script.packageDir, (changedFiles) => {
       if (isRunning) {
         ctx.log.warn('Script still running, skipping rerun...');
@@ -368,9 +371,11 @@ async function runWatchMode(
     }),
   );
 
-  if (watcherError !== null || watcher === null) {
-    ctx.fail(`Failed to start file watcher: ${safeParseError(watcherError)}`);
+  if (isErr(watcherResult)) {
+    ctx.fail(`Failed to start file watcher: ${safeParseError(watcherResult.error)}`);
+    return;
   }
+  const watcher = watcherResult.value;
 
   ctx.log.info(`Watching: ${patterns.join(', ')}`);
 

@@ -3,9 +3,8 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 
 import type { EnvContext, EnvFn } from '@laufen/engine';
-
-import type { Result } from '../result.ts';
-import { attempt, attemptAsync, err, isErr, ok } from '../result.ts';
+import type { Result } from 'massaman/control';
+import { attempt, attemptAsync, err, isErr, ok } from 'massaman/control';
 
 const NOT_INSTALLED = new Error(
   'Infisical CLI not found. Install it from https://infisical.com/docs/cli/overview',

@@ -1,10 +1,12 @@
 import type { CommandContext } from '@kidd-cli/core';
 import { command } from '@kidd-cli/core';
-import { isErr, loadAllLaufConfigs, safeLoadLaufConfigWithMeta } from '@laufen/config';
+import type { ConfigLoader } from '@laufen/config';
+import { createConfigLoader } from '@laufen/config';
 import type { DiscoveredScript, Workspace } from '@laufen/config/workspace';
 import { discoverAllScripts, findScript } from '@laufen/config/workspace';
 import type { EnvContext, RunScriptOptions } from '@laufen/engine';
 import { resolveEnvValue, runScript } from '@laufen/engine';
+import { isErr } from 'massaman/control';
 import { z } from 'zod';
 
 import { LAUF_ROOT } from '../lib/paths.ts';
@@ -23,14 +25,16 @@ export default command({
   description: 'Show info for a script',
   positionals,
   handler: async (ctx) => {
-    const configResult = await safeLoadLaufConfigWithMeta(process.cwd());
+    const configLoader = createConfigLoader();
+
+    const configResult = await configLoader.safeLoadWithMeta();
     if (isErr(configResult)) {
       ctx.fail(`Failed to load lauf config: ${configResult.error.message}`);
       return;
     }
     const loaded = configResult.value;
 
-    const script = await resolveTarget(ctx, ctx.args.script);
+    const script = await resolveTarget(ctx, configLoader, ctx.args.script);
 
     const workspaceRoot = ctx.workspace.root.dir;
     const envCtx: EnvContext = {
@@ -63,10 +67,11 @@ export default command({
 
 async function resolveTarget(
   ctx: CommandContext,
+  configLoader: ConfigLoader,
   scriptName: string | undefined,
 ): Promise<DiscoveredScript> {
   const wsState = ctx.workspace;
-  const configs = await loadAllLaufConfigs(process.cwd());
+  const configs = await configLoader.loadAll();
 
   const workspacePairs: (readonly [Workspace, readonly string[]])[] = wsState.tree.workspaces.map(
     (ws) => {

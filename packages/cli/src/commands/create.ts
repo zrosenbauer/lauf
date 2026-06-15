@@ -3,9 +3,10 @@ import * as fs from 'node:fs';
 
 import type { CommandContext } from '@kidd-cli/core';
 import { command } from '@kidd-cli/core';
-import { attempt, isErr, safeLoadLaufConfigWithMeta } from '@laufen/config';
+import { createConfigLoader } from '@laufen/config';
 import type { Workspace } from '@laufen/config/workspace';
 import { qualifyScriptName } from '@laufen/config/workspace';
+import { attempt, isErr } from 'massaman/control';
 import * as path from 'pathe';
 import { z } from 'zod';
 
@@ -32,7 +33,7 @@ export default command({
   handler: async (ctx) => {
     const name = await resolveName(ctx, ctx.args.name);
 
-    const configResult = await safeLoadLaufConfigWithMeta(process.cwd());
+    const configResult = await createConfigLoader().safeLoadWithMeta();
     if (isErr(configResult)) {
       ctx.fail(`Failed to load lauf config: ${configResult.error.message}`);
       return;

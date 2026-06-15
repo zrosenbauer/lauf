@@ -1,8 +1,8 @@
 import type { WatchConfig } from '@laufen/engine';
+import type { Result } from 'massaman/control';
+import { err, ok } from 'massaman/control';
 import { z } from 'zod';
 
-import type { Result } from '../result.ts';
-import { err, ok } from '../result.ts';
 import type { ResolvedLaufConfig } from './types.ts';
 
 const loggerSchema = z

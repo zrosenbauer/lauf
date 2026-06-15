@@ -2,7 +2,7 @@ import * as fs from 'node:fs';
 
 import * as path from 'pathe';
 
-import { attempt, isErr } from '../../result.ts';
+import { attempt, isErr } from 'massaman/control';
 import type { DiscoveredScript, WorkspaceRoot } from '../types.ts';
 
 /**

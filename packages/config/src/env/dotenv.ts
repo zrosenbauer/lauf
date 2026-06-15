@@ -2,9 +2,8 @@ import * as fs from 'node:fs/promises';
 
 import type { EnvContext, EnvFn } from '@laufen/engine';
 import { parse } from 'dotenv';
+import { attempt, attemptAsync, isErr } from 'massaman/control';
 import * as path from 'pathe';
-
-import { attempt, attemptAsync, isErr } from '../result.ts';
 
 function resolveFiles(files: readonly string[]): readonly string[] {
   if (files.length === 0) {

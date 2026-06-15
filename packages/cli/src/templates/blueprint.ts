@@ -1,8 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-import type { Result } from '@laufen/config';
-import { attempt } from '@laufen/config';
+import { attempt, type Result } from 'massaman/control';
 import { dirname, join } from 'pathe';
 
 export const BLUEPRINTS = ['clean', 'copy'] as const;

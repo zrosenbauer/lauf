@@ -1,9 +1,10 @@
 import { command } from '@kidd-cli/core';
-import type { LoadedConfig } from '@laufen/config';
-import { isErr, loadAllLaufConfigs, safeLoadLaufConfigWithMeta } from '@laufen/config';
+import type { ConfigLoader, LoadedConfig } from '@laufen/config';
+import { createConfigLoader } from '@laufen/config';
 import type { CachedWorkspaceState, DiscoveredScript } from '@laufen/config/workspace';
 import { discoverWorkspaceScripts } from '@laufen/config/workspace';
 import { loadDescriptions } from '@laufen/engine';
+import { isErr } from 'massaman/control';
 import picomatch from 'picomatch';
 import { z } from 'zod';
 
@@ -24,7 +25,13 @@ export default command({
   description: 'List all available scripts',
   options,
   handler: async (ctx) => {
-    const scripts = await collectScripts(ctx.args.all, ctx.args.filter, ctx.workspace);
+    const configLoader = createConfigLoader();
+    const scripts = await collectScripts(
+      configLoader,
+      ctx.args.all,
+      ctx.args.filter,
+      ctx.workspace,
+    );
 
     if (scripts.length === 0) {
       ctx.log.warn('No scripts found.');
@@ -42,12 +49,13 @@ export default command({
 });
 
 async function collectScripts(
+  configLoader: ConfigLoader,
   all: boolean,
   filter: string | undefined,
   wsState: CachedWorkspaceState,
 ): Promise<readonly DiscoveredScript[]> {
   if (filter !== undefined) {
-    const configs = await loadAllLaufConfigs(process.cwd());
+    const configs = await configLoader.loadAll();
     const isMatch = picomatch(filter);
     return configs.flatMap((loaded: LoadedConfig) => {
       const ws = wsState.tree.workspaces.find((w) => w.dir === loaded.configDir);
@@ -59,7 +67,7 @@ async function collectScripts(
   }
 
   if (all) {
-    const configs = await loadAllLaufConfigs(process.cwd());
+    const configs = await configLoader.loadAll();
     return configs.flatMap((loaded: LoadedConfig) => {
       const ws = wsState.tree.workspaces.find((w) => w.dir === loaded.configDir);
       if (!ws) {
@@ -69,12 +77,11 @@ async function collectScripts(
     });
   }
 
-  // Default: current workspace
   if (!wsState.current) {
     return [];
   }
 
-  const loaded = await safeLoadLaufConfigWithMeta(process.cwd());
+  const loaded = await configLoader.safeLoadWithMeta();
   if (isErr(loaded)) {
     return [];
   }
