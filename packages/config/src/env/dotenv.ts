@@ -2,54 +2,10 @@ import * as fs from 'node:fs/promises';
 
 import type { EnvContext, EnvFn } from '@laufen/engine';
 import { parse } from 'dotenv';
-import { attemptAsync } from 'es-toolkit';
 import * as path from 'pathe';
 
-/**
- * Check whether an error represents a missing file (ENOENT).
- */
-function isFileNotFound(error: Error): boolean {
-  return 'code' in error && (error as NodeJS.ErrnoException).code === 'ENOENT';
-}
+import { attempt, attemptAsync, isErr } from '../result.ts';
 
-/**
- * Read a single env file and return its entries, or empty array on failure.
- *
- * Missing files (ENOENT) are silently skipped. Other read errors
- * (permissions, IO failures) emit a warning so they are not silently lost.
- */
-async function readEnvFileEntries(
-  filePath: string,
-): Promise<readonly (readonly [string, string])[]> {
-  const [readError, content] = await attemptAsync<string, Error>(() =>
-    fs.readFile(filePath, 'utf-8'),
-  );
-  if (readError) {
-    if (!isFileNotFound(readError)) {
-      console.warn(`Warning: Failed to read env file "${filePath}": ${readError.message}`);
-    }
-    return [];
-  }
-  if (content === null) {
-    return [];
-  }
-  return Object.entries(parse(content));
-}
-
-/**
- * Load environment variables from one or more `.env` files.
- *
- * Returns an {@link EnvFn} that, when called, reads and merges the given files.
- * Files are parsed using `dotenv.parse()`. Missing files are silently skipped.
- * When multiple files are provided, later files overwrite earlier ones.
- * Paths are resolved relative to `ctx.workspace`.
- *
- * @param files - Paths to `.env` files (defaults to `['.env']` when none provided)
- * @returns An EnvFn that resolves the merged environment variables
- */
-/**
- * Resolve file list, defaulting to `['.env']` when no files are provided.
- */
 function resolveFiles(files: readonly string[]): readonly string[] {
   if (files.length === 0) {
     return ['.env'];
@@ -57,12 +13,43 @@ function resolveFiles(files: readonly string[]): readonly string[] {
   return files;
 }
 
+function isFileNotFound(error: Error): boolean {
+  return 'code' in error && (error as NodeJS.ErrnoException).code === 'ENOENT';
+}
+
+async function readEnvFileEntries(
+  filePath: string,
+): Promise<readonly (readonly [string, string])[]> {
+  const readResult = await attemptAsync(() => fs.readFile(filePath, 'utf-8'));
+  if (isErr(readResult)) {
+    if (isFileNotFound(readResult.error)) {
+      return [];
+    }
+    throw readResult.error;
+  }
+  const parseResult = attempt(() => parse(readResult.value));
+  if (isErr(parseResult)) {
+    throw parseResult.error;
+  }
+  return Object.entries(parseResult.value);
+}
+
+/**
+ * Load environment variables from one or more `.env` files.
+ *
+ * Returns an {@link EnvFn} that reads and merges the given files when
+ * called. Missing files (ENOENT) are silently skipped; other read or
+ * parse failures reject so the engine surfaces them. Later files
+ * overwrite earlier ones. Paths resolve relative to `ctx.workspace`.
+ *
+ * @param files - `.env` paths (defaults to `['.env']`)
+ */
 export function dotenv(...files: readonly string[]): EnvFn {
   const resolved = resolveFiles(files);
 
   return async (ctx: EnvContext): Promise<Record<string, string>> => {
     const allEntries = await Promise.all(
-      resolved.map((file: string) => readEnvFileEntries(path.resolve(ctx.workspace, file))),
+      resolved.map((file) => readEnvFileEntries(path.resolve(ctx.workspace, file))),
     );
     return Object.fromEntries(allEntries.flat());
   };

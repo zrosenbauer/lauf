@@ -38,8 +38,7 @@ describe('safeParseError', () => {
   });
 
   it('converts objects to string', () => {
-    const result = safeParseError({ code: 'ERR' });
-    expect(result).toBe('[object Object]');
+    expect(safeParseError({ code: 'ERR' })).toBe('[object Object]');
   });
 
   it('extracts message from Error subclass', () => {
@@ -50,25 +49,25 @@ describe('safeParseError', () => {
 describe('readPackageJSON', () => {
   it('reads and parses a valid package.json', () => {
     vi.mocked(fs.readFileSync).mockReturnValue('{"name": "test-pkg", "version": "1.0.0"}');
-    const [error, pkg] = readPackageJSON('/some/dir');
-    expect(error).toBeNull();
-    expect(pkg).toEqual({ name: 'test-pkg', version: '1.0.0' });
+    const result = readPackageJSON('/some/dir');
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value).toEqual({ name: 'test-pkg', version: '1.0.0' });
+    }
   });
 
-  it('returns error when file cannot be read', () => {
+  it('returns err when file cannot be read', () => {
     vi.mocked(fs.readFileSync).mockImplementation(() => {
       throw new Error('ENOENT');
     });
-    const [error, pkg] = readPackageJSON('/missing/dir');
-    expect(error).not.toBeNull();
-    expect(pkg).toBeNull();
+    const result = readPackageJSON('/missing/dir');
+    expect(result.ok).toBe(false);
   });
 
-  it('returns error when JSON is invalid', () => {
+  it('returns err when JSON is invalid', () => {
     vi.mocked(fs.readFileSync).mockReturnValue('not json');
-    const [error, pkg] = readPackageJSON('/some/dir');
-    expect(error).not.toBeNull();
-    expect(pkg).toBeNull();
+    const result = readPackageJSON('/some/dir');
+    expect(result.ok).toBe(false);
   });
 
   it('reads from correct path', () => {

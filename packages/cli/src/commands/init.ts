@@ -1,8 +1,8 @@
 import * as fs from 'node:fs';
 
 import { command } from '@kidd-cli/core';
+import { attempt, isErr } from '@laufen/config';
 import { findNearestWorkspace, resolveRoot } from '@laufen/config/workspace';
-import { attempt } from 'massaman/control';
 import * as path from 'pathe';
 
 import { configTemplate } from '../templates/config.ts';
@@ -26,11 +26,11 @@ export default command({
 
     const filePath = path.join(cwd, MANIFEST_FILE);
 
-    const result = attempt(() =>
+    const written = attempt(() =>
       fs.writeFileSync(filePath, configTemplate(), { encoding: 'utf-8', flag: 'wx' }),
     );
-    if (!result.ok) {
-      const writeError = result.error as NodeJS.ErrnoException;
+    if (isErr(written)) {
+      const writeError = written.error as NodeJS.ErrnoException;
       if (writeError.code === 'EEXIST') {
         ctx.fail(`Already initialized: ${MANIFEST_FILE} already exists`);
       }

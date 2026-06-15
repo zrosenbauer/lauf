@@ -1,10 +1,11 @@
 import * as fs from 'node:fs';
 
-import { attempt } from 'es-toolkit';
+import type { Result } from '@laufen/config';
+import { attempt } from '@laufen/config';
 
 /**
- * Safely create directories recursively. Returns `[error, null]` or `[null, string | undefined]`.
+ * Safely create directories recursively.
  */
-export function safeMkdirSync(dirPath: string): [unknown, null] | [null, string | undefined] {
+export function safeMkdirSync(dirPath: string): Result<string | undefined> {
   return attempt(() => fs.mkdirSync(dirPath, { recursive: true }));
 }

@@ -17,27 +17,33 @@ afterEach(() => {
 });
 
 describe('safeMkdirSync', () => {
-  it('returns [null, path] on success', () => {
+  it('returns ok with path on success', () => {
     vi.mocked(fs.mkdirSync).mockReturnValue('/new/dir');
-    const [error, result] = safeMkdirSync('/new/dir');
-    expect(error).toBeNull();
-    expect(result).toBe('/new/dir');
+    const result = safeMkdirSync('/new/dir');
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value).toBe('/new/dir');
+    }
   });
 
-  it('returns [null, undefined] when directory already exists', () => {
+  it('returns ok with undefined when directory already exists', () => {
     vi.mocked(fs.mkdirSync).mockReturnValue(undefined);
-    const [error, result] = safeMkdirSync('/existing/dir');
-    expect(error).toBeNull();
-    expect(result).toBeUndefined();
+    const result = safeMkdirSync('/existing/dir');
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value).toBeUndefined();
+    }
   });
 
-  it('returns [error, null] when fs throws', () => {
+  it('returns err when fs throws', () => {
     vi.mocked(fs.mkdirSync).mockImplementation(() => {
       throw new Error('EACCES');
     });
-    const [error, result] = safeMkdirSync('/some/dir');
-    expect(error).toBeInstanceOf(Error);
-    expect(result).toBeNull();
+    const result = safeMkdirSync('/some/dir');
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toBeInstanceOf(Error);
+    }
   });
 
   it('passes recursive option to fs.mkdirSync', () => {

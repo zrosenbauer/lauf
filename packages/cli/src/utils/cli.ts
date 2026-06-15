@@ -1,22 +1,20 @@
 import * as fs from 'node:fs';
 
-import { type Result, safeParseJSON } from '@laufen/config';
-import { attempt } from 'es-toolkit';
+import { attempt, err, isErr, ok, type Result, safeParseJSON } from '@laufen/config';
 import * as path from 'pathe';
 import type { PackageJson } from 'type-fest';
 
 /**
  * Safely extract a human-readable message from an unknown caught value.
- * Handles `Error` instances, plain strings, and arbitrary values.
  */
-export function safeParseError(err: unknown): string {
-  if (err instanceof Error) {
-    return err.message;
+export function safeParseError(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
   }
-  if (typeof err === 'string') {
-    return err;
+  if (typeof error === 'string') {
+    return error;
   }
-  return String(err);
+  return String(error);
 }
 
 /**
@@ -24,15 +22,15 @@ export function safeParseError(err: unknown): string {
  */
 export function readPackageJSON(dir: string): Result<PackageJson> {
   const filePath = path.join(dir, 'package.json');
-  const [readError, content] = attempt<string, Error>(() => fs.readFileSync(filePath, 'utf-8'));
-  if (readError) {
-    return [readError, null];
+  const read = attempt(() => fs.readFileSync(filePath, 'utf-8'));
+  if (isErr(read)) {
+    return err(read.error);
   }
 
-  const [parseError, parsed] = safeParseJSON(content);
-  if (parseError) {
-    return [parseError, null];
+  const parsed = safeParseJSON(read.value);
+  if (isErr(parsed)) {
+    return err(parsed.error);
   }
 
-  return [null, parsed as PackageJson];
+  return ok(parsed.value as PackageJson);
 }

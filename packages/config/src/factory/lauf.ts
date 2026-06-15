@@ -1,12 +1,10 @@
 import type { ArgDefs, ScriptConfig } from '@laufen/engine';
 
-import type { LaufConfig } from './config.ts';
-
 /**
  * Define a lauf script with typed arguments and a run function.
  *
- * Identity function that gives full type inference for arguments and
- * the run context.
+ * Identity function — gives full type inference for arguments and the
+ * run context. The actual execution happens in the engine.
  *
  * @example
  * ```ts
@@ -27,23 +25,5 @@ import type { LaufConfig } from './config.ts';
 export function lauf<T extends ArgDefs = Record<string, never>>(
   config: ScriptConfig<T>,
 ): ScriptConfig<T> {
-  return config;
-}
-
-/**
- * Define a lauf configuration file. Identity function that gives type
- * inference for `lauf.config.ts`.
- *
- * @example
- * ```ts
- * import { defineConfig } from 'laufen'
- *
- * export default defineConfig({
- *   scripts: ['scripts/*.ts'],
- *   logger: myLogger,
- * })
- * ```
- */
-export function defineConfig(config: LaufConfig): LaufConfig {
   return config;
 }

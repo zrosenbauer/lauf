@@ -15,9 +15,9 @@ import { workspaceMiddleware } from './middleware/workspace.ts';
 import { readPackageJSON } from './utils/cli.ts';
 
 const pkgDir = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-const [pkgError, pkg] = readPackageJSON(pkgDir);
+const pkg = readPackageJSON(pkgDir);
 
-if (pkgError || pkg === null || !pkg.version) {
+if (!pkg.ok || !pkg.value.version) {
   process.stderr.write(
     'Fatal error, unable to execute lauf, please log an issue on github: https://github.com/zrosenbauer/lauf/issues\n',
   );
@@ -26,7 +26,7 @@ if (pkgError || pkg === null || !pkg.version) {
 
 await cli({
   name: 'lauf',
-  version: pkg.version,
+  version: pkg.value.version,
   description: 'Typed script runner for monorepos',
   middleware: [workspaceMiddleware],
   commands: {

@@ -22,7 +22,7 @@ vi.mock('../../utils/json.ts', () => ({
   }),
 }));
 
-import { discoverWorkspaces, findNearestWorkspace } from './discovery.ts';
+import { discoverWorkspaces, findNearestWorkspace } from './discover.ts';
 import type { WorkspaceRoot } from './types.ts';
 
 const ROOT: WorkspaceRoot = { dir: '/workspace', source: 'git' };

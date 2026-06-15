@@ -3,10 +3,9 @@ import * as fs from 'node:fs';
 
 import type { CommandContext } from '@kidd-cli/core';
 import { command } from '@kidd-cli/core';
-import { assertOk, safeLoadLaufConfigWithMeta } from '@laufen/config';
+import { attempt, isErr, safeLoadLaufConfigWithMeta } from '@laufen/config';
 import type { Workspace } from '@laufen/config/workspace';
 import { qualifyScriptName } from '@laufen/config/workspace';
-import { attempt } from 'es-toolkit';
 import * as path from 'pathe';
 import { z } from 'zod';
 
@@ -34,8 +33,11 @@ export default command({
     const name = await resolveName(ctx, ctx.args.name);
 
     const configResult = await safeLoadLaufConfigWithMeta(process.cwd());
-    assertOk(configResult, ctx.fail, 'Failed to load lauf config');
-    const loaded = configResult[1];
+    if (isErr(configResult)) {
+      ctx.fail(`Failed to load lauf config: ${configResult.error.message}`);
+      return;
+    }
+    const loaded = configResult.value;
 
     const targetDir = resolveTargetDir(ctx.args.dir, loaded.config.scripts, loaded.configDir);
     const normalizedTarget = path.normalize(targetDir);
@@ -57,20 +59,23 @@ export default command({
       ctx.fail(`File path escapes target directory: ${resolvedFilePath}`);
     }
 
-    const [mkdirError] = safeMkdirSync(targetDir);
-    if (mkdirError) {
-      ctx.fail(`Failed to create directory ${targetDir}: ${mkdirError}`);
+    const mkdir = safeMkdirSync(targetDir);
+    if (isErr(mkdir)) {
+      ctx.fail(`Failed to create directory ${targetDir}: ${safeParseError(mkdir.error)}`);
+      return;
     }
 
-    const [writeError] = attempt(() =>
+    const written = attempt(() =>
       fs.writeFileSync(filePath, scriptTemplate(stem), { encoding: 'utf-8', flag: 'wx' }),
     );
-    if (writeError) {
-      const nodeError = writeError as NodeJS.ErrnoException;
+    if (isErr(written)) {
+      const nodeError = written.error as NodeJS.ErrnoException;
       if (nodeError.code === 'EEXIST') {
         ctx.fail(`File already exists: ${filePath}`);
+        return;
       }
-      ctx.fail(`Failed to write ${filePath}: ${safeParseError(writeError)}`);
+      ctx.fail(`Failed to write ${filePath}: ${safeParseError(written.error)}`);
+      return;
     }
 
     const ownerWorkspace: Workspace | undefined = ctx.workspace.tree.workspaces.find(

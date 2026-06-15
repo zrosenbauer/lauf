@@ -1,6 +1,6 @@
 import type { CommandContext } from '@kidd-cli/core';
 import { command } from '@kidd-cli/core';
-import { assertOk, loadAllLaufConfigs, safeLoadLaufConfigWithMeta } from '@laufen/config';
+import { isErr, loadAllLaufConfigs, safeLoadLaufConfigWithMeta } from '@laufen/config';
 import type { DiscoveredScript, Workspace } from '@laufen/config/workspace';
 import { discoverAllScripts, findScript } from '@laufen/config/workspace';
 import type { EnvContext, RunScriptOptions } from '@laufen/engine';
@@ -24,8 +24,11 @@ export default command({
   positionals,
   handler: async (ctx) => {
     const configResult = await safeLoadLaufConfigWithMeta(process.cwd());
-    assertOk(configResult, ctx.fail, 'Failed to load lauf config');
-    const loaded = configResult[1];
+    if (isErr(configResult)) {
+      ctx.fail(`Failed to load lauf config: ${configResult.error.message}`);
+      return;
+    }
+    const loaded = configResult.value;
 
     const script = await resolveTarget(ctx, ctx.args.script);
 
@@ -35,9 +38,11 @@ export default command({
       workspace: workspaceRoot,
     };
 
-    const envResult = await resolveEnvValue(loaded.config.env, envCtx);
-    assertOk(envResult, ctx.fail, 'Failed to resolve config env');
-    const configEnv = envResult[1];
+    const [envError, configEnv] = await resolveEnvValue(loaded.config.env, envCtx);
+    if (envError) {
+      ctx.fail(`Failed to resolve config env: ${envError.message}`);
+      return;
+    }
 
     const options: RunScriptOptions = {
       help: true,

@@ -1,14 +1,13 @@
 // oxlint-disable import/max-dependencies, max-lines
 import type { CommandContext } from '@kidd-cli/core';
 import { command } from '@kidd-cli/core';
-import type { ResolvedLaufConfig, Result } from '@laufen/config';
-import { assertOk, loadAllLaufConfigs, safeLoadLaufConfigWithMeta } from '@laufen/config';
+import type { ResolvedLaufConfig } from '@laufen/config';
+import { isErr, loadAllLaufConfigs, safeLoadLaufConfigWithMeta } from '@laufen/config';
 import type { CachedWorkspaceState, DiscoveredScript, Workspace } from '@laufen/config/workspace';
 import { discoverAllScripts, findScript } from '@laufen/config/workspace';
 import type {
   EnvContext,
   RunResult,
-  ScriptConfig,
   ScriptTarget,
   WatchConfig,
   WatchContext,
@@ -45,8 +44,11 @@ export default command({
   // oxlint-disable-next-line max-lines-per-function
   handler: async (ctx) => {
     const configResult = await safeLoadLaufConfigWithMeta(process.cwd());
-    assertOk(configResult, ctx.fail, 'Failed to load lauf config');
-    const loaded = configResult[1];
+    if (isErr(configResult)) {
+      ctx.fail(`Failed to load lauf config: ${configResult.error.message}`);
+      return;
+    }
+    const loaded = configResult.value;
 
     const wsState = ctx.workspace;
     const currentWorkspaceDir = wsState.current && wsState.current.dir;
@@ -60,9 +62,15 @@ export default command({
     const scriptArgv = cleanArgv.filter((arg) => arg !== '--watch' && arg !== '-w');
     const workspaceRoot = wsState.root.dir;
 
-    const envResult = await resolveConfigEnv(loaded.config.env, script, workspaceRoot);
-    assertOk(envResult, ctx.fail, 'Failed to resolve config env');
-    const configEnv = envResult[1];
+    const envCtx: EnvContext = {
+      script: { name: script.name, path: script.path, packageDir: script.packageDir },
+      workspace: workspaceRoot,
+    };
+    const [envError, configEnv] = await resolveEnvValue(loaded.config.env, envCtx);
+    if (envError) {
+      ctx.fail(`Failed to resolve config env: ${safeParseError(envError)}`);
+      return;
+    }
 
     // Extract script-level packages for type generation (best-effort).
     const [extractError, scriptPackages] = await extractPackages(script.path);
@@ -164,18 +172,6 @@ async function resolveTarget(
     message: 'Select a script',
     options: scripts.map((s) => ({ value: s, label: s.name })),
   });
-}
-
-function resolveConfigEnv(
-  envValue: ScriptConfig['env'],
-  script: ScriptTarget,
-  workspaceRoot: string,
-): Promise<Result<Record<string, string>>> {
-  const envCtx: EnvContext = {
-    script: { name: script.name, path: script.path, packageDir: script.packageDir },
-    workspace: workspaceRoot,
-  };
-  return resolveEnvValue(envValue, envCtx);
 }
 
 const DISABLED_WATCH: WatchContext = {

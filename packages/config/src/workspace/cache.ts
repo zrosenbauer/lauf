@@ -1,4 +1,4 @@
-import { discoverWorkspaces } from './discovery.ts';
+import { discoverWorkspaces } from './discover.ts';
 import { resolveCurrentWorkspace } from './resolve.ts';
 import { resolveRoot } from './root.ts';
 import type { Workspace, WorkspaceRoot, WorkspaceTree } from './types.ts';

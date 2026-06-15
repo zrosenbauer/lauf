@@ -1,4 +1,4 @@
-// Re-export Zod for ergonomic `import { z } from 'laufen'` (via the meta package).
+// Zod re-export for ergonomic `import { z } from 'laufen'`.
 export { z } from 'zod';
 
 // Script-author types re-exported from the engine.
@@ -22,27 +22,26 @@ export type {
 } from '@laufen/engine';
 
 // Public factories.
-export { defineConfig, lauf } from './factory.ts';
+export { defineConfig, lauf } from './factory/index.ts';
 
-// Config loading API.
-export type { LaufConfig, LoadedConfig, ResolvedLaufConfig } from './config.ts';
+// Config types + loaders.
+export type { EnvValue, LaufConfig, LoadedConfig, ResolvedLaufConfig } from './config/index.ts';
 export {
   loadAllLaufConfigs,
   loadLaufConfig,
   loadLaufConfigWithMeta,
   safeLoadLaufConfig,
   safeLoadLaufConfigWithMeta,
-} from './config.ts';
+} from './config/index.ts';
 
 // Env helpers.
-export { dotenv } from './env.ts';
-export type { InfisicalConfig } from './infisical.ts';
-export { infisical } from './infisical.ts';
+export type { InfisicalConfig } from './env/index.ts';
+export { dotenv, infisical } from './env/index.ts';
 
-// Internal Result tuple type — exposed so downstream packages (cli, callers)
-// can keep a single shape for fallible operations.
-export type { HandlerError, HandlerResult, Result } from './result.ts';
-export { assertOk, fail, ok } from './result.ts';
+// Result primitives (re-exported from massaman/control) — exposed so
+// downstream packages keep a single shape for fallible operations.
+export type { Err, Ok, Result } from './result.ts';
+export { attempt, attemptAsync, err, isErr, isOk, ok, unwrap } from './result.ts';
 
-// JSON parsing helper used both internally and by the CLI for argv parsing.
+// JSON parsing helper used both internally and by the CLI.
 export { safeParseJSON } from './utils/json.ts';

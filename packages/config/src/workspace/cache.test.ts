@@ -4,7 +4,7 @@ vi.mock('./root.ts', () => ({
   resolveRoot: vi.fn(() => ({ dir: '/workspace', source: 'git' })),
 }));
 
-vi.mock('./discovery.ts', () => ({
+vi.mock('./discover.ts', () => ({
   discoverWorkspaces: vi.fn(() => [
     {
       name: '<root>',

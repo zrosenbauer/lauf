@@ -1,6 +1,6 @@
 import { command } from '@kidd-cli/core';
 import type { LoadedConfig } from '@laufen/config';
-import { loadAllLaufConfigs, safeLoadLaufConfigWithMeta } from '@laufen/config';
+import { isErr, loadAllLaufConfigs, safeLoadLaufConfigWithMeta } from '@laufen/config';
 import type { CachedWorkspaceState, DiscoveredScript } from '@laufen/config/workspace';
 import { discoverWorkspaceScripts } from '@laufen/config/workspace';
 import { loadDescriptions } from '@laufen/engine';
@@ -74,10 +74,10 @@ async function collectScripts(
     return [];
   }
 
-  const [configError, loaded] = await safeLoadLaufConfigWithMeta(process.cwd());
-  if (configError) {
+  const loaded = await safeLoadLaufConfigWithMeta(process.cwd());
+  if (isErr(loaded)) {
     return [];
   }
 
-  return discoverWorkspaceScripts(wsState.current, loaded.config.scripts, wsState.root);
+  return discoverWorkspaceScripts(wsState.current, loaded.value.config.scripts, wsState.root);
 }

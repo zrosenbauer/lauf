@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { Workspace, WorkspaceRoot } from './workspace/types.ts';
+import type { Workspace, WorkspaceRoot } from '../workspace/types.ts';
 
 const { mockLoadConfig } = vi.hoisted(() => ({
   mockLoadConfig: vi.fn(),
@@ -23,12 +23,12 @@ vi.mock('c12', () => ({
   loadConfig: mockLoadConfig,
 }));
 
-vi.mock('./workspace/discovery.ts', () => ({
+vi.mock('../workspace/discover.ts', () => ({
   findNearestWorkspace: mockFindNearestWorkspace,
   discoverWorkspaces: mockDiscoverWorkspaces,
 }));
 
-vi.mock('./workspace/root.ts', () => ({
+vi.mock('../workspace/root.ts', () => ({
   resolveRoot: mockResolveRoot,
 }));
 
@@ -48,7 +48,7 @@ import {
   loadLaufConfigWithMeta,
   safeLoadLaufConfig,
   safeLoadLaufConfigWithMeta,
-} from './config.ts';
+} from './index.ts';
 
 const DEFAULTS = {
   root: false,
@@ -301,71 +301,83 @@ describe('loadAllLaufConfigs', () => {
 });
 
 describe('safeLoadLaufConfig', () => {
-  it('returns [null, config] on success', async () => {
+  it('returns ok result with config on success', async () => {
     mockFindNearestWorkspace.mockReturnValue(WS_LAUF);
     mockLoadConfig.mockResolvedValueOnce({
       configFile: '/project/lauf.config.ts',
       config: VALID_CONFIG,
     });
 
-    const [error, config] = await safeLoadLaufConfig('/project');
-    expect(error).toBeNull();
-    expect(config).toEqual(VALID_CONFIG);
+    const result = await safeLoadLaufConfig('/project');
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value).toEqual(VALID_CONFIG);
+    }
   });
 
-  it('returns [error, null] when loadConfig throws Error', async () => {
+  it('returns err result when loadConfig throws Error', async () => {
     mockFindNearestWorkspace.mockReturnValue(WS_LAUF);
     mockLoadConfig.mockRejectedValueOnce(new Error('config load failed'));
 
-    const [error, config] = await safeLoadLaufConfig('/project');
-    expect(error).toBeInstanceOf(Error);
-    expect(config).toBeNull();
+    const result = await safeLoadLaufConfig('/project');
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toBeInstanceOf(Error);
+    }
   });
 
-  it('returns [error, null] when loadConfig throws non-Error value', async () => {
+  it('returns err result when loadConfig throws non-Error value', async () => {
     mockFindNearestWorkspace.mockReturnValue(WS_LAUF);
     mockLoadConfig.mockRejectedValueOnce('string rejection');
 
-    const [error, config] = await safeLoadLaufConfig('/project');
-    expect(error).toBeInstanceOf(Error);
-    expect((error as Error).message).toContain('string rejection');
-    expect(config).toBeNull();
+    const result = await safeLoadLaufConfig('/project');
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toBeInstanceOf(Error);
+      expect(result.error.message).toContain('string rejection');
+    }
   });
 });
 
 describe('safeLoadLaufConfigWithMeta', () => {
-  it('returns [null, loaded] on success', async () => {
+  it('returns ok result with loaded config on success', async () => {
     mockFindNearestWorkspace.mockReturnValue(WS_LAUF);
     mockLoadConfig.mockResolvedValueOnce({
       configFile: '/project/lauf.config.ts',
       config: VALID_CONFIG,
     });
 
-    const [error, loaded] = await safeLoadLaufConfigWithMeta('/project');
-    expect(error).toBeNull();
-    expect(loaded).toEqual({
-      config: VALID_CONFIG,
-      configFile: '/project/lauf.config.ts',
-      configDir: '/project',
-    });
+    const result = await safeLoadLaufConfigWithMeta('/project');
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value).toEqual({
+        config: VALID_CONFIG,
+        configFile: '/project/lauf.config.ts',
+        configDir: '/project',
+      });
+    }
   });
 
-  it('returns [error, null] when loading throws Error', async () => {
+  it('returns err result when loading throws Error', async () => {
     mockFindNearestWorkspace.mockReturnValue(WS_LAUF);
     mockLoadConfig.mockRejectedValueOnce(new Error('meta load failed'));
 
-    const [error, loaded] = await safeLoadLaufConfigWithMeta('/project');
-    expect(error).toBeInstanceOf(Error);
-    expect(loaded).toBeNull();
+    const result = await safeLoadLaufConfigWithMeta('/project');
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toBeInstanceOf(Error);
+    }
   });
 
-  it('returns [error, null] when loading throws non-Error value', async () => {
+  it('returns err result when loading throws non-Error value', async () => {
     mockFindNearestWorkspace.mockReturnValue(WS_LAUF);
     mockLoadConfig.mockRejectedValueOnce(42);
 
-    const [error, loaded] = await safeLoadLaufConfigWithMeta('/project');
-    expect(error).toBeInstanceOf(Error);
-    expect((error as Error).message).toContain('42');
-    expect(loaded).toBeNull();
+    const result = await safeLoadLaufConfigWithMeta('/project');
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toBeInstanceOf(Error);
+      expect(result.error.message).toContain('42');
+    }
   });
 });

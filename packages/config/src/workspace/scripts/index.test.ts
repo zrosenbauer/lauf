@@ -11,8 +11,8 @@ import {
   discoverWorkspaceScripts,
   findScript,
   qualifyScriptName,
-} from './scripts.ts';
-import type { Workspace, WorkspaceRoot } from './types.ts';
+} from './index.ts';
+import type { Workspace, WorkspaceRoot } from '../types.ts';
 
 const ROOT: WorkspaceRoot = { dir: '/workspace', source: 'git' };
 

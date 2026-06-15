@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
-import { defineConfig, lauf } from './factory.ts';
+import { defineConfig, lauf } from './index.ts';
 
 describe('lauf', () => {
   it('returns the config object as-is', () => {

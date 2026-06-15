@@ -1,12 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-import { attempt } from 'es-toolkit';
+import type { Result } from '@laufen/config';
+import { attempt } from '@laufen/config';
 import { dirname, join } from 'pathe';
 
-/**
- * Available blueprint names.
- */
 export const BLUEPRINTS = ['clean', 'copy'] as const;
 
 export type BlueprintName = (typeof BLUEPRINTS)[number];
@@ -14,16 +12,13 @@ export type BlueprintName = (typeof BLUEPRINTS)[number];
 const blueprintsDir = join(dirname(fileURLToPath(import.meta.url)), 'blueprints');
 
 /**
- * Get the content of a blueprint template as a Result tuple.
- * Returns [error, null] on failure, [null, content] on success.
+ * Read a blueprint template by name. Returns a Result so callers can
+ * surface filesystem failures cleanly.
  */
-export function getBlueprintTemplate(name: BlueprintName) {
+export function getBlueprintTemplate(name: BlueprintName): Result<string> {
   return attempt(() => readFileSync(join(blueprintsDir, `${name}.ts`), 'utf-8'));
 }
 
-/**
- * Check if a string is a valid blueprint name.
- */
 export function isBlueprintName(value: string): value is BlueprintName {
   return (BLUEPRINTS as readonly string[]).includes(value);
 }

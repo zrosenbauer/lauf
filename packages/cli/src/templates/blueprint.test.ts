@@ -22,36 +22,38 @@ describe('isBlueprintName', () => {
 
 describe('getBlueprintTemplate', () => {
   it('returns template content for clean blueprint', () => {
-    const [error, content] = getBlueprintTemplate('clean');
+    const result = getBlueprintTemplate('clean');
 
-    expect(error).toBeNull();
-    expect(content).toContain("import { lauf, z } from 'laufen'");
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value).toContain("import { lauf, z } from 'laufen'");
+    }
   });
 
   it('returns template content for copy blueprint', () => {
-    const [error, content] = getBlueprintTemplate('copy');
+    const result = getBlueprintTemplate('copy');
 
-    expect(error).toBeNull();
-    expect(content).toContain("import { lauf, z } from 'laufen'");
-  });
-
-  it('returns a result tuple on success', () => {
-    const result = getBlueprintTemplate('clean');
-
-    expect(Array.isArray(result)).toBe(true);
-    expect(result).toHaveLength(2);
-    expect(result[0]).toBeNull();
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value).toContain("import { lauf, z } from 'laufen'");
+    }
   });
 
   it('clean template includes BUILD_TARGETS constant', () => {
-    const [, content] = getBlueprintTemplate('clean');
+    const result = getBlueprintTemplate('clean');
 
-    expect(content).toContain('BUILD_TARGETS');
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value).toContain('BUILD_TARGETS');
+    }
   });
 
   it('copy template includes COPY_PATTERNS constant', () => {
-    const [, content] = getBlueprintTemplate('copy');
+    const result = getBlueprintTemplate('copy');
 
-    expect(content).toContain('COPY_PATTERNS');
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value).toContain('COPY_PATTERNS');
+    }
   });
 });
