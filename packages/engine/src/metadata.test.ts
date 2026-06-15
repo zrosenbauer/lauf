@@ -1,5 +1,4 @@
-import * as path from 'node:path';
-
+import * as path from 'pathe';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { mockExistsSync, mockBundleScripts, mockLogWarn, mockExecFileAsync, mockSafeParseJSON } =

@@ -1,7 +1,7 @@
 import * as fs from 'node:fs';
-import * as path from 'node:path';
 
 import { attempt } from 'es-toolkit';
+import * as path from 'pathe';
 
 import type { Result } from '../result.ts';
 import { ensureCacheDir, isCacheValid, resolveCacheDir, writePackageJson } from './cache.ts';

@@ -1,5 +1,6 @@
 import { copyFile, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
+
+import { dirname, resolve } from 'pathe';
 
 import type { FsHelpers } from './fs-types.ts';
 

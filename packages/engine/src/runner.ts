@@ -2,10 +2,10 @@
 import type { ChildProcess } from 'node:child_process';
 import { spawn } from 'node:child_process';
 import * as fs from 'node:fs';
-import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { attempt } from 'es-toolkit';
+import * as path from 'pathe';
 import { match } from 'ts-pattern';
 
 import { bundleScript } from './bundler.ts';

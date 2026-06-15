@@ -1,9 +1,9 @@
-// oxlint-disable import/max-dependencies
-import * as path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { cancel } from '@clack/prompts';
 import { attemptAsync } from 'es-toolkit';
+// oxlint-disable import/max-dependencies
+import * as path from 'pathe';
 import { z } from 'zod';
 
 import { createContext } from './context/index.ts';

@@ -1,7 +1,7 @@
 import { defineConfig } from 'tsdown';
 
 export default defineConfig({
-  entry: ['src/index.ts', 'src/lauf.ts'],
+  entry: ['src/lauf.ts'],
   outDir: 'dist',
   format: ['esm'],
   dts: true,
@@ -9,5 +9,4 @@ export default defineConfig({
   unbundle: false,
   platform: 'node',
   target: 'node22',
-  copy: [{ from: 'src/templates/blueprints/*', to: 'dist/blueprints' }],
 });

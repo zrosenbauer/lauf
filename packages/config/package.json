@@ -1,0 +1,61 @@
+{
+  "name": "@laufen/config",
+  "version": "1.3.1",
+  "description": "Config loading, workspace discovery, and the public lauf()/defineConfig() API",
+  "homepage": "https://github.com/zrosenbauer/lauf#readme",
+  "bugs": {
+    "url": "https://github.com/zrosenbauer/lauf/issues"
+  },
+  "license": "MIT",
+  "author": "Zac Rosenbauer",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zrosenbauer/lauf.git",
+    "directory": "packages/config"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    },
+    "./workspace": {
+      "types": "./dist/workspace.d.mts",
+      "import": "./dist/workspace.mjs"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@clack/prompts": "^1.1.0",
+    "@laufen/engine": "workspace:*",
+    "c12": "4.0.0-beta.4",
+    "dotenv": "^17.3.1",
+    "es-toolkit": "^1.45.1",
+    "jiti": "^2.6.1",
+    "massaman": "^0.3.0",
+    "pathe": "^2.0.3",
+    "tinyglobby": "^0.2.17",
+    "type-fest": "^5.4.4",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "@vitest/coverage-v8": "^4.1.0",
+    "tsdown": "^0.21.4",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.0"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}
